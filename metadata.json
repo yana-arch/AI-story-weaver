@@ -1,0 +1,5 @@
+{
+  "name": "AI Story Weaver",
+  "description": "An advanced web application that acts as a creative assistant, allowing authors to enrich their story chapters with AI-generated scenes. It features a detailed content navigation system for fine-tuning AI output and a flexible multi-API key management system to ensure an uninterrupted creative process.",
+  "requestFramePermissions": []
+}

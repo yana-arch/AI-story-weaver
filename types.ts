@@ -1,0 +1,55 @@
+
+export enum Scenario {
+  FIRST_TIME = "Lần đầu",
+  ENEMIES_TO_LOVERS = "Từ ghét thành yêu",
+  FRIENDS_TO_LOVERS = "Bạn bè thân thiết",
+  RECONCILIATION = "Gương vỡ lại lành",
+  BOLD_EXPLORATORY = "Bạo dạn & Khám phá",
+}
+
+export enum CharacterDynamics {
+  A_LEADS = "Nhân vật A chủ động, B bị động/ngượng ngùng",
+  BOTH_LEAD = "Cả hai cùng chủ động và mãnh liệt",
+  FOCUS_ON_A = "Tập trung vào nội tâm và cảm xúc của nhân vật A",
+  FOCUS_ON_B = "Tập trung vào nội tâm và cảm xúc của nhân vật B",
+}
+
+export enum Pacing {
+  SLOW = "Chậm: Tập trung xây dựng không khí, miêu tả chi tiết.",
+  MEDIUM = "Trung bình: Cân bằng giữa hành động và cảm xúc.",
+  FAST = "Nhanh: Đi thẳng vào hành động chính, tạo cảm giác dồn dập.",
+}
+
+export enum NSFWLevel {
+    SUBTLE = "Tinh tế",
+    SUGGESTIVE = "Gợi cảm",
+    EXPLICIT = "Tường tận",
+}
+
+export interface GenerationConfig {
+  scenario: Scenario;
+  dynamics: CharacterDynamics;
+  pacing: Pacing;
+  nsfwLevel: NSFWLevel;
+  avoidKeywords: string;
+  focusKeywords: string;
+}
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  key: string;
+}
+
+export interface StoryFile {
+  id: string;
+  name:string;
+  content: string;
+}
+
+export interface StorySegment {
+  id: string;
+  type: 'user' | 'ai';
+  content: string;
+  config?: GenerationConfig;
+}
