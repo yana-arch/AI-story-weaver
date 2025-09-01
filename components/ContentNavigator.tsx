@@ -1,8 +1,7 @@
-
 import React from 'react';
-import type { GenerationConfig } from '../types';
-import { Scenario, CharacterDynamics, Pacing, NSFWLevel } from '../types';
-import { WandIcon } from './icons';
+import type { GenerationConfig, CustomPrompt } from '../types';
+import { Scenario, CharacterDynamics, Pacing, AdultContentOptions, GenerationMode } from '../types';
+import { WandIcon, BookmarkIcon } from './icons';
 
 interface ContentNavigatorProps {
     config: GenerationConfig;
@@ -10,6 +9,10 @@ interface ContentNavigatorProps {
     onGenerate: () => void;
     isLoading: boolean;
     isGenerateDisabled: boolean;
+    customPrompts: CustomPrompt[];
+    selectedPromptIds: string[];
+    setSelectedPromptIds: React.Dispatch<React.SetStateAction<string[]>>;
+    onManagePrompts: () => void;
 }
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -46,7 +49,7 @@ const TextArea: React.FC<{ label: string; placeholder: string; value: string; on
 );
 
 
-export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled }) => {
+export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled, customPrompts, selectedPromptIds, setSelectedPromptIds, onManagePrompts }) => {
     
     const handleChange = <K extends keyof GenerationConfig,>(
         field: K,
@@ -55,22 +58,47 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
         setConfig(prev => ({ ...prev, [field]: value }));
     };
 
-    const nsfwLevelToNumber = (level: NSFWLevel): number => {
-        if (level === NSFWLevel.SUGGESTIVE) return 2;
-        if (level === NSFWLevel.EXPLICIT) return 3;
-        return 1; // SUBTLE
+    const handlePromptSelection = (id: string, isChecked: boolean) => {
+        setSelectedPromptIds(prev => {
+            if (isChecked) {
+                return [...prev, id];
+            } else {
+                return prev.filter(promptId => promptId !== id);
+            }
+        });
     };
 
-    const numberToNsfwLevel = (num: number): NSFWLevel => {
-        if (num === 2) return NSFWLevel.SUGGESTIVE;
-        if (num === 3) return NSFWLevel.EXPLICIT;
-        return NSFWLevel.SUBTLE;
+    const handleAdultContentSelection = (option: AdultContentOptions, isChecked: boolean) => {
+        setConfig(prev => {
+            const currentOptions = prev.adultContentOptions;
+            if (isChecked) {
+                return { ...prev, adultContentOptions: [...currentOptions, option] };
+            } else {
+                return { ...prev, adultContentOptions: currentOptions.filter(opt => opt !== option) };
+            }
+        });
     };
 
     return (
         <div className="h-full flex flex-col bg-gray-800 p-4 border-l border-gray-700">
             <h2 className="text-xl font-bold text-center mb-4 text-gray-100">Bảng điều khiển AI</h2>
             <div className="flex-grow overflow-y-auto pr-2 space-y-4">
+                 <Section title="Chế độ Sáng tạo">
+                    <div className="flex bg-gray-700 rounded-lg p-1">
+                        <button 
+                            onClick={() => handleChange('generationMode', GenerationMode.CONTINUE)}
+                            className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${config.generationMode === GenerationMode.CONTINUE ? 'bg-indigo-600 text-white' : 'hover:bg-gray-600'}`}
+                        >
+                            {GenerationMode.CONTINUE}
+                        </button>
+                         <button 
+                            onClick={() => handleChange('generationMode', GenerationMode.REWRITE)}
+                            className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${config.generationMode === GenerationMode.REWRITE ? 'bg-indigo-600 text-white' : 'hover:bg-gray-600'}`}
+                        >
+                            {GenerationMode.REWRITE}
+                        </button>
+                    </div>
+                 </Section>
                 <Section title="Kịch bản / Bối cảnh">
                     <Select 
                         label="Chọn một kịch bản phổ biến cho AI"
@@ -86,6 +114,28 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                         onChange={e => handleChange('dynamics', e.target.value as CharacterDynamics)}
                         options={Object.values(CharacterDynamics)}
                     />
+                </Section>
+                 <Section title="Yêu cầu tùy chỉnh">
+                    <button onClick={onManagePrompts} className="w-full flex justify-center items-center px-4 py-2 text-sm bg-gray-700 font-semibold rounded-md hover:bg-gray-600 transition-colors">
+                        <BookmarkIcon className="w-4 h-4 mr-2" />
+                        Quản lý yêu cầu
+                    </button>
+                    <div className="max-h-36 overflow-y-auto space-y-2 border-t border-gray-700 pt-3 mt-3">
+                        {customPrompts.length > 0 ? customPrompts.map(prompt => (
+                             <label key={prompt.id} htmlFor={`prompt-${prompt.id}`} className="flex items-center p-2 rounded-md hover:bg-gray-700/50 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    id={`prompt-${prompt.id}`}
+                                    checked={selectedPromptIds.includes(prompt.id)}
+                                    onChange={e => handlePromptSelection(prompt.id, e.target.checked)}
+                                    className="h-4 w-4 rounded bg-gray-900 border-gray-600 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <span className="ml-3 text-sm text-gray-300 select-none">{prompt.title}</span>
+                            </label>
+                        )) : (
+                            <p className="text-sm text-gray-500 text-center py-2">Chưa có yêu cầu tùy chỉnh nào.</p>
+                        )}
+                    </div>
                 </Section>
                  <Section title="Bộ lọc và Trọng tâm từ khóa">
                     <TextArea
@@ -109,20 +159,21 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                         options={Object.values(Pacing)}
                     />
                 </Section>
-                <Section title="Mức độ NSFW">
-                    <div className="flex flex-col">
-                        <label htmlFor="nsfw-slider" className="block text-sm font-medium text-gray-300 mb-1">Điều chỉnh mức độ chi tiết</label>
-                        <input
-                            id="nsfw-slider"
-                            type="range"
-                            min="1"
-                            max="3"
-                            step="1"
-                            value={nsfwLevelToNumber(config.nsfwLevel)}
-                            onChange={e => handleChange('nsfwLevel', numberToNsfwLevel(parseInt(e.target.value, 10)))}
-                            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                        />
-                        <div className="text-center text-sm text-gray-400 mt-1 font-semibold">{config.nsfwLevel}</div>
+                <Section title="Tùy chọn Nội dung 18+">
+                     <p className="text-xs text-gray-400 -mt-2 mb-2">Chọn các yếu tố cần tập trung. Bỏ trống để giữ SFW.</p>
+                    <div className="space-y-2">
+                        {Object.values(AdultContentOptions).map(option => (
+                             <label key={option} htmlFor={`adult-${option}`} className="flex items-center p-2 rounded-md hover:bg-gray-700/50 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    id={`adult-${option}`}
+                                    checked={config.adultContentOptions.includes(option)}
+                                    onChange={e => handleAdultContentSelection(option, e.target.checked)}
+                                    className="h-4 w-4 rounded bg-gray-900 border-gray-600 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <span className="ml-3 text-sm text-gray-300 select-none">{option}</span>
+                            </label>
+                        ))}
                     </div>
                 </Section>
             </div>

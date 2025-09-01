@@ -1,5 +1,3 @@
-
-// --- V1 CONFIG TYPES (OLD) ---
 export enum Scenario {
   FIRST_TIME = "Lần đầu",
   ENEMIES_TO_LOVERS = "Từ ghét thành yêu",
@@ -21,91 +19,36 @@ export enum Pacing {
   FAST = "Nhanh: Đi thẳng vào hành động chính, tạo cảm giác dồn dập.",
 }
 
-export enum NSFWLevel {
-    SUBTLE = "Tinh tế",
-    SUGGESTIVE = "Gợi cảm",
-    EXPLICIT = "Tường tận",
+export enum AdultContentOptions {
+    ROMANTIC_BUILDUP = "Xây dựng lãng mạn & Cảm xúc",
+    SENSUAL_DETAIL = "Miêu tả Gợi cảm & Tinh tế",
+    EXPLICIT_ACTION = "Hành động Tường tận & Trực tiếp",
+    DIALOGUE = "Đối thoại Táo bạo & Thân mật",
+    DOMINANCE_SUBMISSION = "Yếu tố Thống trị & Phục tùng",
 }
 
-export interface GenerationConfigV1 {
+export enum GenerationMode {
+    CONTINUE = "Viết tiếp câu chuyện",
+    REWRITE = "Viết lại và chèn vào",
+}
+
+export interface GenerationConfig {
   scenario: Scenario;
   dynamics: CharacterDynamics;
   pacing: Pacing;
-  nsfwLevel: NSFWLevel;
+  adultContentOptions: AdultContentOptions[];
   avoidKeywords: string;
   focusKeywords: string;
+  generationMode: GenerationMode;
 }
-
-
-// --- V2 ADVANCED SCENE MODE TYPES ---
-
-export enum WritingMode {
-    SCORCHING = "Scorching",
-    PASSIONATE = "Passionate",
-    GENTLE = "Gentle",
-}
-
-export enum PartnerType {
-    DOM_MALE = "Dominant/Male",
-    SUB_FEMALE = "Submissive/Female",
-    DOM_FEMALE = "Dominant/Female",
-    SUB_MALE = "Submissive/Male",
-}
-
-export enum SceneFramework {
-    CUMULATIVE = "Tăng tiến Tích lũy",
-    TWO_ACT = "Cấu trúc Hai hồi",
-    FLASHBACK = "Flashback/Flashforward",
-}
-
-export enum DeepeningDynamics {
-    PSYCHOLOGICAL = "Đấu tranh Tâm lý",
-    PHYSICAL_DOM = "Thống trị Thể chất",
-    POWER_SHIFT = "Chuyển đổi Quyền lực",
-}
-
-export interface AdvancedGenerationConfig {
-    // Config version identifier
-    version: 'v2';
-
-    // Checkboxes
-    anonymousScenario: boolean;
-    explicitDialogue: boolean;
-    audioDescription: boolean;
-
-    // Core Parameters
-    writingMode: WritingMode;
-    partnerType: PartnerType;
-    setting: string;
-    focusKeywords: string;
-    avoidKeywords: string;
-
-    // Structure and Dynamics
-    sceneFramework: SceneFramework;
-    deepeningDynamics: DeepeningDynamics;
-
-    // Building Blocks
-    userCustomizationLayer1: string;
-    baseCharacterInput: string;
-    buildingBlock1_AuthorityStatement: string;
-    buildingBlock2_BodyControl: string;
-    userCustomizableSegment2: string;
-    buildingBlock3_SensoryDetails: string;
-    buildingBlock4_Dialogue: string;
-    userCustomizableSegment3: string;
-    buildingBlock5_Climax: string;
-    buildingBlock6_Aftermath: string;
-}
-
-
-// --- COMMON TYPES ---
-
-export type GenerationConfig = GenerationConfigV1 | AdvancedGenerationConfig;
 
 export interface ApiKey {
   id: string;
   name: string;
   key: string;
+  isDefault?: boolean;
+  endpoint?: string;
+  modelId?: string;
 }
 
 export interface StoryFile {
@@ -119,4 +62,10 @@ export interface StorySegment {
   type: 'user' | 'ai';
   content: string;
   config?: GenerationConfig;
+}
+
+export interface CustomPrompt {
+  id: string;
+  title: string;
+  content: string;
 }

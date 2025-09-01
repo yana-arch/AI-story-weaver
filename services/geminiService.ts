@@ -1,98 +1,57 @@
-
 import { GoogleGenAI } from "@google/genai";
-import type { ApiKey, GenerationConfig, GenerationConfigV1, AdvancedGenerationConfig } from '../types';
+import type { ApiKey, GenerationConfig } from '../types';
+import { GenerationMode, AdultContentOptions } from '../types';
 
 interface GenerationResult {
     content: string;
     newKeyIndex: number;
 }
 
-function buildPrompt(storyContext: string, config: GenerationConfig): { systemInstruction: string, prompt: string } {
-    if ('version' in config && config.version === 'v2') {
-        // V2 Advanced Prompt
-        const advConfig = config as AdvancedGenerationConfig;
-        const systemInstruction = `Bạn là một trợ lý viết văn sáng tạo chuyên nghiệp, chuyên sâu về việc xây dựng các phân cảnh người lớn (18+) phức tạp và chi tiết. Nhiệm vụ của bạn là tạo ra một phân cảnh mới, liền mạch với câu chuyện hiện tại, dựa trên một bộ quy tắc và các khối xây dựng (building blocks) cực kỳ chi tiết do người dùng cung cấp. Hãy tuân thủ nghiêm ngặt cấu trúc và chỉ dẫn sau đây.`;
-
-        const prompt = `
---- BỐI CẢNH TRUYỆN HIỆN TẠI ---
-${storyContext}
-
---- CẤU HÌNH CHI TIẾT CHO PHÂN CẢNH 18+ (V2) ---
-
-**TÙY CHỌN BẬT/TẮT:**
-- Kịch bản Vô danh/Ba người: ${advConfig.anonymousScenario ? 'Bật' : 'Tắt'}
-- Hội thoại Tường thuật: ${advConfig.explicitDialogue ? 'Bật' : 'Tắt'}
-- Mô tả Âm thanh: ${advConfig.audioDescription ? 'Bật' : 'Tắt'}
-
-**THAM SỐ CỐT LÕI:**
-- Chế độ Viết: ${advConfig.writingMode}
-- Loại Đối tác: ${advConfig.partnerType}
-- Bối cảnh: ${advConfig.setting}
-- Từ khóa Tập trung: "${advConfig.focusKeywords}"
-- Từ khóa Tránh: "${advConfig.avoidKeywords}"
-
-**CẤU TRÚC & ĐỘNG LỰC:**
-- Khuôn khổ Cảnh: ${advConfig.sceneFramework}
-- Động lực Chiều sâu: ${advConfig.deepeningDynamics}
-
-**CÁC KHỐI XÂY DỰNG KỊCH BẢN:**
-Đây là các chỉ dẫn chi tiết, hãy bám sát và lồng ghép chúng một cách tự nhiên.
-
-[User Customization Layer #1]:
-${advConfig.userCustomizationLayer1 || '(Không có chỉ dẫn)'}
-
-[Base Character Input]:
-${advConfig.baseCharacterInput || 'Hành động và cảm xúc dựa trên bối cảnh truyện sẵn có.'}
-
-[Building Block #1: Authority Statement]:
-${advConfig.buildingBlock1_AuthorityStatement || '(Không có chỉ dẫn)'}
-
-[Building Block #2: Body Control]:
-${advConfig.buildingBlock2_BodyControl || '(Không có chỉ dẫn)'}
-
-[User Customizable Segment #2]:
-${advConfig.userCustomizableSegment2 || '(Không có chỉ dẫn)'}
-
-[Building Block #3: Sensory Details]:
-${advConfig.buildingBlock3_SensoryDetails || '(Không có chỉ dẫn)'}
-
-[Building Block #4: Dialogue]:
-${advConfig.buildingBlock4_Dialogue || '(Không có chỉ dẫn)'}
-
-[User Customizable Segment #3]:
-${advConfig.userCustomizableSegment3 || '(Không có chỉ dẫn)'}
-
-[Building Block #5: Climax]:
-${advConfig.buildingBlock5_Climax || '(Không có chỉ dẫn)'}
-
-[Building Block #6: Aftermath]:
-${advConfig.buildingBlock6_Aftermath || '(Không có chỉ dẫn)'}
-
---- NHIỆM VỤ CỦA BẠN ---
-Viết phân cảnh tiếp theo bằng tiếng Việt, tích hợp mượt mà vào bối cảnh truyện. Phân cảnh phải tuân thủ nghiêm ngặt **tất cả** các tham số, tùy chọn và khối xây dựng đã được định nghĩa ở trên. Chỉ cung cấp phân cảnh mới được tạo ra, không lặp lại bối cảnh.
-`;
-        return { systemInstruction, prompt };
-
+export async function testApiKey(apiKey: ApiKey): Promise<void> {
+    if (apiKey.endpoint && apiKey.modelId) {
+        // Test custom OpenAI-compatible endpoint
+        if (!apiKey.key) throw new Error("API key value is missing.");
+        
+        const response = await fetch(`${apiKey.endpoint}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey.key}`
+            },
+            body: JSON.stringify({
+                model: apiKey.modelId,
+                messages: [{ role: 'user', content: 'Say "OK"' }],
+                max_tokens: 5,
+                stream: false
+            })
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: response.statusText }));
+            throw new Error(`Test failed: ${errorData.error?.message || response.statusText}`);
+        }
+        const result = await response.json();
+        if (!result.choices || result.choices.length === 0) {
+          throw new Error(`Test failed: Invalid response structure.`);
+        }
     } else {
-        // V1 Basic Prompt
-        const v1Config = config as GenerationConfigV1;
-        const systemInstruction = `Bạn là một trợ lý viết văn sáng tạo đẳng cấp thế giới, chuyên về tiểu thuyết người lớn. Nhiệm vụ của bạn là tiếp nối đoạn truyện được cung cấp bằng cách viết một phân cảnh mới dựa trên định hướng sáng tạo cụ thể của người dùng. Phân cảnh phải được tích hợp một cách liền mạch với văn bản hiện có và được viết bằng tiếng Việt. Tuân thủ nghiêm ngặt các tham số sau.`;
-        const prompt = `
---- BỐI CẢNH TRUYỆN ---
-${storyContext}
+        // Test Google Gemini API
+        const effectiveApiKey = apiKey.id === 'default' 
+            ? (process.env.API_KEY || '')
+            : apiKey.key;
 
---- ĐỊNH HƯỚNG SÁNG TẠO ---
-- Kịch bản: ${v1Config.scenario}
-- Động lực nhân vật: ${v1Config.dynamics}
-- Nhịp độ: ${v1Config.pacing}
-- Mức độ NSFW: ${v1Config.nsfwLevel}
-- Từ khóa cần nhấn mạnh: "${v1Config.focusKeywords}"
-- Từ khóa cần tránh: "${v1Config.avoidKeywords}"
+        if (!effectiveApiKey) {
+            throw new Error("API key value is missing.");
+        }
 
---- NHIỆM VỤ CỦA BẠN ---
-Viết phân cảnh tiếp theo bằng tiếng Việt. Phân cảnh phải là sự tiếp nối tự nhiên của bối cảnh truyện, phù hợp với đối tượng 18+, và tuân thủ tất cả các định hướng sáng tạo đã được cung cấp ở trên. Không lặp lại bối cảnh. Chỉ cung cấp phân cảnh mới được tạo ra.
-`;
-        return { systemInstruction, prompt };
+        const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: 'Say "OK"',
+        });
+        const text = response.text;
+        if (!text || !text.includes('OK')) {
+            throw new Error("Test failed: Unexpected response from Gemini API.");
+        }
     }
 }
 
@@ -100,38 +59,130 @@ Viết phân cảnh tiếp theo bằng tiếng Việt. Phân cảnh phải là s
 export async function generateStorySegment(
     storyContext: string,
     config: GenerationConfig,
+    customPromptsContent: string[],
     apiKeys: ApiKey[],
     currentKeyIndex: number
 ): Promise<GenerationResult> {
     if (!apiKeys || apiKeys.length === 0) {
-        throw new Error("Không có API key nào được cung cấp. Vui lòng thêm API key trong phần cài đặt.");
+        throw new Error("Không có API key nào được cung cấp. Vui lòng thêm API key hoặc bật key mặc định trong phần cài đặt.");
     }
 
-    const { systemInstruction, prompt } = buildPrompt(storyContext, config);
+    let systemInstruction: string;
+    let userPrompt: string;
+    
+    const customPromptsSection = customPromptsContent.length > 0
+        ? `
+--- YÊU CẦU TÙY CHỈNH ---
+${customPromptsContent.map(p => `- ${p}`).join('\n')}`
+        : '';
+        
+    const adultContentSection = config.adultContentOptions.length > 0
+        ? `
+--- HƯỚNG DẪN NỘI DUNG 18+ ---
+${config.adultContentOptions.map(opt => `- Tập trung vào: ${opt}`).join('\n')}`
+        : `
+--- HƯỚNG DẪN NỘI DUNG 18+ ---
+- Giữ cho câu chuyện phù hợp với mọi lứa tuổi. Tránh mọi nội dung người lớn.`;
+
+    
+    const creativeDirection = `
+--- ĐỊNH HƯỚỚNG SÁNG TẠO ---
+- Kịch bản: ${config.scenario}
+- Động lực nhân vật: ${config.dynamics}
+- Nhịp độ: ${config.pacing}
+- Từ khóa cần nhấn mạnh: "${config.focusKeywords}"
+- Từ khóa cần tránh: "${config.avoidKeywords}"
+${adultContentSection}
+${customPromptsSection}`;
+
+    if (config.generationMode === GenerationMode.REWRITE) {
+        systemInstruction = `Bạn là một biên tập viên viết văn sáng tạo đẳng cấp thế giới, chuyên về tiểu thuyết người lớn. Nhiệm vụ của bạn là đọc và viết lại một đoạn truyện được cung cấp. Bạn phải phân tích văn bản, xác định những cơ hội tự nhiên để chèn các cảnh 18+ chi tiết, và sau đó viết lại toàn bộ đoạn văn, lồng ghép các cảnh mới này một cách liền mạch. Đầu ra cuối cùng phải là một văn bản duy nhất, mạch lạc bằng tiếng Việt.`;
+        userPrompt = `
+    --- NỘI DUNG GỐC CẦN VIẾT LẠI ---
+    ${storyContext}
+
+    ${creativeDirection}
+
+    --- NHIỆM VỤ CỦA BẠN ---
+    Viết lại toàn bộ câu chuyện được cung cấp ở trên bằng tiếng Việt. Bản viết lại của bạn phải kết hợp các cảnh 18+ chi tiết mới dựa trên định hướng sáng tạo. Các cảnh này nên được chèn vào những thời điểm thích hợp để tăng cường cốt truyện và phát triển nhân vật. Đừng chỉ nối thêm cảnh mới vào cuối. Kết quả cuối cùng phải là câu chuyện hoàn chỉnh đã được viết lại. Không thêm bất kỳ bình luận hay giải thích nào trước hoặc sau câu chuyện.`;
+
+    } else { // GenerationMode.CONTINUE
+        systemInstruction = `Bạn là một trợ lý viết văn sáng tạo đẳng cấp thế giới, chuyên về tiểu thuyết người lớn. Nhiệm vụ của bạn là tiếp nối đoạn truyện được cung cấp bằng cách viết một phân cảnh mới dựa trên định hướng sáng tạo cụ thể của người dùng. Phân cảnh phải được tích hợp một cách liền mạch với văn bản hiện có và được viết bằng tiếng Việt. Tuân thủ nghiêm ngặt các tham số sau.`;
+        userPrompt = `
+    --- BỐI CẢNH TRUYỆN ---
+    ${storyContext}
+
+    ${creativeDirection}
+
+    --- NHIỆM VỤ CỦA BẠN ---
+    Viết phân cảnh tiếp theo bằng tiếng Việt. Phân cảnh phải là sự tiếp nối tự nhiên của bối cảnh truyện, phù hợp với đối tượng 18+, và tuân thủ tất cả các định hướng sáng tạo và yêu cầu tùy chỉnh đã được cung cấp ở trên. Không lặp lại bối cảnh. Chỉ cung cấp phân cảnh mới được tạo ra.`;
+    }
+
 
     let keyIndex = currentKeyIndex;
     for (let i = 0; i < apiKeys.length; i++) {
         const apiKey = apiKeys[keyIndex];
         try {
-            const genAI = new GoogleGenAI(apiKey.key);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction });
-            const result = await model.generateContent(prompt);
-            const response = result.response;
-            const text = response.text();
+            let generatedText: string;
 
-            if (!text) {
+            if (apiKey.endpoint && apiKey.modelId) {
+                const response = await fetch(`${apiKey.endpoint}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey.key}`
+                    },
+                    body: JSON.stringify({
+                        model: apiKey.modelId,
+                        messages: [
+                            { role: 'system', content: systemInstruction },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        temperature: 0.95,
+                        top_p: 0.95,
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: response.statusText }));
+                    throw new Error(`API call failed: ${errorData.error?.message || response.statusText}`);
+                }
+                const result = await response.json();
+                generatedText = result.choices?.[0]?.message?.content;
+
+            } else {
+                const effectiveApiKey = apiKey.id === 'default' 
+                    ? (process.env.API_KEY || '')
+                    : apiKey.key;
+
+                if (!effectiveApiKey) {
+                    console.warn(`API key for "${apiKey.name}" is missing. Skipping.`);
+                    keyIndex = (keyIndex + 1) % apiKeys.length;
+                    continue;
+                }
+
+                const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: userPrompt,
+                    config: {
+                        systemInstruction: systemInstruction,
+                        temperature: 0.95,
+                        topP: 0.95,
+                    }
+                });
+                generatedText = response.text;
+            }
+
+            if (!generatedText) {
               throw new Error("Nhận được phản hồi trống từ API.");
             }
-            return { content: text, newKeyIndex: keyIndex };
-        } catch (error: any) {
+            return { content: generatedText, newKeyIndex: keyIndex };
+        } catch (error) {
             console.warn(`API call with key "${apiKey.name}" failed.`, error);
-            // Specific check for blocked content
-            if (error.toString().includes('SAFETY')) {
-                 throw new Error(`Nội dung bị chặn bởi bộ lọc an toàn của Google với key "${apiKey.name}". Hãy thử một key khác hoặc điều chỉnh lại prompt.`);
-            }
             keyIndex = (keyIndex + 1) % apiKeys.length;
         }
     }
 
-    throw new Error("Tất cả các API key đều thất bại. Vui lòng kiểm tra lại key, kết nối mạng, hoặc nội dung bạn yêu cầu có thể đã bị chặn.");
+    throw new Error("Tất cả các API key đều thất bại. Vui lòng kiểm tra lại key hoặc kết nối mạng của bạn.");
 }
