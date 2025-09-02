@@ -33,9 +33,9 @@ export enum GenerationMode {
 }
 
 export interface GenerationConfig {
-  scenario: Scenario;
-  dynamics: CharacterDynamics;
-  pacing: Pacing;
+  scenario: string;
+  dynamics: string;
+  pacing: string;
   adultContentOptions: AdultContentOptions[];
   avoidKeywords: string;
   focusKeywords: string;

@@ -1,7 +1,7 @@
 import React from 'react';
 import type { GenerationConfig, CustomPrompt } from '../types';
 import { Scenario, CharacterDynamics, Pacing, AdultContentOptions, GenerationMode } from '../types';
-import { WandIcon, BookmarkIcon } from './icons';
+import { WandIcon, BookmarkIcon, UploadIcon, DownloadIcon } from './icons';
 
 interface ContentNavigatorProps {
     config: GenerationConfig;
@@ -13,6 +13,8 @@ interface ContentNavigatorProps {
     selectedPromptIds: string[];
     setSelectedPromptIds: React.Dispatch<React.SetStateAction<string[]>>;
     onManagePrompts: () => void;
+    onExportConfig?: () => void;
+    onImportConfig?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -22,16 +24,25 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
     </div>
 );
 
-const Select: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; options: string[] }> = ({ label, value, onChange, options }) => (
+const ComboboxInput: React.FC<{
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  options: string[];
+  dataListId: string;
+}> = ({ label, value, onChange, options, dataListId }) => (
     <div>
         <label className="block text-sm font-medium text-gray-300 mb-1">{label}</label>
-        <select
+        <input
+            type="text"
+            list={dataListId}
             value={value}
             onChange={onChange}
             className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-            {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-        </select>
+        />
+        <datalist id={dataListId}>
+            {options.map(opt => <option key={opt} value={opt} />)}
+        </datalist>
     </div>
 );
 
@@ -49,7 +60,7 @@ const TextArea: React.FC<{ label: string; placeholder: string; value: string; on
 );
 
 
-export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled, customPrompts, selectedPromptIds, setSelectedPromptIds, onManagePrompts }) => {
+export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled, customPrompts, selectedPromptIds, setSelectedPromptIds, onManagePrompts, onExportConfig, onImportConfig }) => {
     
     const handleChange = <K extends keyof GenerationConfig,>(
         field: K,
@@ -100,19 +111,21 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                     </div>
                  </Section>
                 <Section title="Kịch bản / Bối cảnh">
-                    <Select 
-                        label="Chọn một kịch bản phổ biến cho AI"
+                    <ComboboxInput 
+                        label="Chọn kịch bản hoặc nhập tùy chỉnh"
                         value={config.scenario}
-                        onChange={e => handleChange('scenario', e.target.value as Scenario)}
+                        onChange={e => handleChange('scenario', e.target.value)}
                         options={Object.values(Scenario)}
+                        dataListId="scenario-options"
                     />
                 </Section>
                 <Section title="Động lực nhân vật">
-                    <Select 
-                        label="Ai là người dẫn dắt phân cảnh?"
+                    <ComboboxInput 
+                        label="Ai là người dẫn dắt hoặc nhập tùy chỉnh"
                         value={config.dynamics}
-                        onChange={e => handleChange('dynamics', e.target.value as CharacterDynamics)}
+                        onChange={e => handleChange('dynamics', e.target.value)}
                         options={Object.values(CharacterDynamics)}
+                        dataListId="dynamics-options"
                     />
                 </Section>
                  <Section title="Yêu cầu tùy chỉnh">
@@ -152,11 +165,12 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                     />
                 </Section>
                 <Section title="Thiết lập nhịp độ">
-                    <Select 
-                        label="Đặt nhịp độ cho phân cảnh"
+                    <ComboboxInput 
+                        label="Đặt nhịp độ hoặc nhập tùy chỉnh"
                         value={config.pacing}
-                        onChange={e => handleChange('pacing', e.target.value as Pacing)}
+                        onChange={e => handleChange('pacing', e.target.value)}
                         options={Object.values(Pacing)}
+                        dataListId="pacing-options"
                     />
                 </Section>
                 <Section title="Tùy chọn Nội dung 18+">
@@ -178,6 +192,20 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                 </Section>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-700">
+                {onImportConfig && onExportConfig && (
+                    <div className="flex gap-3 mb-4">
+                        <label htmlFor="import-config" className="cursor-pointer w-full flex justify-center items-center gap-2 px-3 py-2 text-sm bg-gray-700 rounded-md hover:bg-gray-600 transition-colors" title="Import cấu hình từ file JSON">
+                            <UploadIcon className="w-4 h-4" />
+                            Import
+                        </label>
+                        <input id="import-config" type="file" accept=".json" onChange={onImportConfig} className="hidden" />
+
+                        <button onClick={onExportConfig} className="w-full flex justify-center items-center gap-2 px-3 py-2 text-sm bg-gray-700 rounded-md hover:bg-gray-600 transition-colors" title="Export cấu hình hiện tại ra file JSON">
+                            <DownloadIcon className="w-4 h-4" />
+                            Export
+                        </button>
+                    </div>
+                )}
                 <button
                     onClick={onGenerate}
                     disabled={isLoading || isGenerateDisabled}

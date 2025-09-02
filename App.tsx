@@ -77,6 +77,67 @@ export default function App() {
         }
     };
 
+    const handleExportConfig = useCallback(() => {
+        try {
+            const exportData = {
+                version: 1,
+                config,
+                customPrompts,
+                selectedPromptIds,
+            };
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ai-story-weaver-config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            setError("Failed to export configuration.");
+            console.error(e);
+        }
+    }, [config, customPrompts, selectedPromptIds]);
+
+    const handleImportConfig = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target?.result as string;
+                 if (!text) {
+                    throw new Error("File is empty or could not be read.");
+                }
+                const data = JSON.parse(text);
+
+                // Basic validation
+                if (data && typeof data === 'object' && 'config' in data && Array.isArray(data.customPrompts) && Array.isArray(data.selectedPromptIds)) {
+                    setConfig(data.config);
+                    setCustomPrompts(data.customPrompts);
+                    setSelectedPromptIds(data.selectedPromptIds);
+                    setError(null);
+                } else {
+                    throw new Error("Invalid configuration file format.");
+                }
+            } catch (err: any) {
+                setError(`Failed to import configuration: ${err.message}`);
+                console.error(err);
+            } finally {
+                if (event.target) {
+                    event.target.value = '';
+                }
+            }
+        };
+        reader.onerror = () => {
+             setError("Failed to read the configuration file.");
+        };
+        reader.readAsText(file);
+    };
+
     const handleGenerate = useCallback(async (
         contextOverride?: string, 
         configOverride?: GenerationConfig, 
@@ -267,6 +328,8 @@ export default function App() {
                     selectedPromptIds={selectedPromptIds}
                     setSelectedPromptIds={setSelectedPromptIds}
                     onManagePrompts={() => setIsPromptManagerOpen(true)}
+                    onExportConfig={handleExportConfig}
+                    onImportConfig={handleImportConfig}
                 />
             </aside>
             
