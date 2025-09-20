@@ -51,12 +51,6 @@ export interface ApiKey {
   modelId?: string;
 }
 
-export interface StoryFile {
-  id: string;
-  name:string;
-  content: string;
-}
-
 export interface StorySegment {
   id: string;
   type: 'user' | 'ai';
@@ -68,4 +62,12 @@ export interface CustomPrompt {
   id: string;
   title: string;
   content: string;
+}
+
+export interface Story {
+  id: string;
+  name: string;
+  segments: StorySegment[];
+  createdAt: number;
+  updatedAt: number;
 }

@@ -1,13 +1,23 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import type { Chat } from '@google/genai';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import { ContentNavigator } from './components/ContentNavigator';
 import { CustomPromptsManager } from './components/CustomPromptsManager';
-import { generateStorySegment } from './services/geminiService';
-import type { ApiKey, GenerationConfig, StoryFile, StorySegment, CustomPrompt } from './types';
-import { Scenario, CharacterDynamics, Pacing, GenerationMode } from './types';
-import { useLocalStorage } from './hooks/useLocalStorage';
-import { KeyIcon, UploadIcon, DownloadIcon, CopyIcon, PlusIcon, CloseIcon, TrashIcon } from './components/icons';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
+import { useLocalStorage } from './hooks/useLocalStorage';
+import { generateStorySegment } from './services/geminiService';
+import {
+    Scenario,
+    CharacterDynamics,
+    Pacing,
+    GenerationMode,
+    type GenerationConfig,
+    type StorySegment,
+    type ApiKey,
+    type CustomPrompt,
+} from './types';
+import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon } from './components/icons';
 
 const initialConfig: GenerationConfig = {
     scenario: Scenario.FIRST_TIME,
@@ -19,349 +29,299 @@ const initialConfig: GenerationConfig = {
     generationMode: GenerationMode.CONTINUE,
 };
 
-const DEFAULT_API_KEY: ApiKey = { 
-    id: 'default', 
-    name: 'API Key Mặc định (Dùng chung)', 
-    key: 'DEFAULT_KEY_PLACEHOLDER',
-    isDefault: true 
-};
+const App: React.FC = () => {
+    const [config, setConfig] = useLocalStorage<GenerationConfig>('generationConfig', initialConfig);
+    const [storySegments, setStorySegments] = useLocalStorage<StorySegment[]>('storySegments', []);
+    const [apiKeys, setApiKeys] = useLocalStorage<ApiKey[]>('apiKeys', []);
+    const [useDefaultKey, setUseDefaultKey] = useLocalStorage<boolean>('useDefaultKey', true);
+    const [customPrompts, setCustomPrompts] = useLocalStorage<CustomPrompt[]>('customPrompts', []);
+    const [selectedPromptIds, setSelectedPromptIds] = useLocalStorage<string[]>('selectedPromptIds', []);
 
-
-export default function App() {
-    const [apiKeys, setApiKeys] = useLocalStorage<ApiKey[]>('ai-story-weaver-keys', []);
-    const [apiKeyIndex, setApiKeyIndex] = useLocalStorage<number>('ai-story-weaver-key-index', 0);
-    const [useDefaultKey, setUseDefaultKey] = useLocalStorage<boolean>('ai-story-weaver-use-default', true);
-    
-    const [config, setConfig] = useState<GenerationConfig>(initialConfig);
-    const [storySegments, setStorySegments] = useState<StorySegment[]>([
-        { id: 'user-1', type: 'user', content: 'Cơn mưa quất mạnh vào ô cửa sổ thư viện cũ kỹ. Bên trong, Elara miết ngón tay dọc theo gáy một cuốn sách bọc da, trong khi Kael dõi theo cô từ phía bên kia căn phòng, một cơn bão đang âm ỉ trong đôi mắt anh.' }
-    ]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isKeyManagerOpen, setIsKeyManagerOpen] = useState(false);
+    const [currentKeyIndex, setCurrentKeyIndex] = useLocalStorage<number>('currentKeyIndex', 0);
+    const [editingSegmentId, setEditingSegmentId] = useState<string | null>(null);
+    const [editText, setEditText] = useState('');
     
-    const [regeneratingSegment, setRegeneratingSegment] = useState<StorySegment | null>(null);
-
-    const [customPrompts, setCustomPrompts] = useLocalStorage<CustomPrompt[]>('ai-story-weaver-prompts', []);
-    const [selectedPromptIds, setSelectedPromptIds] = useState<string[]>([]);
+    // Modals visibility state
+    const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
     const [isPromptManagerOpen, setIsPromptManagerOpen] = useState(false);
 
-    const combinedApiKeys = useMemo(() => {
-        return useDefaultKey ? [DEFAULT_API_KEY, ...apiKeys] : apiKeys;
-    }, [useDefaultKey, apiKeys]);
-
+    const chatSession = useRef<Chat | { messages: any[] } | null>(null);
+    const endOfStoryRef = useRef<HTMLDivElement>(null);
+    
+    // Reset chat session if story is cleared or generation mode changes to REWRITE
     useEffect(() => {
-        if(apiKeyIndex >= combinedApiKeys.length) {
-            setApiKeyIndex(0);
+        if (storySegments.length === 0 || config.generationMode === GenerationMode.REWRITE) {
+            chatSession.current = null;
         }
-    }, [combinedApiKeys.length, apiKeyIndex, setApiKeyIndex]);
+    }, [storySegments.length, config.generationMode]);
+    
+    useEffect(() => {
+      endOfStoryRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [storySegments]);
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const uploadedFiles = event.target.files;
-        if (uploadedFiles) {
-            const newFiles: StoryFile[] = [];
-            Array.from(uploadedFiles).forEach(file => {
-                if (file.type === 'text/plain') {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const content = e.target?.result as string;
-                        newFiles.push({ id: `${file.name}-${Date.now()}`, name: file.name, content });
-                        if (newFiles.length === uploadedFiles.length) {
-                             const combinedContent = newFiles.map(f => f.content).join('\n\n');
-                             setStorySegments([{ id: `user-${Date.now()}`, type: 'user', content: combinedContent}]);
-                        }
-                    };
-                    reader.readAsText(file);
-                }
-            });
+    const handleGenerate = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+
+        const lastUserSegment = [...storySegments].reverse().find(s => s.type === 'user');
+        if (!lastUserSegment && config.generationMode === GenerationMode.CONTINUE && storySegments.length > 0) {
+            setError("Cannot continue without a new user prompt. Please add to the story.");
+            setIsLoading(false);
+            return;
         }
-    };
 
-    const handleExportConfig = useCallback(() => {
-        try {
-            const exportData = {
-                version: 1,
-                config,
-                customPrompts,
-                selectedPromptIds,
-            };
-            const jsonString = JSON.stringify(exportData, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'ai-story-weaver-config.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch (e) {
-            setError("Failed to export configuration.");
-            console.error(e);
-        }
-    }, [config, customPrompts, selectedPromptIds]);
+        const prompt = lastUserSegment?.content || storySegments.map(s => s.content).join('\n\n') || '';
+        const fullStoryForRewrite = storySegments.map(s => s.content).join('\n\n');
 
-    const handleImportConfig = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const text = e.target?.result as string;
-                 if (!text) {
-                    throw new Error("File is empty or could not be read.");
-                }
-                const data = JSON.parse(text);
-
-                // Basic validation
-                if (data && typeof data === 'object' && 'config' in data && Array.isArray(data.customPrompts) && Array.isArray(data.selectedPromptIds)) {
-                    setConfig(data.config);
-                    setCustomPrompts(data.customPrompts);
-                    setSelectedPromptIds(data.selectedPromptIds);
-                    setError(null);
-                } else {
-                    throw new Error("Invalid configuration file format.");
-                }
-            } catch (err: any) {
-                setError(`Failed to import configuration: ${err.message}`);
-                console.error(err);
-            } finally {
-                if (event.target) {
-                    event.target.value = '';
-                }
-            }
-        };
-        reader.onerror = () => {
-             setError("Failed to read the configuration file.");
-        };
-        reader.readAsText(file);
-    };
-
-    const handleGenerate = useCallback(async (
-        contextOverride?: string, 
-        configOverride?: GenerationConfig, 
-        segmentToReplaceId?: string,
-        customPromptsContentOverride?: string[]
-    ) => {
-        const context = contextOverride || storySegments.map(s => s.content).join('\n\n');
-        const generationConfig = configOverride || config;
-        const customPromptsContent = customPromptsContentOverride || customPrompts
+        const selectedPromptsContent = customPrompts
             .filter(p => selectedPromptIds.includes(p.id))
             .map(p => p.content);
         
-        if (!context.trim()) {
-            setError("Không thể sáng tạo từ một câu chuyện trống.");
-            return;
-        }
-        if (combinedApiKeys.length === 0) {
-            setError("Vui lòng thêm ít nhất một API Key hoặc bật key mặc định trong phần cài đặt.");
-            setIsKeyManagerOpen(true);
-            return;
-        }
+        const availableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', key: 'N/A', isDefault: true }, ...apiKeys] : apiKeys;
 
-        setIsLoading(true);
-        setError(null);
         try {
-            const result = await generateStorySegment(context, generationConfig, customPromptsContent, combinedApiKeys, apiKeyIndex);
+            const result = await generateStorySegment(
+                prompt,
+                fullStoryForRewrite,
+                config,
+                selectedPromptsContent,
+                availableKeys,
+                currentKeyIndex,
+                chatSession.current
+            );
             
-            const newSegment: StorySegment = {
-                id: `ai-${Date.now()}`,
-                type: 'ai',
-                content: result.content,
-                config: generationConfig,
-            };
-
-            if (generationConfig.generationMode === GenerationMode.REWRITE) {
-                 setStorySegments([
-                    newSegment,
-                    { id: `user-${Date.now()}`, type: 'user', content: '' }
-                 ]);
-            } else if (segmentToReplaceId) {
-                setStorySegments(prev => prev.map(seg => seg.id === segmentToReplaceId ? newSegment : seg));
+            if (config.generationMode === GenerationMode.REWRITE) {
+                 setStorySegments([{
+                    id: Date.now().toString(),
+                    type: 'ai',
+                    content: result.content,
+                    config: { ...config }
+                }]);
             } else {
-                 setStorySegments(prev => [
-                    ...prev,
-                    newSegment,
-                    { id: `user-${Date.now()}`, type: 'user', content: '' }
-                ]);
+                 setStorySegments(prev => [...prev, {
+                    id: Date.now().toString(),
+                    type: 'ai',
+                    content: result.content,
+                    config: { ...config }
+                }]);
             }
            
-            setApiKeyIndex(result.newKeyIndex);
+            chatSession.current = result.newChatSession;
+            setCurrentKeyIndex(result.newKeyIndex);
+
         } catch (e: any) {
-            setError(e.message || "Đã xảy ra lỗi không xác định.");
+            setError(e.message || 'An unknown error occurred.');
         } finally {
             setIsLoading(false);
-            setRegeneratingSegment(null);
         }
-    }, [storySegments, config, combinedApiKeys, apiKeyIndex, setApiKeyIndex, customPrompts, selectedPromptIds]);
+    }, [storySegments, config, customPrompts, selectedPromptIds, apiKeys, useDefaultKey, currentKeyIndex, setStorySegments, setCurrentKeyIndex]);
 
-    const updateSegmentContent = (id: string, newContent: string) => {
-        setStorySegments(prev => prev.map(seg => seg.id === id ? { ...seg, content: newContent } : seg));
+    const handleAddUserSegment = (content: string) => {
+        if (!content.trim()) return;
+        setStorySegments(prev => [...prev, {
+            id: Date.now().toString(),
+            type: 'user',
+            content: content.trim(),
+        }]);
     };
 
-    const addTextSegmentAfter = (afterId: string) => {
-        const index = storySegments.findIndex(s => s.id === afterId);
-        if (index > -1) {
-            const newSegment: StorySegment = { id: `user-${Date.now()}`, type: 'user', content: '' };
-            const newSegments = [...storySegments];
-            newSegments.splice(index + 1, 0, newSegment);
-            setStorySegments(newSegments);
-        }
+    const handleStartEdit = (segment: StorySegment) => {
+        setEditingSegmentId(segment.id);
+        setEditText(segment.content);
     };
 
-    const deleteSegment = (id: string) => {
-        setStorySegments(prev => prev.filter(seg => seg.id !== id));
-    };
-    
-    const fullStoryText = useMemo(() => storySegments.map(s => s.content).join('\n\n'), [storySegments]);
-
-    const handleDownload = (format: 'txt' | 'md') => {
-        const blob = new Blob([fullStoryText], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `story.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+    const handleSaveEdit = () => {
+        if (!editingSegmentId) return;
+        setStorySegments(prev => prev.map(s => s.id === editingSegmentId ? { ...s, content: editText } : s));
+        setEditingSegmentId(null);
+        setEditText('');
     };
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(fullStoryText).then(() => {
-            alert('Đã sao chép câu chuyện vào clipboard!');
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-            alert('Sao chép câu chuyện thất bại.');
-        });
-    };
-    
-    const openRegenModal = (segment: StorySegment) => {
-        if(segment.config) {
-            setRegeneratingSegment(segment);
+
+    const handleDeleteSegment = (id: string) => {
+        if(window.confirm("Are you sure you want to delete this segment? This action cannot be undone.")){
+            setStorySegments(prev => prev.filter(s => s.id !== id));
         }
     };
-    
-    const handleRegenerate = () => {
-        if(regeneratingSegment) {
-            const contextIndex = storySegments.findIndex(s => s.id === regeneratingSegment.id);
-            const context = storySegments.slice(0, contextIndex).map(s => s.content).join('\n\n');
-            const selectedPromptsContent = customPrompts
-                .filter(p => selectedPromptIds.includes(p.id))
-                .map(p => p.content);
-            handleGenerate(context, regeneratingSegment.config, regeneratingSegment.id, selectedPromptsContent);
+
+    const isGenerateDisabled = useMemo(() => {
+        return storySegments.length === 0;
+    }, [storySegments]);
+
+    const exportConfig = () => {
+        try {
+            const dataStr = JSON.stringify(config, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const exportFileDefaultName = 'ai-writer-config.json';
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        } catch (error) {
+            console.error("Failed to export config:", error);
+            alert("Failed to export configuration.");
         }
+    };
+
+    const importConfig = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedConfig = JSON.parse(e.target?.result as string);
+                    // Basic validation
+                    if (importedConfig.scenario && importedConfig.dynamics) {
+                        setConfig(importedConfig);
+                        alert('Configuration imported successfully!');
+                    } else {
+                        alert('Invalid configuration file.');
+                    }
+                } catch (error) {
+                    alert('Error parsing configuration file.');
+                }
+            };
+            reader.readAsText(file);
+        }
+        event.target.value = ''; // Reset file input
     };
 
     return (
-        <div className="h-screen w-screen flex bg-gray-900 text-gray-100 font-sans">
-            <main className="flex-1 flex flex-col overflow-hidden">
-                <header className="flex items-center justify-between p-3 bg-gray-800 border-b border-gray-700 shadow-md">
-                    <h1 className="text-2xl font-bold text-indigo-400">AI Story Weaver</h1>
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => handleDownload('txt')} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-700 rounded-md hover:bg-gray-600 transition-colors">
-                            <DownloadIcon className="w-4 h-4" /> TXT
+        <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
+            {isApiKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeyManagerOpen(false)} />}
+            {isPromptManagerOpen && <CustomPromptsManager prompts={customPrompts} setPrompts={setCustomPrompts} onClose={() => setIsPromptManagerOpen(false)} />}
+
+            <main className="flex-1 flex flex-col p-4 overflow-hidden">
+                <header className="flex justify-between items-center mb-4 flex-shrink-0">
+                    <h1 className="text-2xl font-bold text-gray-100">AI Creative Writer</h1>
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => setIsPromptManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Manage Custom Prompts">
+                            <BookmarkIcon className="w-4 h-4" /> Prompts
                         </button>
-                         <button onClick={() => handleDownload('md')} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-700 rounded-md hover:bg-gray-600 transition-colors">
-                            <DownloadIcon className="w-4 h-4" /> Markdown
-                        </button>
-                        <button onClick={handleCopy} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-700 rounded-md hover:bg-gray-600 transition-colors">
-                            <CopyIcon className="w-4 h-4" /> Sao chép
-                        </button>
-                        <button onClick={() => setIsKeyManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors">
-                            <KeyIcon className="w-4 h-4" /> API Keys ({combinedApiKeys.length})
+                         <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Manage API Keys">
+                            <KeyIcon className="w-4 h-4" /> API Keys
                         </button>
                     </div>
                 </header>
 
-                {error && (
-                    <div className="p-3 bg-red-800 text-white flex justify-between items-center">
-                        <p>{error}</p>
-                        <button onClick={() => setError(null)} className="font-bold text-lg">&times;</button>
-                    </div>
-                )}
-                
-                <div className="flex-1 overflow-y-auto p-8 prose prose-invert prose-lg max-w-4xl mx-auto w-full">
+                <div className="flex-grow bg-gray-800 rounded-lg p-4 overflow-y-auto mb-4 relative">
+                    {storySegments.length === 0 && (
+                        <div className="text-center text-gray-500 absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
+                            <p className="text-lg">Bắt đầu câu chuyện của bạn.</p>
+                            <p>Viết đoạn mở đầu vào ô bên dưới.</p>
+                        </div>
+                    )}
                     {storySegments.map((segment) => (
-                        <div key={segment.id} className="relative group">
-                            {segment.type === 'user' ? (
-                                <textarea
-                                    value={segment.content}
-                                    onChange={(e) => updateSegmentContent(segment.id, e.target.value)}
-                                    className="w-full bg-transparent p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[100px] resize-y"
-                                    placeholder="Bắt đầu viết câu chuyện của bạn ở đây..."
-                                />
-                            ) : (
-                                <div onClick={() => openRegenModal(segment)} className="p-4 my-4 bg-indigo-900/20 border-l-4 border-indigo-500 rounded-r-lg cursor-pointer hover:bg-indigo-900/40 transition-colors">
-                                    <MarkdownRenderer content={segment.content} />
+                        <div key={segment.id} className={`mb-6 group ${segment.type === 'user' ? 'pr-8' : 'pl-8'}`}>
+                            <div className={`relative p-5 rounded-lg ${segment.type === 'user' ? 'bg-gray-700' : 'bg-indigo-900/40 border border-indigo-800'}`}>
+                                {editingSegmentId === segment.id ? (
+                                    <textarea
+                                        value={editText}
+                                        onChange={(e) => setEditText(e.target.value)}
+                                        className="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+                                        rows={Math.max(5, editText.split('\n').length)}
+                                        autoFocus
+                                    />
+                                ) : (
+                                    <div className="prose prose-invert max-w-none text-gray-200">
+                                        <MarkdownRenderer content={segment.content} />
+                                    </div>
+                                )}
+                                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {editingSegmentId === segment.id ? (
+                                        <>
+                                            <button onClick={handleSaveEdit} className="p-1.5 rounded hover:bg-gray-600 text-green-400" title="Save"><SaveIcon className="w-4 h-4" /></button>
+                                            <button onClick={() => setEditingSegmentId(null)} className="p-1.5 rounded hover:bg-gray-600" title="Cancel"><CloseIcon className="w-4 h-4" /></button>
+                                        </>
+                                    ) : (
+                                        <button onClick={() => handleStartEdit(segment)} className="p-1.5 rounded hover:bg-gray-600" title="Edit"><EditIcon className="w-4 h-4" /></button>
+                                    )}
+                                    <button onClick={() => navigator.clipboard.writeText(segment.content)} className="p-1.5 rounded hover:bg-gray-600" title="Copy"><CopyIcon className="w-4 h-4" /></button>
+                                    <button onClick={() => handleDeleteSegment(segment.id)} className="p-1.5 rounded hover:bg-gray-600 text-red-400" title="Delete"><TrashIcon className="w-4 h-4" /></button>
                                 </div>
-                            )}
-                             <div className="absolute top-1/2 -right-8 transform -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => addTextSegmentAfter(segment.id)} className="p-1.5 bg-gray-700 rounded-full hover:bg-indigo-600" title="Thêm khối văn bản bên dưới">
-                                    <PlusIcon className="w-4 h-4"/>
-                                </button>
-                                <button onClick={() => deleteSegment(segment.id)} className="p-1.5 bg-gray-700 rounded-full hover:bg-red-600" title="Xóa khối">
-                                    <TrashIcon className="w-4 h-4"/>
-                                </button>
                             </div>
                         </div>
                     ))}
-                    <div className="mt-8 text-center">
-                         <label htmlFor="file-upload" className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 text-sm bg-gray-700 rounded-md hover:bg-gray-600 transition-colors">
-                            <UploadIcon className="w-5 h-5" />
-                            Tải lên file .txt
-                        </label>
-                        <input id="file-upload" type="file" multiple accept=".txt" onChange={handleFileChange} className="hidden" />
-                    </div>
+                    <div ref={endOfStoryRef} />
                 </div>
+                 {error && (
+                    <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-2 rounded-md mb-4 text-sm">
+                        <strong>Error:</strong> {error}
+                    </div>
+                )}
+                <UserInput onSubmit={handleAddUserSegment} />
             </main>
-            
             <aside className="w-[380px] flex-shrink-0">
-                <ContentNavigator 
-                    config={config} 
+                <ContentNavigator
+                    config={config}
                     setConfig={setConfig}
-                    onGenerate={() => handleGenerate()}
-                    isLoading={isLoading && !regeneratingSegment}
-                    isGenerateDisabled={!fullStoryText.trim()}
+                    onGenerate={handleGenerate}
+                    isLoading={isLoading}
+                    isGenerateDisabled={isGenerateDisabled}
                     customPrompts={customPrompts}
                     selectedPromptIds={selectedPromptIds}
                     setSelectedPromptIds={setSelectedPromptIds}
                     onManagePrompts={() => setIsPromptManagerOpen(true)}
-                    onExportConfig={handleExportConfig}
-                    onImportConfig={handleImportConfig}
+                    onExportConfig={exportConfig}
+                    onImportConfig={importConfig}
                 />
             </aside>
-            
-            {isKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsKeyManagerOpen(false)} />}
-            {isPromptManagerOpen && <CustomPromptsManager prompts={customPrompts} setPrompts={setCustomPrompts} onClose={() => setIsPromptManagerOpen(false)} />}
-            
-            {regeneratingSegment && (
-                <div className="fixed inset-0 bg-gray-900 bg-opacity-80 flex justify-center items-center z-50">
-                    <div className="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-indigo-400">Tái tạo Phân cảnh</h3>
-                            <button onClick={() => setRegeneratingSegment(null)} className="p-1 rounded-full hover:bg-gray-700"><CloseIcon className="w-6 h-6"/></button>
-                        </div>
-                        <div className="max-h-[75vh] overflow-y-auto pr-2 space-y-4">
-                           <ContentNavigator
-                                config={{...initialConfig, ...regeneratingSegment.config}}
-                                setConfig={(updater) => {
-                                    const newConf = typeof updater === 'function' ? updater({...initialConfig, ...regeneratingSegment.config}) : updater;
-                                    setRegeneratingSegment(s => s ? {...s, config: newConf } : null);
-                                }}
-                                onGenerate={handleRegenerate}
-                                isLoading={isLoading && !!regeneratingSegment}
-                                isGenerateDisabled={false}
-                                customPrompts={customPrompts}
-                                selectedPromptIds={selectedPromptIds}
-                                setSelectedPromptIds={setSelectedPromptIds}
-                                onManagePrompts={() => setIsPromptManagerOpen(true)}
-                           />
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
+};
+
+interface UserInputProps {
+    onSubmit: (content: string) => void;
 }
+
+const UserInput: React.FC<UserInputProps> = ({ onSubmit }) => {
+    const [content, setContent] = useState('');
+    const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+    const handleSubmit = () => {
+        if (!content.trim()) return;
+        onSubmit(content);
+        setContent('');
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit();
+        }
+    };
+    
+    useEffect(() => {
+        const el = textAreaRef.current;
+        if (el) {
+            el.style.height = 'auto';
+            el.style.height = `${el.scrollHeight}px`;
+        }
+    }, [content]);
+
+    return (
+        <div className="flex-shrink-0 bg-gray-800 rounded-lg p-2 flex items-start gap-2">
+            <textarea
+                ref={textAreaRef}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Viết phần tiếp theo của câu chuyện ở đây..."
+                className="w-full bg-gray-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                rows={1}
+                style={{maxHeight: '200px'}}
+            />
+            <button
+                onClick={handleSubmit}
+                disabled={!content.trim()}
+                className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed self-end"
+            >
+                Thêm
+            </button>
+        </div>
+    );
+};
+
+export default App;
