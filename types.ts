@@ -51,11 +51,17 @@ export interface ApiKey {
   modelId?: string;
 }
 
+export interface HistoryEntry {
+  timestamp: number;
+  content: string;
+}
+
 export interface StorySegment {
   id: string;
   type: 'user' | 'ai';
   content: string;
   config?: GenerationConfig;
+  history?: HistoryEntry[];
 }
 
 export interface CustomPrompt {
@@ -70,4 +76,11 @@ export interface Story {
   segments: StorySegment[];
   createdAt: number;
   updatedAt: number;
+}
+
+export interface StorySession {
+  storySegments: StorySegment[];
+  generationConfig: GenerationConfig;
+  customPrompts: CustomPrompt[];
+  selectedPromptIds: string[];
 }

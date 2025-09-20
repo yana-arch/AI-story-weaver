@@ -1,7 +1,7 @@
 import React from 'react';
 import type { GenerationConfig, CustomPrompt } from '../types';
 import { Scenario, CharacterDynamics, Pacing, AdultContentOptions, GenerationMode } from '../types';
-import { WandIcon, BookmarkIcon, UploadIcon, DownloadIcon } from './icons';
+import { WandIcon, BookmarkIcon } from './icons';
 
 interface ContentNavigatorProps {
     config: GenerationConfig;
@@ -13,8 +13,6 @@ interface ContentNavigatorProps {
     selectedPromptIds: string[];
     setSelectedPromptIds: React.Dispatch<React.SetStateAction<string[]>>;
     onManagePrompts: () => void;
-    onExportConfig?: () => void;
-    onImportConfig?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -60,7 +58,7 @@ const TextArea: React.FC<{ label: string; placeholder: string; value: string; on
 );
 
 
-export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled, customPrompts, selectedPromptIds, setSelectedPromptIds, onManagePrompts, onExportConfig, onImportConfig }) => {
+export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled, customPrompts, selectedPromptIds, setSelectedPromptIds, onManagePrompts }) => {
     
     const handleChange = <K extends keyof GenerationConfig,>(
         field: K,
@@ -192,20 +190,6 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                 </Section>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-700">
-                {onImportConfig && onExportConfig && (
-                    <div className="flex gap-3 mb-4">
-                        <label htmlFor="import-config" className="cursor-pointer w-full flex justify-center items-center gap-2 px-3 py-2 text-sm bg-gray-700 rounded-md hover:bg-gray-600 transition-colors" title="Import cấu hình từ file JSON">
-                            <UploadIcon className="w-4 h-4" />
-                            Import
-                        </label>
-                        <input id="import-config" type="file" accept=".json" onChange={onImportConfig} className="hidden" />
-
-                        <button onClick={onExportConfig} className="w-full flex justify-center items-center gap-2 px-3 py-2 text-sm bg-gray-700 rounded-md hover:bg-gray-600 transition-colors" title="Export cấu hình hiện tại ra file JSON">
-                            <DownloadIcon className="w-4 h-4" />
-                            Export
-                        </button>
-                    </div>
-                )}
                 <button
                     onClick={onGenerate}
                     disabled={isLoading || isGenerateDisabled}
