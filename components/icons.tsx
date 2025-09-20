@@ -109,3 +109,9 @@ export const UserGroupIcon: React.FC<IconProps> = (props) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 00-12 0m12 0a9.094 9.094 0 00-12 0m12 0A9.094 9.094 0 006 18.719m12 0c1.223-.744 2.093-2.093 2.093-3.633 0-2.485-2.015-4.5-4.5-4.5s-4.5 2.015-4.5 4.5c0 1.54.87 2.889 2.093 3.633m-6.386 0c1.223-.744 2.093-2.093 2.093-3.633 0-2.485-2.015-4.5-4.5-4.5s-4.5 2.015-4.5 4.5c0 1.54.87 2.889 2.093 3.633" />
   </svg>
 );
+
+export const BookOpenIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+    </svg>
+);

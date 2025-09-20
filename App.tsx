@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Chat } from '@google/genai';
+import type { Chat } from '@google/ai';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import { ContentNavigator } from './components/ContentNavigator';
 import { CustomPromptsManager } from './components/CustomPromptsManager';
@@ -22,7 +22,7 @@ import {
     type CharacterProfile,
     type StorySession,
 } from './types';
-import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon } from './components/icons';
+import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon } from './components/icons';
 
 const initialConfig: GenerationConfig = {
     scenario: Scenario.FIRST_TIME,
@@ -42,6 +42,8 @@ const App: React.FC = () => {
     const [customPrompts, setCustomPrompts] = useLocalStorage<CustomPrompt[]>('customPrompts', []);
     const [selectedPromptIds, setSelectedPromptIds] = useLocalStorage<string[]>('selectedPromptIds', []);
     const [characterProfiles, setCharacterProfiles] = useLocalStorage<CharacterProfile[]>('characterProfiles', []);
+    const [lastReadSegmentId, setLastReadSegmentId] = useLocalStorage<string | null>('lastReadSegmentId', null);
+
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -71,6 +73,12 @@ const App: React.FC = () => {
 
     const chatSession = useRef<Chat | { messages: any[] } | null>(null);
     const endOfStoryRef = useRef<HTMLDivElement>(null);
+
+    // Reading progress state
+    const segmentRefs = useRef<Map<string, HTMLElement | null>>(new Map());
+    const observer = useRef<IntersectionObserver | null>(null);
+    const unreadMarkerRef = useRef<HTMLDivElement>(null);
+    const didInitialScroll = useRef(false);
     
     // Reset chat session if story is cleared or generation mode changes to REWRITE
     useEffect(() => {
@@ -104,9 +112,57 @@ const App: React.FC = () => {
         }
         const lowercasedQuery = searchQuery.toLowerCase();
         return storySegments.filter(segment =>
-            segment.content.toLowerCase().includes(lowercasedQuery)
+            segment.type !== 'chapter' && segment.content.toLowerCase().includes(lowercasedQuery)
         );
     }, [storySegments, searchQuery]);
+    
+     const lastReadIndex = useMemo(() => {
+        if (!lastReadSegmentId) return -1;
+        return filteredSegments.findIndex(s => s.id === lastReadSegmentId);
+    }, [filteredSegments, lastReadSegmentId]);
+
+    // Reading progress observer effect
+    useEffect(() => {
+        const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const segmentId = entry.target.getAttribute('data-segment-id');
+                    if (segmentId) {
+                        setLastReadSegmentId(segmentId);
+                    }
+                }
+            });
+        };
+
+        observer.current = new IntersectionObserver(handleIntersect, {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.5,
+        });
+
+        const currentObserver = observer.current;
+
+        segmentRefs.current.forEach(el => {
+            if (el) currentObserver.observe(el);
+        });
+
+        return () => {
+            currentObserver.disconnect();
+        };
+    }, [filteredSegments, setLastReadSegmentId]);
+
+    // Auto-scroll to unread marker effect
+    useEffect(() => {
+        if (!didInitialScroll.current && unreadMarkerRef.current) {
+            setTimeout(() => {
+                unreadMarkerRef.current?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
+                didInitialScroll.current = true;
+            }, 100);
+        }
+    }, [lastReadIndex]);
 
 
     const handleGenerate = useCallback(async () => {
@@ -119,9 +175,11 @@ const App: React.FC = () => {
             setIsLoading(false);
             return;
         }
+        
+        const storyContext = storySegments.filter(s => s.type !== 'chapter').map(s => s.content).join('\n\n');
 
-        const prompt = lastUserSegment?.content || storySegments.map(s => s.content).join('\n\n') || '';
-        const fullStoryForRewrite = storySegments.map(s => s.content).join('\n\n');
+        const prompt = lastUserSegment?.content || storyContext || '';
+        const fullStoryForRewrite = storyContext;
 
         const selectedPromptsContent = customPrompts
             .filter(p => selectedPromptIds.includes(p.id))
@@ -177,6 +235,19 @@ const App: React.FC = () => {
             content: content.trim(),
         }]);
     };
+
+    const handleAddChapter = () => {
+        const title = window.prompt("Enter the title for the new chapter:");
+        if (title && title.trim()) {
+            const newChapter: StorySegment = {
+                id: Date.now().toString(),
+                type: 'chapter',
+                content: title.trim()
+            };
+            setStorySegments(prev => [...prev, newChapter]);
+        }
+    };
+
 
     const handleStartEdit = (segment: StorySegment) => {
         setEditingSegmentId(segment.id);
@@ -351,8 +422,9 @@ const App: React.FC = () => {
 
 
     const isGenerateDisabled = useMemo(() => {
-        return storySegments.length === 0;
+        return storySegments.filter(s => s.type !== 'chapter').length === 0;
     }, [storySegments]);
+
 
     const handleSaveSession = () => {
         try {
@@ -514,66 +586,93 @@ const App: React.FC = () => {
                             )}
                         </div>
                     )}
-                    {filteredSegments.map((segment) => {
+                    {filteredSegments.map((segment, index) => {
                         const isBeingDragged = draggedSegmentId === segment.id;
                         const isDropTarget = dropTargetId === segment.id;
 
+                        const setSegmentRef = (el: HTMLDivElement | null) => {
+                            if (el) {
+                                segmentRefs.current.set(segment.id, el);
+                            } else {
+                                segmentRefs.current.delete(segment.id);
+                            }
+                        };
+                        
+                        const showUnreadMarker = index === lastReadIndex + 1 && lastReadIndex < filteredSegments.length - 1;
+
                         return (
-                            <div
-                                key={segment.id}
-                                draggable={!editingSegmentId}
-                                onDragStart={(e) => !editingSegmentId && handleDragStart(e, segment.id)}
-                                onDragEnter={(e) => handleDragEnter(e, segment.id)}
-                                onDragOver={handleDragOver}
-                                onDrop={(e) => handleDrop(e, segment.id)}
-                                onDragEnd={handleDragEnd}
-                                onDragLeave={() => setDropTargetId(null)}
-                                className={`
-                                    group relative transition-all duration-200
-                                    ${segment.type === 'user' ? 'pr-8' : 'pl-8'}
-                                    ${isBeingDragged ? 'opacity-30' : 'opacity-100'}
-                                    ${isDropTarget ? 'pt-2' : ''}
-                                `}
-                            >
-                                {isDropTarget && (
-                                     <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500 rounded-full animate-pulse" />
-                                )}
-                                <div className={`relative p-5 rounded-lg mb-6 ${segment.type === 'user' ? 'bg-gray-700' : 'bg-indigo-900/40 border border-indigo-800'}`}>
-                                    {editingSegmentId === segment.id ? (
-                                        <textarea
-                                            value={editText}
-                                            onChange={(e) => setEditText(e.target.value)}
-                                            className="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
-                                            rows={Math.max(5, editText.split('\n').length)}
-                                            autoFocus
-                                        />
-                                    ) : (
-                                        <div className="prose prose-invert max-w-none text-gray-200">
-                                            <MarkdownRenderer content={segment.content} />
-                                        </div>
-                                    )}
-                                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {!editingSegmentId && (
-                                            <div className="p-1.5 cursor-grab" title="Drag to reorder">
-                                                <DragHandleIcon className="w-4 h-4 text-gray-400" />
-                                            </div>
-                                        )}
-                                        {editingSegmentId === segment.id ? (
-                                            <>
-                                                <button onClick={handleSaveEdit} className="p-1.5 rounded hover:bg-gray-600 text-green-400" title="Save"><SaveIcon className="w-4 h-4" /></button>
-                                                <button onClick={() => setEditingSegmentId(null)} className="p-1.5 rounded hover:bg-gray-600" title="Cancel"><CloseIcon className="w-4 h-4" /></button>
-                                            </>
-                                        ) : (
-                                            <button onClick={() => handleStartEdit(segment)} className="p-1.5 rounded hover:bg-gray-600" title="Edit"><EditIcon className="w-4 h-4" /></button>
-                                        )}
-                                        {segment.type === 'ai' && !editingSegmentId && (
-                                            <button onClick={() => setHistoryViewerTarget(segment)} className="p-1.5 rounded hover:bg-gray-600" title="View History"><HistoryIcon className="w-4 h-4" /></button>
-                                        )}
-                                        <button onClick={() => navigator.clipboard.writeText(segment.content)} className="p-1.5 rounded hover:bg-gray-600" title="Copy"><CopyIcon className="w-4 h-4" /></button>
-                                        <button onClick={() => handleDeleteSegment(segment.id)} className="p-1.5 rounded hover:bg-gray-600 text-red-400" title="Delete"><TrashIcon className="w-4 h-4" /></button>
+                            <React.Fragment key={segment.id}>
+                                {showUnreadMarker && (
+                                    <div ref={unreadMarkerRef} className="relative my-6 flex items-center" aria-label="New content below">
+                                        <span className="flex-shrink-0 bg-indigo-500 px-2 py-0.5 text-xs font-semibold text-white rounded-full">MỚI</span>
+                                        <div className="flex-grow border-t-2 border-dashed border-indigo-500 ml-2"></div>
                                     </div>
-                                </div>
-                            </div>
+                                )}
+                                {segment.type === 'chapter' ? (
+                                    <div ref={setSegmentRef} data-segment-id={segment.id} className="flex items-center my-6">
+                                        <div className="flex-grow border-t border-gray-600"></div>
+                                        <h2 className="flex-shrink-0 px-4 text-center text-lg font-bold text-gray-400 tracking-wider uppercase">{segment.content}</h2>
+                                        <div className="flex-grow border-t border-gray-600"></div>
+                                    </div>
+                                ) : (
+                                    <div
+                                        ref={setSegmentRef}
+                                        data-segment-id={segment.id}
+                                        draggable={!editingSegmentId}
+                                        onDragStart={(e) => !editingSegmentId && handleDragStart(e, segment.id)}
+                                        onDragEnter={(e) => handleDragEnter(e, segment.id)}
+                                        onDragOver={handleDragOver}
+                                        onDrop={(e) => handleDrop(e, segment.id)}
+                                        onDragEnd={handleDragEnd}
+                                        onDragLeave={() => setDropTargetId(null)}
+                                        className={`
+                                            group relative transition-all duration-200
+                                            ${segment.type === 'user' ? 'pr-8' : 'pl-8'}
+                                            ${isBeingDragged ? 'opacity-30' : 'opacity-100'}
+                                            ${isDropTarget ? 'pt-2' : ''}
+                                        `}
+                                    >
+                                        {isDropTarget && (
+                                            <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500 rounded-full animate-pulse" />
+                                        )}
+                                        <div className={`relative p-5 rounded-lg mb-6 ${segment.type === 'user' ? 'bg-gray-700' : 'bg-indigo-900/40 border border-indigo-800'}`}>
+                                            {editingSegmentId === segment.id ? (
+                                                <textarea
+                                                    value={editText}
+                                                    onChange={(e) => setEditText(e.target.value)}
+                                                    className="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+                                                    rows={Math.max(5, editText.split('\n').length)}
+                                                    autoFocus
+                                                />
+                                            ) : (
+                                                <div className="prose prose-invert max-w-none text-gray-200">
+                                                    <MarkdownRenderer content={segment.content} />
+                                                </div>
+                                            )}
+                                            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {!editingSegmentId && (
+                                                    <div className="p-1.5 cursor-grab" title="Drag to reorder">
+                                                        <DragHandleIcon className="w-4 h-4 text-gray-400" />
+                                                    </div>
+                                                )}
+                                                {editingSegmentId === segment.id ? (
+                                                    <>
+                                                        <button onClick={handleSaveEdit} className="p-1.5 rounded hover:bg-gray-600 text-green-400" title="Save"><SaveIcon className="w-4 h-4" /></button>
+                                                        <button onClick={() => setEditingSegmentId(null)} className="p-1.5 rounded hover:bg-gray-600" title="Cancel"><CloseIcon className="w-4 h-4" /></button>
+                                                    </>
+                                                ) : (
+                                                    <button onClick={() => handleStartEdit(segment)} className="p-1.5 rounded hover:bg-gray-600" title="Edit"><EditIcon className="w-4 h-4" /></button>
+                                                )}
+                                                {segment.type === 'ai' && !editingSegmentId && (
+                                                    <button onClick={() => setHistoryViewerTarget(segment)} className="p-1.5 rounded hover:bg-gray-600" title="View History"><HistoryIcon className="w-4 h-4" /></button>
+                                                )}
+                                                <button onClick={() => navigator.clipboard.writeText(segment.content)} className="p-1.5 rounded hover:bg-gray-600" title="Copy"><CopyIcon className="w-4 h-4" /></button>
+                                                <button onClick={() => handleDeleteSegment(segment.id)} className="p-1.5 rounded hover:bg-gray-600 text-red-400" title="Delete"><TrashIcon className="w-4 h-4" /></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </React.Fragment>
                         );
                     })}
                     <div ref={endOfStoryRef} />
@@ -583,7 +682,7 @@ const App: React.FC = () => {
                         <strong>Error:</strong> {error}
                     </div>
                 )}
-                <UserInput onSubmit={handleAddUserSegment} />
+                <UserInput onSubmit={handleAddUserSegment} onAddChapter={handleAddChapter} />
             </main>
             <aside className="w-[380px] flex-shrink-0">
                 <ContentNavigator
@@ -604,9 +703,10 @@ const App: React.FC = () => {
 
 interface UserInputProps {
     onSubmit: (content: string) => void;
+    onAddChapter: () => void;
 }
 
-const UserInput: React.FC<UserInputProps> = ({ onSubmit }) => {
+const UserInput: React.FC<UserInputProps> = ({ onSubmit, onAddChapter }) => {
     const [content, setContent] = useState('');
     const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -643,6 +743,14 @@ const UserInput: React.FC<UserInputProps> = ({ onSubmit }) => {
                 rows={1}
                 style={{maxHeight: '200px'}}
             />
+            <button
+                type="button"
+                onClick={onAddChapter}
+                className="p-2 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-500 transition-colors self-end"
+                title="Add Chapter Break"
+            >
+                <BookOpenIcon className="w-5 h-5" />
+            </button>
             <button
                 onClick={handleSubmit}
                 disabled={!content.trim()}

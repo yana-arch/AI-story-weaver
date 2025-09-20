@@ -58,7 +58,7 @@ export interface HistoryEntry {
 
 export interface StorySegment {
   id: string;
-  type: 'user' | 'ai';
+  type: 'user' | 'ai' | 'chapter';
   content: string;
   config?: GenerationConfig;
   history?: HistoryEntry[];
