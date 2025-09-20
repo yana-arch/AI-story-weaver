@@ -5,8 +5,10 @@ import { ContentNavigator } from './components/ContentNavigator';
 import { CustomPromptsManager } from './components/CustomPromptsManager';
 import { VersionHistoryViewer } from './components/VersionHistoryViewer';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
+import { CharacterPanel } from './components/CharacterPanel';
+import { CharacterProfileEditor } from './components/CharacterProfileEditor';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { generateStorySegment } from './services/geminiService';
+import { generateStorySegment, generateCharacterProfiles } from './services/geminiService';
 import {
     Scenario,
     CharacterDynamics,
@@ -17,6 +19,7 @@ import {
     type ApiKey,
     type CustomPrompt,
     type HistoryEntry,
+    type CharacterProfile,
     type StorySession,
 } from './types';
 import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon } from './components/icons';
@@ -38,6 +41,7 @@ const App: React.FC = () => {
     const [useDefaultKey, setUseDefaultKey] = useLocalStorage<boolean>('useDefaultKey', true);
     const [customPrompts, setCustomPrompts] = useLocalStorage<CustomPrompt[]>('customPrompts', []);
     const [selectedPromptIds, setSelectedPromptIds] = useLocalStorage<string[]>('selectedPromptIds', []);
+    const [characterProfiles, setCharacterProfiles] = useLocalStorage<CharacterProfile[]>('characterProfiles', []);
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -49,6 +53,9 @@ const App: React.FC = () => {
     const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
     const [isPromptManagerOpen, setIsPromptManagerOpen] = useState(false);
     const [historyViewerTarget, setHistoryViewerTarget] = useState<StorySegment | null>(null);
+    const [isCharacterEditorOpen, setIsCharacterEditorOpen] = useState(false);
+    const [editingProfile, setEditingProfile] = useState<CharacterProfile | null>(null);
+    const [isGeneratingProfiles, setIsGeneratingProfiles] = useState(false);
 
 
     // Autosave status state
@@ -89,7 +96,7 @@ const App: React.FC = () => {
         }, 3000); // Show "Saved" for 3 seconds
 
         return () => clearTimeout(timer);
-    }, [storySegments, config, customPrompts, selectedPromptIds]);
+    }, [storySegments, config, customPrompts, selectedPromptIds, characterProfiles]);
 
     const filteredSegments = useMemo(() => {
         if (!searchQuery.trim()) {
@@ -128,6 +135,7 @@ const App: React.FC = () => {
                 fullStoryForRewrite,
                 config,
                 selectedPromptsContent,
+                characterProfiles,
                 availableKeys,
                 currentKeyIndex,
                 chatSession.current
@@ -159,7 +167,7 @@ const App: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [storySegments, config, customPrompts, selectedPromptIds, apiKeys, useDefaultKey, currentKeyIndex, setStorySegments, setCurrentKeyIndex]);
+    }, [storySegments, config, customPrompts, selectedPromptIds, apiKeys, useDefaultKey, currentKeyIndex, setStorySegments, setCurrentKeyIndex, characterProfiles]);
 
     const handleAddUserSegment = (content: string) => {
         if (!content.trim()) return;
@@ -217,6 +225,79 @@ const App: React.FC = () => {
         if(window.confirm("Are you sure you want to delete this segment? This action cannot be undone.")){
             setStorySegments(prev => prev.filter(s => s.id !== id));
         }
+    };
+
+    const handleGenerateProfiles = async () => {
+        setIsGeneratingProfiles(true);
+        setError(null);
+        const storyContent = storySegments.map(s => s.content).join('\n\n');
+        if (!storyContent.trim()) {
+            setError("Cannot analyze an empty story. Please write something first.");
+            setIsGeneratingProfiles(false);
+            return;
+        }
+
+        const availableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', key: 'N/A', isDefault: true }, ...apiKeys] : apiKeys;
+        
+        try {
+            const { profiles, newKeyIndex } = await generateCharacterProfiles(storyContent, availableKeys, currentKeyIndex);
+            
+            setCharacterProfiles(prevProfiles => {
+                const updatedProfiles = [...prevProfiles];
+                profiles.forEach(newProfile => {
+                    const existingIndex = updatedProfiles.findIndex(p => p.name.toLowerCase() === newProfile.name.toLowerCase());
+                    if (existingIndex !== -1) {
+                        updatedProfiles[existingIndex] = {
+                           ...updatedProfiles[existingIndex],
+                           appearance: newProfile.appearance || updatedProfiles[existingIndex].appearance,
+                           personality: newProfile.personality || updatedProfiles[existingIndex].personality,
+                           background: newProfile.background || updatedProfiles[existingIndex].background,
+                           motivation: newProfile.motivation || updatedProfiles[existingIndex].motivation,
+                        };
+                    } else {
+                        updatedProfiles.push(newProfile);
+                    }
+                });
+                return updatedProfiles;
+            });
+
+            setCurrentKeyIndex(newKeyIndex);
+        } catch(e: any) {
+            setError(e.message || "An unknown error occurred while generating profiles.");
+        } finally {
+            setIsGeneratingProfiles(false);
+        }
+    };
+    
+    const handleAddCharacter = () => {
+        setEditingProfile(null);
+        setIsCharacterEditorOpen(true);
+    };
+
+    const handleEditCharacter = (profile: CharacterProfile) => {
+        setEditingProfile(profile);
+        setIsCharacterEditorOpen(true);
+    };
+
+    const handleDeleteCharacter = (id: string) => {
+        if (window.confirm("Are you sure you want to delete this character profile?")) {
+            setCharacterProfiles(prev => prev.filter(p => p.id !== id));
+        }
+    };
+
+    const handleSaveCharacterProfile = (profile: CharacterProfile) => {
+        setCharacterProfiles(prev => {
+            const index = prev.findIndex(p => p.id === profile.id);
+            if (index > -1) {
+                const newProfiles = [...prev];
+                newProfiles[index] = profile;
+                return newProfiles;
+            } else {
+                return [...prev, profile];
+            }
+        });
+        setIsCharacterEditorOpen(false);
+        setEditingProfile(null);
     };
 
     // --- Drag and Drop Handlers ---
@@ -280,6 +361,7 @@ const App: React.FC = () => {
                 generationConfig: config,
                 customPrompts: customPrompts,
                 selectedPromptIds: selectedPromptIds,
+                characterProfiles: characterProfiles,
             };
             const dataStr = JSON.stringify(sessionData, null, 2);
             const blob = new Blob([dataStr], { type: 'application/json' });
@@ -314,17 +396,18 @@ const App: React.FC = () => {
                 const result = e.target?.result as string;
                 const loadedSession: StorySession = JSON.parse(result);
 
-                // Basic validation
                 if (
                     Array.isArray(loadedSession.storySegments) &&
                     loadedSession.generationConfig &&
                     Array.isArray(loadedSession.customPrompts) &&
-                    Array.isArray(loadedSession.selectedPromptIds)
+                    Array.isArray(loadedSession.selectedPromptIds) &&
+                    Array.isArray(loadedSession.characterProfiles)
                 ) {
                     setStorySegments(loadedSession.storySegments);
                     setConfig(loadedSession.generationConfig);
                     setCustomPrompts(loadedSession.customPrompts);
                     setSelectedPromptIds(loadedSession.selectedPromptIds);
+                    setCharacterProfiles(loadedSession.characterProfiles);
                     chatSession.current = null; // Reset chat context
                     alert('Story session loaded successfully!');
                 } else {
@@ -347,6 +430,18 @@ const App: React.FC = () => {
             {isApiKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeyManagerOpen(false)} />}
             {isPromptManagerOpen && <CustomPromptsManager prompts={customPrompts} setPrompts={setCustomPrompts} onClose={() => setIsPromptManagerOpen(false)} />}
             {historyViewerTarget && <VersionHistoryViewer segment={historyViewerTarget} onClose={() => setHistoryViewerTarget(null)} onRevert={handleRevertToVersion} />}
+            {isCharacterEditorOpen && <CharacterProfileEditor profile={editingProfile} onSave={handleSaveCharacterProfile} onClose={() => setIsCharacterEditorOpen(false)} />}
+
+            <aside className="w-[350px] flex-shrink-0">
+                <CharacterPanel 
+                    profiles={characterProfiles}
+                    onAdd={handleAddCharacter}
+                    onEdit={handleEditCharacter}
+                    onDelete={handleDeleteCharacter}
+                    onGenerate={handleGenerateProfiles}
+                    isGenerating={isGeneratingProfiles}
+                />
+            </aside>
 
             <main className="flex-1 flex flex-col p-4 overflow-hidden">
                 <header className="flex justify-between items-center mb-4 flex-shrink-0 gap-4">

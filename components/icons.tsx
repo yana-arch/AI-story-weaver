@@ -103,3 +103,9 @@ export const SearchIcon: React.FC<IconProps> = (props) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
   </svg>
 );
+
+export const UserGroupIcon: React.FC<IconProps> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 00-12 0m12 0a9.094 9.094 0 00-12 0m12 0A9.094 9.094 0 006 18.719m12 0c1.223-.744 2.093-2.093 2.093-3.633 0-2.485-2.015-4.5-4.5-4.5s-4.5 2.015-4.5 4.5c0 1.54.87 2.889 2.093 3.633m-6.386 0c1.223-.744 2.093-2.093 2.093-3.633 0-2.485-2.015-4.5-4.5-4.5s-4.5 2.015-4.5 4.5c0 1.54.87 2.889 2.093 3.633" />
+  </svg>
+);

@@ -1,5 +1,5 @@
-import { GoogleGenAI, Chat } from "@google/genai";
-import type { ApiKey, GenerationConfig } from '../types';
+import { GoogleGenAI, Chat, Type } from "@google/genai";
+import type { ApiKey, GenerationConfig, CharacterProfile } from '../types';
 import { GenerationMode } from '../types';
 
 interface GenerationResult {
@@ -57,11 +57,119 @@ export async function testApiKey(apiKey: ApiKey): Promise<void> {
 }
 
 
+export async function generateCharacterProfiles(
+    storyContent: string,
+    apiKeys: ApiKey[],
+    currentKeyIndex: number
+): Promise<{ profiles: CharacterProfile[], newKeyIndex: number }> {
+     if (!apiKeys || apiKeys.length === 0) {
+        throw new Error("No API keys available to generate character profiles.");
+    }
+    if (!storyContent.trim()) {
+        throw new Error("Story content is empty. Cannot generate profiles.");
+    }
+
+    const systemInstruction = `You are an expert literary analyst. Your task is to read the provided story text and extract detailed profiles for each significant character. Identify their name, appearance, personality, background, and motivations based on the text. Provide the output as a JSON array of objects.`;
+
+    const userMessage = `
+    --- STORY CONTENT ---
+    ${storyContent}
+
+    --- YOUR TASK ---
+    Analyze the story above and generate a JSON array of character profiles. Each object in the array should represent one character and have the following fields: "id" (a unique string generated from the name), "name", "appearance", "personality", "background", and "motivation". If a piece of information is not available in the text, leave the corresponding field as an empty string. Do not add any commentary before or after the JSON output.
+    `;
+
+    const responseSchema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                id: { type: Type.STRING, description: "A unique identifier for the character, can be generated from the name." },
+                name: { type: Type.STRING },
+                appearance: { type: Type.STRING },
+                personality: { type: Type.STRING },
+                background: { type: Type.STRING },
+                motivation: { type: Type.STRING }
+            },
+            required: ["id", "name", "appearance", "personality", "background", "motivation"]
+        }
+    };
+    
+    let keyIndex = currentKeyIndex;
+    for (let i = 0; i < apiKeys.length; i++) {
+        const apiKey = apiKeys[keyIndex];
+        try {
+            let generatedText: string;
+
+            if (apiKey.endpoint && apiKey.modelId) {
+                const response = await fetch(`${apiKey.endpoint}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey.key}`
+                    },
+                    body: JSON.stringify({
+                        model: apiKey.modelId,
+                        messages: [
+                            { role: 'system', content: systemInstruction },
+                            { role: 'user', content: userMessage }
+                        ],
+                        response_format: { type: "json_object" },
+                    })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: response.statusText }));
+                    throw new Error(`API call failed: ${errorData.error?.message || response.statusText}`);
+                }
+                const result = await response.json();
+                generatedText = result.choices?.[0]?.message?.content;
+                const parsedResult = JSON.parse(generatedText);
+                const profiles = Array.isArray(parsedResult) ? parsedResult : (parsedResult.profiles || []);
+                return { profiles, newKeyIndex: keyIndex };
+
+            } else {
+                const effectiveApiKey = apiKey.id === 'default' 
+                    ? (process.env.API_KEY || '')
+                    : apiKey.key;
+                if (!effectiveApiKey) {
+                    console.warn(`API key for "${apiKey.name}" is missing. Skipping.`);
+                    keyIndex = (keyIndex + 1) % apiKeys.length;
+                    continue;
+                }
+                const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: userMessage,
+                    config: {
+                        systemInstruction,
+                        responseMimeType: "application/json",
+                        responseSchema: responseSchema,
+                    }
+                });
+                generatedText = response.text;
+            }
+
+            if (!generatedText) {
+              throw new Error("Received empty response from API.");
+            }
+
+            const profiles: CharacterProfile[] = JSON.parse(generatedText);
+            return { profiles, newKeyIndex: keyIndex };
+
+        } catch (error) {
+            console.error(`API call for character profiles with key "${apiKey.name}" failed.`, error);
+            keyIndex = (keyIndex + 1) % apiKeys.length;
+        }
+    }
+    throw new Error("All API keys failed while generating character profiles.");
+}
+
 export async function generateStorySegment(
     prompt: string,
     fullStoryForRewrite: string,
     config: GenerationConfig,
     customPromptsContent: string[],
+    characterProfiles: CharacterProfile[],
     apiKeys: ApiKey[],
     currentKeyIndex: number,
     chatSession: Chat | { messages: any[] } | null
@@ -85,17 +193,29 @@ ${config.adultContentOptions.map(opt => `- Tập trung vào: ${opt}`).join('\n')
         : `
 --- HƯỚNG DẪN NỘI DUNG 18+ ---
 - Giữ cho câu chuyện phù hợp với mọi lứa tuổi. Tránh mọi nội dung người lớn.`;
+    
+    const characterProfilesSection = characterProfiles.length > 0
+        ? `
+--- HỒ SƠ NHÂN VẬT ---
+${characterProfiles.map(p => 
+`Tên: ${p.name}
+- Ngoại hình: ${p.appearance || 'Chưa xác định'}
+- Tính cách: ${p.personality || 'Chưa xác định'}
+- Động lực: ${p.motivation || 'Chưa xác định'}`
+).join('\n---\n')}`
+        : '';
 
     
     const creativeDirection = `
---- ĐỊNH HƯỚỚNG SÁNG TẠO ---
+--- ĐỊNH HƯỚNG SÁNG TẠO ---
 - Kịch bản: ${config.scenario}
 - Động lực nhân vật: ${config.dynamics}
 - Nhịp độ: ${config.pacing}
 - Từ khóa cần nhấn mạnh: "${config.focusKeywords}"
 - Từ khóa cần tránh: "${config.avoidKeywords}"
 ${adultContentSection}
-${customPromptsSection}`;
+${customPromptsSection}
+${characterProfilesSection}`;
 
     let systemInstruction: string;
     let userMessage: string;

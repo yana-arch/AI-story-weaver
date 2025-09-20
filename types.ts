@@ -70,6 +70,15 @@ export interface CustomPrompt {
   content: string;
 }
 
+export interface CharacterProfile {
+  id: string;
+  name: string;
+  appearance: string;
+  personality: string;
+  background: string;
+  motivation: string;
+}
+
 export interface Story {
   id: string;
   name: string;
@@ -83,4 +92,5 @@ export interface StorySession {
   generationConfig: GenerationConfig;
   customPrompts: CustomPrompt[];
   selectedPromptIds: string[];
+  characterProfiles: CharacterProfile[];
 }
