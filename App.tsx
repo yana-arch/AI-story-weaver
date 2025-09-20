@@ -17,7 +17,7 @@ import {
     type ApiKey,
     type CustomPrompt,
 } from './types';
-import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon } from './components/icons';
+import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon } from './components/icons';
 
 const initialConfig: GenerationConfig = {
     scenario: Scenario.FIRST_TIME,
@@ -47,6 +47,10 @@ const App: React.FC = () => {
     const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
     const [isPromptManagerOpen, setIsPromptManagerOpen] = useState(false);
 
+    // Autosave status state
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
+    const isInitialMount = useRef(true);
+
     const chatSession = useRef<Chat | { messages: any[] } | null>(null);
     const endOfStoryRef = useRef<HTMLDivElement>(null);
     
@@ -60,6 +64,22 @@ const App: React.FC = () => {
     useEffect(() => {
       endOfStoryRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [storySegments]);
+
+    // Effect for autosave visual indicator
+    useEffect(() => {
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
+        setSaveStatus('saved');
+        const timer = setTimeout(() => {
+            setSaveStatus('idle');
+        }, 3000); // Show "Saved" for 3 seconds
+
+        return () => clearTimeout(timer);
+    }, [storySegments]);
+
 
     const handleGenerate = useCallback(async () => {
         setIsLoading(true);
@@ -195,7 +215,15 @@ const App: React.FC = () => {
 
             <main className="flex-1 flex flex-col p-4 overflow-hidden">
                 <header className="flex justify-between items-center mb-4 flex-shrink-0">
-                    <h1 className="text-2xl font-bold text-gray-100">AI Creative Writer</h1>
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-2xl font-bold text-gray-100">AI Creative Writer</h1>
+                        <div className={`transition-opacity duration-500 ${saveStatus === 'saved' ? 'opacity-100' : 'opacity-0'}`}>
+                            <p className="text-sm text-gray-400 flex items-center gap-1">
+                                <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                                <span>All changes saved.</span>
+                            </p>
+                        </div>
+                    </div>
                     <div className="flex items-center gap-3">
                         <button onClick={() => setIsPromptManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Manage Custom Prompts">
                             <BookmarkIcon className="w-4 h-4" /> Prompts
