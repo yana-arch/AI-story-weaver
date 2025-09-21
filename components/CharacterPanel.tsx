@@ -1,6 +1,6 @@
 import React from 'react';
 import type { CharacterProfile } from '../types';
-import { UserGroupIcon, PlusIcon, EditIcon, TrashIcon } from './icons';
+import { UserGroupIcon, PlusIcon, EditIcon, TrashIcon, CloseIcon } from './icons';
 
 interface CharacterPanelProps {
     profiles: CharacterProfile[];
@@ -9,15 +9,21 @@ interface CharacterPanelProps {
     onDelete: (id: string) => void;
     onGenerate: () => void;
     isGenerating: boolean;
+    onClose: () => void;
 }
 
-export const CharacterPanel: React.FC<CharacterPanelProps> = ({ profiles, onAdd, onEdit, onDelete, onGenerate, isGenerating }) => {
+export const CharacterPanel: React.FC<CharacterPanelProps> = ({ profiles, onAdd, onEdit, onDelete, onGenerate, isGenerating, onClose }) => {
     return (
-        <div className="h-full flex flex-col bg-gray-800 p-4 border-r border-gray-700">
-            <h2 className="text-xl font-bold text-center mb-4 text-gray-100 flex items-center justify-center">
-                <UserGroupIcon className="w-6 h-6 mr-2" />
-                Character Profiles
-            </h2>
+        <div className="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-100 flex items-center">
+                    <UserGroupIcon className="w-6 h-6 mr-2" />
+                    Character Profiles
+                </h2>
+                <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700">
+                    <CloseIcon className="w-6 h-6" />
+                </button>
+            </div>
             <div className="flex-grow overflow-y-auto pr-2 space-y-3">
                 {profiles.length > 0 ? (
                     profiles.map(profile => (

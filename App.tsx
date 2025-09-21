@@ -8,7 +8,10 @@ import { MarkdownRenderer } from './components/MarkdownRenderer';
 import { CharacterPanel } from './components/CharacterPanel';
 import { CharacterProfileEditor } from './components/CharacterProfileEditor';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { StoryManager } from './components/StoryManager';
+import * as storyManager from './services/storyManagerService';
 import { generateStorySegment, generateCharacterProfiles } from './services/geminiService';
+import { addHistoryEntry, deleteHistory } from './services/historyService';
 import {
     Scenario,
     CharacterDynamics,
@@ -20,9 +23,10 @@ import {
     type CustomPrompt,
     type HistoryEntry,
     type CharacterProfile,
+    type Story,
     type StorySession,
 } from './types';
-import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon } from './components/icons';
+import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon } from './components/icons';
 
 const initialConfig: GenerationConfig = {
     scenario: Scenario.FIRST_TIME,
@@ -35,14 +39,11 @@ const initialConfig: GenerationConfig = {
 };
 
 const App: React.FC = () => {
-    const [config, setConfig] = useLocalStorage<GenerationConfig>('generationConfig', initialConfig);
-    const [storySegments, setStorySegments] = useLocalStorage<StorySegment[]>('storySegments', []);
+    const [stories, setStories] = useState<Record<string, Story>>({});
+    const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
+
     const [apiKeys, setApiKeys] = useLocalStorage<ApiKey[]>('apiKeys', []);
     const [useDefaultKey, setUseDefaultKey] = useLocalStorage<boolean>('useDefaultKey', true);
-    const [customPrompts, setCustomPrompts] = useLocalStorage<CustomPrompt[]>('customPrompts', []);
-    const [selectedPromptIds, setSelectedPromptIds] = useLocalStorage<string[]>('selectedPromptIds', []);
-    const [characterProfiles, setCharacterProfiles] = useLocalStorage<CharacterProfile[]>('characterProfiles', []);
-    const [lastReadSegmentId, setLastReadSegmentId] = useLocalStorage<string | null>('lastReadSegmentId', null);
 
 
     const [isLoading, setIsLoading] = useState(false);
@@ -54,10 +55,12 @@ const App: React.FC = () => {
     // Modals visibility state
     const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
     const [isPromptManagerOpen, setIsPromptManagerOpen] = useState(false);
-    const [historyViewerTarget, setHistoryViewerTarget] = useState<StorySegment | null>(null);
+    const [historyViewerTarget, setHistoryViewerTarget] = useState<string | null>(null);
     const [isCharacterEditorOpen, setIsCharacterEditorOpen] = useState(false);
     const [editingProfile, setEditingProfile] = useState<CharacterProfile | null>(null);
     const [isGeneratingProfiles, setIsGeneratingProfiles] = useState(false);
+    const [isCharacterPanelOpen, setIsCharacterPanelOpen] = useState(false);
+    const [isStoryManagerOpen, setIsStoryManagerOpen] = useState(false);
 
 
     // Autosave status state
@@ -80,16 +83,32 @@ const App: React.FC = () => {
     const unreadMarkerRef = useRef<HTMLDivElement>(null);
     const didInitialScroll = useRef(false);
     
+    useEffect(() => {
+        const migratedStoryId = storyManager.migrateToMultiStory();
+        const allStories = storyManager.getStories();
+        setStories(allStories);
+        setActiveStoryId(migratedStoryId || storyManager.getActiveStoryId() || Object.keys(allStories)[0] || null);
+    }, []);
+
+    const activeStory = useMemo(() => {
+        if (!activeStoryId || !stories[activeStoryId]) return null;
+        return stories[activeStoryId];
+    }, [stories, activeStoryId]);
+
+    const setActiveStory = (story: Story) => {
+        setStories(prev => ({ ...prev, [story.id]: story }));
+    };
+
     // Reset chat session if story is cleared or generation mode changes to REWRITE
     useEffect(() => {
-        if (storySegments.length === 0 || config.generationMode === GenerationMode.REWRITE) {
+        if (!activeStory || activeStory.storySegments.length === 0 || activeStory.generationConfig.generationMode === GenerationMode.REWRITE) {
             chatSession.current = null;
         }
-    }, [storySegments.length, config.generationMode]);
+    }, [activeStory]);
     
     useEffect(() => {
       endOfStoryRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [storySegments]);
+    }, [activeStory?.storySegments]);
 
     // Effect for autosave visual indicator
     useEffect(() => {
@@ -98,28 +117,32 @@ const App: React.FC = () => {
             return;
         }
 
-        setSaveStatus('saved');
-        const timer = setTimeout(() => {
-            setSaveStatus('idle');
-        }, 3000); // Show "Saved" for 3 seconds
+        if (activeStory) {
+            storyManager.saveStories(stories);
+            setSaveStatus('saved');
+            const timer = setTimeout(() => {
+                setSaveStatus('idle');
+            }, 3000); // Show "Saved" for 3 seconds
 
-        return () => clearTimeout(timer);
-    }, [storySegments, config, customPrompts, selectedPromptIds, characterProfiles]);
+            return () => clearTimeout(timer);
+        }
+    }, [activeStory, stories]);
 
     const filteredSegments = useMemo(() => {
+        if (!activeStory) return [];
         if (!searchQuery.trim()) {
-            return storySegments;
+            return activeStory.storySegments;
         }
         const lowercasedQuery = searchQuery.toLowerCase();
-        return storySegments.filter(segment =>
+        return activeStory.storySegments.filter(segment =>
             segment.type !== 'chapter' && segment.content.toLowerCase().includes(lowercasedQuery)
         );
-    }, [storySegments, searchQuery]);
+    }, [activeStory, searchQuery]);
     
      const lastReadIndex = useMemo(() => {
-        if (!lastReadSegmentId) return -1;
-        return filteredSegments.findIndex(s => s.id === lastReadSegmentId);
-    }, [filteredSegments, lastReadSegmentId]);
+        if (!activeStory || !activeStory.lastReadSegmentId) return -1;
+        return filteredSegments.findIndex(s => s.id === activeStory.lastReadSegmentId);
+    }, [filteredSegments, activeStory]);
 
     // Reading progress observer effect
     useEffect(() => {
@@ -127,8 +150,8 @@ const App: React.FC = () => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const segmentId = entry.target.getAttribute('data-segment-id');
-                    if (segmentId) {
-                        setLastReadSegmentId(segmentId);
+                    if (segmentId && activeStory) {
+                        setActiveStory({ ...activeStory, lastReadSegmentId: segmentId });
                     }
                 }
             });
@@ -149,7 +172,7 @@ const App: React.FC = () => {
         return () => {
             currentObserver.disconnect();
         };
-    }, [filteredSegments, setLastReadSegmentId]);
+    }, [filteredSegments, activeStory, setActiveStory]);
 
     // Auto-scroll to unread marker effect
     useEffect(() => {
@@ -166,23 +189,25 @@ const App: React.FC = () => {
 
 
     const handleGenerate = useCallback(async () => {
+        if (!activeStory) return;
+
         setIsLoading(true);
         setError(null);
 
-        const lastUserSegment = [...storySegments].reverse().find(s => s.type === 'user');
-        if (!lastUserSegment && config.generationMode === GenerationMode.CONTINUE && storySegments.length > 0) {
+        const lastUserSegment = [...activeStory.storySegments].reverse().find(s => s.type === 'user');
+        if (!lastUserSegment && activeStory.generationConfig.generationMode === GenerationMode.CONTINUE && activeStory.storySegments.length > 0) {
             setError("Cannot continue without a new user prompt. Please add to the story.");
             setIsLoading(false);
             return;
         }
         
-        const storyContext = storySegments.filter(s => s.type !== 'chapter').map(s => s.content).join('\n\n');
+        const storyContext = activeStory.storySegments.filter(s => s.type !== 'chapter').map(s => s.content).join('\n\n');
 
         const prompt = lastUserSegment?.content || storyContext || '';
         const fullStoryForRewrite = storyContext;
 
-        const selectedPromptsContent = customPrompts
-            .filter(p => selectedPromptIds.includes(p.id))
+        const selectedPromptsContent = activeStory.customPrompts
+            .filter(p => activeStory.selectedPromptIds.includes(p.id))
             .map(p => p.content);
         
         const availableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', key: 'N/A', isDefault: true }, ...apiKeys] : apiKeys;
@@ -191,30 +216,25 @@ const App: React.FC = () => {
             const result = await generateStorySegment(
                 prompt,
                 fullStoryForRewrite,
-                config,
+                activeStory.generationConfig,
                 selectedPromptsContent,
-                characterProfiles,
+                activeStory.characterProfiles,
                 availableKeys,
                 currentKeyIndex,
                 chatSession.current
             );
             
-            if (config.generationMode === GenerationMode.REWRITE) {
-                 setStorySegments([{
-                    id: Date.now().toString(),
-                    type: 'ai',
-                    content: result.content,
-                    config: { ...config },
-                    history: []
-                }]);
+            const newSegment: StorySegment = {
+                id: Date.now().toString(),
+                type: 'ai',
+                content: result.content,
+                config: { ...activeStory.generationConfig },
+            };
+
+            if (activeStory.generationConfig.generationMode === GenerationMode.REWRITE) {
+                setActiveStory({ ...activeStory, storySegments: [newSegment] });
             } else {
-                 setStorySegments(prev => [...prev, {
-                    id: Date.now().toString(),
-                    type: 'ai',
-                    content: result.content,
-                    config: { ...config },
-                    history: []
-                }]);
+                setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newSegment] });
             }
            
             chatSession.current = result.newChatSession;
@@ -225,18 +245,20 @@ const App: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [storySegments, config, customPrompts, selectedPromptIds, apiKeys, useDefaultKey, currentKeyIndex, setStorySegments, setCurrentKeyIndex, characterProfiles]);
+    }, [activeStory, apiKeys, useDefaultKey, currentKeyIndex, setActiveStory, setCurrentKeyIndex]);
 
     const handleAddUserSegment = (content: string) => {
-        if (!content.trim()) return;
-        setStorySegments(prev => [...prev, {
+        if (!content.trim() || !activeStory) return;
+        const newSegment: StorySegment = {
             id: Date.now().toString(),
             type: 'user',
             content: content.trim(),
-        }]);
+        };
+        setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newSegment] });
     };
 
     const handleAddChapter = () => {
+        if (!activeStory) return;
         const title = window.prompt("Enter the title for the new chapter:");
         if (title && title.trim()) {
             const newChapter: StorySegment = {
@@ -244,7 +266,7 @@ const App: React.FC = () => {
                 type: 'chapter',
                 content: title.trim()
             };
-            setStorySegments(prev => [...prev, newChapter]);
+            setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newChapter] });
         }
     };
 
@@ -255,53 +277,60 @@ const App: React.FC = () => {
     };
 
     const handleSaveEdit = () => {
-        if (!editingSegmentId) return;
-        setStorySegments(prev => prev.map(s => {
-            if (s.id === editingSegmentId) {
-                if (s.type === 'ai') {
-                    const newHistoryEntry: HistoryEntry = {
-                        timestamp: Date.now(),
-                        content: s.content,
-                    };
-                    const newHistory = [newHistoryEntry, ...(s.history || [])];
-                    return { ...s, content: editText, history: newHistory };
-                }
-                return { ...s, content: editText };
-            }
-            return s;
-        }));
+        if (!editingSegmentId || !activeStory) return;
+
+        const originalSegment = activeStory.storySegments.find(s => s.id === editingSegmentId);
+
+        if (originalSegment && originalSegment.type === 'ai') {
+            addHistoryEntry(editingSegmentId, originalSegment.content);
+        }
+
+        setActiveStory({
+            ...activeStory,
+            storySegments: activeStory.storySegments.map(s => 
+                s.id === editingSegmentId ? { ...s, content: editText } : s
+            )
+        });
+
         setEditingSegmentId(null);
         setEditText('');
     };
 
     const handleRevertToVersion = (segmentId: string, historyEntry: HistoryEntry) => {
+        if (!activeStory) return;
         if (window.confirm("Are you sure you want to revert to this version? The current content will be saved to history.")) {
-            setStorySegments(prev => prev.map(s => {
-                if (s.id === segmentId) {
-                    const currentContentAsHistory: HistoryEntry = {
-                        timestamp: Date.now(),
-                        content: s.content,
-                    };
-                    const newHistory = [currentContentAsHistory, ...(s.history || [])].filter(h => h.timestamp !== historyEntry.timestamp);
-                    return { ...s, content: historyEntry.content, history: newHistory };
-                }
-                return s;
-            }));
+            const segmentToRevert = activeStory.storySegments.find(s => s.id === segmentId);
+            if (segmentToRevert) {
+                addHistoryEntry(segmentId, segmentToRevert.content);
+            }
+
+            setActiveStory({
+                ...activeStory,
+                storySegments: activeStory.storySegments.map(s =>
+                    s.id === segmentId ? { ...s, content: historyEntry.content } : s
+                )
+            });
             setHistoryViewerTarget(null);
         }
     };
 
 
     const handleDeleteSegment = (id: string) => {
+        if (!activeStory) return;
         if(window.confirm("Are you sure you want to delete this segment? This action cannot be undone.")){
-            setStorySegments(prev => prev.filter(s => s.id !== id));
+            setActiveStory({
+                ...activeStory,
+                storySegments: activeStory.storySegments.filter(s => s.id !== id)
+            });
+            deleteHistory(id);
         }
     };
 
     const handleGenerateProfiles = async () => {
+        if (!activeStory) return;
         setIsGeneratingProfiles(true);
         setError(null);
-        const storyContent = storySegments.map(s => s.content).join('\n\n');
+        const storyContent = activeStory.storySegments.map(s => s.content).join('\n\n');
         if (!storyContent.trim()) {
             setError("Cannot analyze an empty story. Please write something first.");
             setIsGeneratingProfiles(false);
@@ -313,25 +342,23 @@ const App: React.FC = () => {
         try {
             const { profiles, newKeyIndex } = await generateCharacterProfiles(storyContent, availableKeys, currentKeyIndex);
             
-            setCharacterProfiles(prevProfiles => {
-                const updatedProfiles = [...prevProfiles];
-                profiles.forEach(newProfile => {
-                    const existingIndex = updatedProfiles.findIndex(p => p.name.toLowerCase() === newProfile.name.toLowerCase());
-                    if (existingIndex !== -1) {
-                        updatedProfiles[existingIndex] = {
-                           ...updatedProfiles[existingIndex],
-                           appearance: newProfile.appearance || updatedProfiles[existingIndex].appearance,
-                           personality: newProfile.personality || updatedProfiles[existingIndex].personality,
-                           background: newProfile.background || updatedProfiles[existingIndex].background,
-                           motivation: newProfile.motivation || updatedProfiles[existingIndex].motivation,
-                        };
-                    } else {
-                        updatedProfiles.push(newProfile);
-                    }
-                });
-                return updatedProfiles;
+            const updatedProfiles = [...activeStory.characterProfiles];
+            profiles.forEach(newProfile => {
+                const existingIndex = updatedProfiles.findIndex(p => p.name.toLowerCase() === newProfile.name.toLowerCase());
+                if (existingIndex !== -1) {
+                    updatedProfiles[existingIndex] = {
+                       ...updatedProfiles[existingIndex],
+                       appearance: newProfile.appearance || updatedProfiles[existingIndex].appearance,
+                       personality: newProfile.personality || updatedProfiles[existingIndex].personality,
+                       background: newProfile.background || updatedProfiles[existingIndex].background,
+                       motivation: newProfile.motivation || updatedProfiles[existingIndex].motivation,
+                    };
+                } else {
+                    updatedProfiles.push(newProfile);
+                }
             });
 
+            setActiveStory({ ...activeStory, characterProfiles: updatedProfiles });
             setCurrentKeyIndex(newKeyIndex);
         } catch(e: any) {
             setError(e.message || "An unknown error occurred while generating profiles.");
@@ -351,24 +378,58 @@ const App: React.FC = () => {
     };
 
     const handleDeleteCharacter = (id: string) => {
+        if (!activeStory) return;
         if (window.confirm("Are you sure you want to delete this character profile?")) {
-            setCharacterProfiles(prev => prev.filter(p => p.id !== id));
+            setActiveStory({
+                ...activeStory,
+                characterProfiles: activeStory.characterProfiles.filter(p => p.id !== id)
+            });
         }
     };
 
     const handleSaveCharacterProfile = (profile: CharacterProfile) => {
-        setCharacterProfiles(prev => {
-            const index = prev.findIndex(p => p.id === profile.id);
-            if (index > -1) {
-                const newProfiles = [...prev];
-                newProfiles[index] = profile;
-                return newProfiles;
-            } else {
-                return [...prev, profile];
-            }
-        });
+        if (!activeStory) return;
+        const index = activeStory.characterProfiles.findIndex(p => p.id === profile.id);
+        if (index > -1) {
+            const newProfiles = [...activeStory.characterProfiles];
+            newProfiles[index] = profile;
+            setActiveStory({ ...activeStory, characterProfiles: newProfiles });
+        } else {
+            setActiveStory({ ...activeStory, characterProfiles: [...activeStory.characterProfiles, profile] });
+        }
         setIsCharacterEditorOpen(false);
         setEditingProfile(null);
+    };
+
+    const handleCreateStory = () => {
+        const newStory: Story = {
+            id: Date.now().toString(),
+            name: 'New Story',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            storySegments: [],
+            generationConfig: initialConfig,
+            customPrompts: [],
+            selectedPromptIds: [],
+            characterProfiles: [],
+            lastReadSegmentId: null,
+        };
+        const newStories = { ...stories, [newStory.id]: newStory };
+        setStories(newStories);
+        setActiveStoryId(newStory.id);
+    };
+
+    const handleLoadStory = (id: string) => {
+        setActiveStoryId(id);
+    };
+
+    const handleDeleteStory = (id: string) => {
+        const newStories = { ...stories };
+        delete newStories[id];
+        setStories(newStories);
+        if (activeStoryId === id) {
+            setActiveStoryId(Object.keys(newStories)[0] || null);
+        }
     };
 
     // --- Drag and Drop Handlers ---
@@ -390,6 +451,7 @@ const App: React.FC = () => {
     };
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>, dropSegmentId: string) => {
+        if (!activeStory) return;
         e.preventDefault();
         const sourceSegmentId = e.dataTransfer.getData('text/plain');
 
@@ -399,16 +461,15 @@ const App: React.FC = () => {
             return;
         }
 
-        setStorySegments(prevSegments => {
-            const sourceIndex = prevSegments.findIndex(s => s.id === sourceSegmentId);
-            const dropIndex = prevSegments.findIndex(s => s.id === dropSegmentId);
-            if (sourceIndex === -1 || dropIndex === -1) return prevSegments;
+        const sourceIndex = activeStory.storySegments.findIndex(s => s.id === sourceSegmentId);
+        const dropIndex = activeStory.storySegments.findIndex(s => s.id === dropSegmentId);
+        if (sourceIndex === -1 || dropIndex === -1) return;
 
-            const newSegments = [...prevSegments];
-            const [draggedItem] = newSegments.splice(sourceIndex, 1);
-            newSegments.splice(dropIndex, 0, draggedItem);
-            return newSegments;
-        });
+        const newSegments = [...activeStory.storySegments];
+        const [draggedItem] = newSegments.splice(sourceIndex, 1);
+        newSegments.splice(dropIndex, 0, draggedItem);
+        
+        setActiveStory({ ...activeStory, storySegments: newSegments });
 
         chatSession.current = null; // Reset chat context after reordering
         setDraggedSegmentId(null);
@@ -422,25 +483,20 @@ const App: React.FC = () => {
 
 
     const isGenerateDisabled = useMemo(() => {
-        return storySegments.filter(s => s.type !== 'chapter').length === 0;
-    }, [storySegments]);
+        if (!activeStory) return true;
+        return activeStory.storySegments.filter(s => s.type !== 'chapter').length === 0;
+    }, [activeStory]);
 
 
     const handleSaveSession = () => {
+        if (!activeStory) return;
         try {
-            const sessionData: StorySession = {
-                storySegments: storySegments,
-                generationConfig: config,
-                customPrompts: customPrompts,
-                selectedPromptIds: selectedPromptIds,
-                characterProfiles: characterProfiles,
-            };
-            const dataStr = JSON.stringify(sessionData, null, 2);
+            const dataStr = JSON.stringify(activeStory, null, 2);
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const linkElement = document.createElement('a');
             linkElement.href = url;
-            linkElement.download = 'ai-story-weaver-session.json';
+            linkElement.download = `${activeStory.name.replace(/\s+/g, '_').toLowerCase()}_session.json`;
             document.body.appendChild(linkElement);
             linkElement.click();
             document.body.removeChild(linkElement);
@@ -457,31 +513,22 @@ const App: React.FC = () => {
             return;
         }
 
-        if (!window.confirm("Are you sure you want to load a new story? Your current progress will be overwritten.")) {
-            event.target.value = ''; // Reset file input
-            return;
-        }
-
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const result = e.target?.result as string;
-                const loadedSession: StorySession = JSON.parse(result);
+                const loadedStory: Story = JSON.parse(result);
 
                 if (
-                    Array.isArray(loadedSession.storySegments) &&
-                    loadedSession.generationConfig &&
-                    Array.isArray(loadedSession.customPrompts) &&
-                    Array.isArray(loadedSession.selectedPromptIds) &&
-                    Array.isArray(loadedSession.characterProfiles)
+                    loadedStory.id &&
+                    loadedStory.name &&
+                    Array.isArray(loadedStory.storySegments) &&
+                    loadedStory.generationConfig
                 ) {
-                    setStorySegments(loadedSession.storySegments);
-                    setConfig(loadedSession.generationConfig);
-                    setCustomPrompts(loadedSession.customPrompts);
-                    setSelectedPromptIds(loadedSession.selectedPromptIds);
-                    setCharacterProfiles(loadedSession.characterProfiles);
+                    setStories(prev => ({ ...prev, [loadedStory.id]: loadedStory }));
+                    setActiveStoryId(loadedStory.id);
                     chatSession.current = null; // Reset chat context
-                    alert('Story session loaded successfully!');
+                    alert(`Story "${loadedStory.name}" loaded successfully!`);
                 } else {
                     throw new Error('Invalid session file format.');
                 }
@@ -497,28 +544,50 @@ const App: React.FC = () => {
         event.target.value = ''; // Reset file input
     };
 
+    const handleRenameStory = (id: string, newName: string) => {
+        const newStories = { ...stories };
+        newStories[id].name = newName;
+        newStories[id].updatedAt = Date.now();
+        setStories(newStories);
+    };
+
     return (
         <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
             {isApiKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeyManagerOpen(false)} />}
-            {isPromptManagerOpen && <CustomPromptsManager prompts={customPrompts} setPrompts={setCustomPrompts} onClose={() => setIsPromptManagerOpen(false)} />}
-            {historyViewerTarget && <VersionHistoryViewer segment={historyViewerTarget} onClose={() => setHistoryViewerTarget(null)} onRevert={handleRevertToVersion} />}
+            {isPromptManagerOpen && activeStory && <CustomPromptsManager prompts={activeStory.customPrompts} setPrompts={(prompts) => setActiveStory({...activeStory, customPrompts: prompts})} onClose={() => setIsPromptManagerOpen(false)} />}
+            {historyViewerTarget && <VersionHistoryViewer segmentId={historyViewerTarget} onClose={() => setHistoryViewerTarget(null)} onRevert={handleRevertToVersion} />}
             {isCharacterEditorOpen && <CharacterProfileEditor profile={editingProfile} onSave={handleSaveCharacterProfile} onClose={() => setIsCharacterEditorOpen(false)} />}
-
-            <aside className="w-[350px] flex-shrink-0">
-                <CharacterPanel 
-                    profiles={characterProfiles}
-                    onAdd={handleAddCharacter}
-                    onEdit={handleEditCharacter}
-                    onDelete={handleDeleteCharacter}
-                    onGenerate={handleGenerateProfiles}
-                    isGenerating={isGeneratingProfiles}
+            {isCharacterPanelOpen && activeStory && (
+                <div className="fixed inset-0 bg-gray-900 bg-opacity-80 flex justify-center items-center z-40">
+                    <CharacterPanel 
+                        profiles={activeStory.characterProfiles}
+                        onAdd={handleAddCharacter}
+                        onEdit={handleEditCharacter}
+                        onDelete={handleDeleteCharacter}
+                        onGenerate={handleGenerateProfiles}
+                        isGenerating={isGeneratingProfiles}
+                        onClose={() => setIsCharacterPanelOpen(false)}
+                    />
+                </div>
+            )}
+            {isStoryManagerOpen && (
+                <StoryManager
+                    stories={stories}
+                    activeStoryId={activeStoryId}
+                    onLoadStory={handleLoadStory}
+                    onCreateStory={handleCreateStory}
+                    onDeleteStory={handleDeleteStory}
+                    onRenameStory={handleRenameStory}
+                    onClose={() => setIsStoryManagerOpen(false)}
                 />
-            </aside>
+            )}
+
+
 
             <main className="flex-1 flex flex-col p-4 overflow-hidden">
                 <header className="flex justify-between items-center mb-4 flex-shrink-0 gap-4">
                     <div className="flex items-center gap-4">
-                        <h1 className="text-2xl font-bold text-gray-100 flex-shrink-0">AI Creative Writer</h1>
+                        <h1 className="text-2xl font-bold text-gray-100 flex-shrink-0">{activeStory ? activeStory.name : 'AI Creative Writer'}</h1>
                         <div className={`transition-opacity duration-500 ${saveStatus === 'saved' ? 'opacity-100' : 'opacity-0'}`}>
                             <p className="text-sm text-gray-400 flex items-center gap-1">
                                 <CheckCircleIcon className="w-4 h-4 text-green-500" />
@@ -567,14 +636,24 @@ const App: React.FC = () => {
                         <button onClick={() => setIsPromptManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Manage Custom Prompts">
                             <BookmarkIcon className="w-4 h-4" /> Prompts
                         </button>
-                         <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Manage API Keys">
+                        <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Manage API Keys">
                             <KeyIcon className="w-4 h-4" /> API Keys
+                        </button>
+                        <button onClick={() => setIsCharacterPanelOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="View Characters">
+                            <UserGroupIcon className="w-4 h-4" /> Characters
+                        </button>
+                        <button onClick={() => setIsStoryManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Manage Stories">
+                            <CollectionIcon className="w-4 h-4" /> Stories
                         </button>
                     </div>
                 </header>
 
                 <div className="flex-grow bg-gray-800 rounded-lg p-4 overflow-y-auto mb-4 relative">
-                    {filteredSegments.length === 0 && (
+                    {!activeStory ? (
+                        <div className="text-center text-gray-500 absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
+                            <p className="text-lg">Loading story...</p>
+                        </div>
+                    ) : filteredSegments.length === 0 && (
                         <div className="text-center text-gray-500 absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
                             {searchQuery ? (
                                 <p className="text-lg">No segments match your search.</p>
@@ -586,7 +665,7 @@ const App: React.FC = () => {
                             )}
                         </div>
                     )}
-                    {filteredSegments.map((segment, index) => {
+                    {activeStory && filteredSegments.map((segment, index) => {
                         const isBeingDragged = draggedSegmentId === segment.id;
                         const isDropTarget = dropTargetId === segment.id;
 
@@ -664,7 +743,7 @@ const App: React.FC = () => {
                                                     <button onClick={() => handleStartEdit(segment)} className="p-1.5 rounded hover:bg-gray-600" title="Edit"><EditIcon className="w-4 h-4" /></button>
                                                 )}
                                                 {segment.type === 'ai' && !editingSegmentId && (
-                                                    <button onClick={() => setHistoryViewerTarget(segment)} className="p-1.5 rounded hover:bg-gray-600" title="View History"><HistoryIcon className="w-4 h-4" /></button>
+                                                    <button onClick={() => setHistoryViewerTarget(segment.id)} className="p-1.5 rounded hover:bg-gray-600" title="View History"><HistoryIcon className="w-4 h-4" /></button>
                                                 )}
                                                 <button onClick={() => navigator.clipboard.writeText(segment.content)} className="p-1.5 rounded hover:bg-gray-600" title="Copy"><CopyIcon className="w-4 h-4" /></button>
                                                 <button onClick={() => handleDeleteSegment(segment.id)} className="p-1.5 rounded hover:bg-gray-600 text-red-400" title="Delete"><TrashIcon className="w-4 h-4" /></button>
@@ -685,17 +764,17 @@ const App: React.FC = () => {
                 <UserInput onSubmit={handleAddUserSegment} onAddChapter={handleAddChapter} />
             </main>
             <aside className="w-[380px] flex-shrink-0">
-                <ContentNavigator
-                    config={config}
-                    setConfig={setConfig}
+                {activeStory && <ContentNavigator
+                    config={activeStory.generationConfig}
+                    setConfig={(config) => setActiveStory({ ...activeStory, generationConfig: config })}
                     onGenerate={handleGenerate}
                     isLoading={isLoading}
                     isGenerateDisabled={isGenerateDisabled}
-                    customPrompts={customPrompts}
-                    selectedPromptIds={selectedPromptIds}
-                    setSelectedPromptIds={setSelectedPromptIds}
+                    customPrompts={activeStory.customPrompts}
+                    selectedPromptIds={activeStory.selectedPromptIds}
+                    setSelectedPromptIds={(ids) => setActiveStory({ ...activeStory, selectedPromptIds: ids })}
                     onManagePrompts={() => setIsPromptManagerOpen(true)}
-                />
+                />}
             </aside>
         </div>
     );
@@ -722,7 +801,7 @@ const UserInput: React.FC<UserInputProps> = ({ onSubmit, onAddChapter }) => {
             handleSubmit();
         }
     };
-    
+
     useEffect(() => {
         const el = textAreaRef.current;
         if (el) {

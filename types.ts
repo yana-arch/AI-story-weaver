@@ -61,7 +61,6 @@ export interface StorySegment {
   type: 'user' | 'ai' | 'chapter';
   content: string;
   config?: GenerationConfig;
-  history?: HistoryEntry[];
 }
 
 export interface CustomPrompt {
@@ -82,15 +81,12 @@ export interface CharacterProfile {
 export interface Story {
   id: string;
   name: string;
-  segments: StorySegment[];
   createdAt: number;
   updatedAt: number;
-}
-
-export interface StorySession {
   storySegments: StorySegment[];
   generationConfig: GenerationConfig;
   customPrompts: CustomPrompt[];
   selectedPromptIds: string[];
   characterProfiles: CharacterProfile[];
+  lastReadSegmentId: string | null;
 }

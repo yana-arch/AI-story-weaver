@@ -1,16 +1,22 @@
 
-import React from 'react';
-import type { StorySegment, HistoryEntry } from '../types';
+import React, { useState, useEffect } from 'react';
+import type { HistoryEntry } from '../types';
+import { getHistoryForSegment } from '../services/historyService';
 import { CloseIcon, RefreshIcon, HistoryIcon } from './icons';
 
 interface VersionHistoryViewerProps {
-    segment: StorySegment;
+    segmentId: string;
     onClose: () => void;
     onRevert: (segmentId: string, historyEntry: HistoryEntry) => void;
 }
 
-export const VersionHistoryViewer: React.FC<VersionHistoryViewerProps> = ({ segment, onClose, onRevert }) => {
-    
+export const VersionHistoryViewer: React.FC<VersionHistoryViewerProps> = ({ segmentId, onClose, onRevert }) => {
+    const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+    useEffect(() => {
+        setHistory(getHistoryForSegment(segmentId));
+    }, [segmentId]);
+
     const formatTimestamp = (timestamp: number) => {
         return new Date(timestamp).toLocaleString(undefined, {
             dateStyle: 'medium',
@@ -33,14 +39,14 @@ export const VersionHistoryViewer: React.FC<VersionHistoryViewerProps> = ({ segm
 
                 <div className="flex-grow overflow-y-auto pr-2 border border-gray-700 rounded-lg p-2">
                     <ul className="space-y-3">
-                        {(segment.history && segment.history.length > 0) ? segment.history.map(entry => (
+                        {(history && history.length > 0) ? history.map(entry => (
                             <li key={entry.timestamp} className="p-4 rounded-md bg-gray-700/50 flex flex-col">
                                 <div className="flex justify-between items-center mb-2">
                                     <p className="font-semibold text-sm text-gray-400">
                                         Saved on: {formatTimestamp(entry.timestamp)}
                                     </p>
                                     <button
-                                        onClick={() => onRevert(segment.id, entry)}
+                                        onClick={() => onRevert(segmentId, entry)}
                                         className="flex items-center gap-2 px-3 py-1 text-sm bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors"
                                     >
                                         <RefreshIcon className="w-4 h-4" />
