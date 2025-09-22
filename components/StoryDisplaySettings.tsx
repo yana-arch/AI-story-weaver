@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ContentElementType } from '../types';
-import type { StoryDisplaySettings, ContentElementStyle } from '../types';
+import type { StoryDisplaySettings as StoryDisplaySettingsType, ContentElementStyle } from '../types';
 import { CloseIcon, PaintBrushIcon } from './icons';
 
 interface StoryDisplaySettingsProps {
-    settings: StoryDisplaySettings;
-    onSettingsChange: (settings: StoryDisplaySettings) => void;
+    settings: StoryDisplaySettingsType;
+    onSettingsChange: (settings: StoryDisplaySettingsType) => void;
     onClose: () => void;
 }
 
@@ -256,7 +256,7 @@ export const StoryDisplaySettings: React.FC<StoryDisplaySettingsProps> = ({
     onSettingsChange,
     onClose,
 }) => {
-    const [localSettings, setLocalSettings] = useState<StoryDisplaySettings>(settings);
+    const [localSettings, setLocalSettings] = useState<StoryDisplaySettingsType>(settings);
 
     useEffect(() => {
         setLocalSettings(settings);
@@ -289,7 +289,7 @@ export const StoryDisplaySettings: React.FC<StoryDisplaySettingsProps> = ({
     };
 
     const resetToDefaults = () => {
-        const defaultSettings: StoryDisplaySettings = {
+        const defaultSettings: StoryDisplaySettingsType = {
             autoDetect: true,
             elements: Object.values(ContentElementType).reduce((acc, type) => ({
                 ...acc,
@@ -297,7 +297,7 @@ export const StoryDisplaySettings: React.FC<StoryDisplaySettingsProps> = ({
                     enabled: true,
                     style: defaultStyles[type],
                 },
-            }), {} as StoryDisplaySettings['elements']),
+            }), {} as StoryDisplaySettingsType['elements']),
         };
         setLocalSettings(defaultSettings);
     };

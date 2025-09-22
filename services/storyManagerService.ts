@@ -1,5 +1,5 @@
 import type { Story, GenerationConfig } from '../types';
-import { Scenario, CharacterDynamics, Pacing, GenerationMode } from '../types';
+import { Scenario, CharacterDynamics, Pacing, GenerationMode, NarrativeStructure } from '../types';
 
 const STORIES_KEY = 'ai_story_weaver_stories';
 const ACTIVE_STORY_ID_KEY = 'ai_story_weaver_active_story_id';
@@ -8,6 +8,7 @@ const initialConfig: GenerationConfig = {
     scenario: Scenario.FIRST_TIME,
     dynamics: CharacterDynamics.A_LEADS,
     pacing: Pacing.MEDIUM,
+    narrativeStructure: NarrativeStructure.FREEFORM,
     adultContentOptions: [],
     avoidKeywords: '',
     focusKeywords: '',
@@ -27,7 +28,7 @@ export const getStories = (): Record<string, Story> => {
         const normalizedStories: Record<string, Story> = {};
         for (const [id, story] of Object.entries(stories)) {
             normalizedStories[id] = {
-                ...story,
+                ...(story as Story),
                 generationConfig: normalizeGenerationConfig((story as Story).generationConfig),
             };
         }
@@ -87,6 +88,7 @@ export const migrateToMultiStory = (): string | null => {
             storySegments: JSON.parse(window.localStorage.getItem('storySegments') || '[]'),
             generationConfig,
             customPrompts: JSON.parse(window.localStorage.getItem('customPrompts') || '[]'),
+            keywordPresets: [],
             selectedPromptIds: JSON.parse(window.localStorage.getItem('selectedPromptIds') || '[]'),
             characterProfiles: JSON.parse(window.localStorage.getItem('characterProfiles') || '[]'),
             lastReadSegmentId: JSON.parse(window.localStorage.getItem('lastReadSegmentId') || 'null'),

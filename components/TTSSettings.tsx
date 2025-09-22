@@ -75,7 +75,7 @@ export const TTSSettings: React.FC<TTSSettingsProps> = ({
             <div className="bg-card p-6 rounded-lg shadow-lg w-full max-w-md">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-foreground">TTS Settings</h2>
-                    <button onClick={onClose} className="p-1 hover:bg-secondary/80 rounded">
+                    <button onClick={onClose} className="p-1 hover:bg-secondary/80 rounded" title="Close">
                         <CloseIcon className="w-5 h-5" />
                     </button>
                 </div>

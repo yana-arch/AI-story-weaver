@@ -44,7 +44,7 @@ export const StoryManager: React.FC<StoryManagerProps> = ({
         });
     }
 
-    const sortedStories = Object.values(stories).sort((a, b) => b.updatedAt - a.updatedAt);
+    const sortedStories = (Object.values(stories) as Story[]).sort((a, b) => b.updatedAt - a.updatedAt);
 
     return (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-80 flex justify-center items-center z-50">

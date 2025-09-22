@@ -208,7 +208,7 @@ export const StoryContentRenderer: React.FC<StoryContentRendererProps> = ({
         return parseContentElements(content, displaySettings?.autoDetect ?? true);
     }, [content, displaySettings?.autoDetect]);
 
-    const renderElement = (element: ParsedElement) => {
+    const renderElement = (element: ParsedElement, index: number) => {
         const config = displaySettings?.elements[element.type];
         const style = getElementStyle(element.type, config);
 
@@ -217,7 +217,7 @@ export const StoryContentRenderer: React.FC<StoryContentRendererProps> = ({
 
         return (
             <div
-                key={`${element.type}-${element.originalContent}`}
+                key={`${element.type}-${index}-${element.originalContent.slice(0, 20)}`}
                 style={style}
                 dangerouslySetInnerHTML={{ __html: renderedHtml }}
             />
@@ -226,7 +226,7 @@ export const StoryContentRenderer: React.FC<StoryContentRendererProps> = ({
 
     return (
         <div className="story-content">
-            {parsedElements.map((element, index) => renderElement(element))}
+            {parsedElements.map((element, index) => renderElement(element, index))}
         </div>
     );
 };
