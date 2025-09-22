@@ -1,6 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './index.css';
 // Fix: The error 'File 'file:///App.tsx' is not a module' is resolved by providing a valid App component in App.tsx.
 import App from './App';
 
