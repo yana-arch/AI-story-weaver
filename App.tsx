@@ -28,7 +28,8 @@ import {
     type CharacterProfile,
     type Story
 } from './types';
-import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon, PanelRightIcon } from './components/icons';
+import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon, PanelRightIcon, PaintBrushIcon } from './components/icons';
+import { ThemeManager } from './components/ThemeManager';
 
 const initialConfig: GenerationConfig = {
     scenario: Scenario.FIRST_TIME,
@@ -66,6 +67,7 @@ const App: React.FC = () => {
     const [isCharacterPanelOpen, setIsCharacterPanelOpen] = useState(false);
     const [isStoryManagerOpen, setIsStoryManagerOpen] = useState(false);
     const [isNavigatorOpen, setIsNavigatorOpen] = useState(true);
+    const [isThemeManagerOpen, setIsThemeManagerOpen] = useState(false);
 
 
     // Autosave status state
@@ -74,6 +76,12 @@ const App: React.FC = () => {
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
+    const [theme, setTheme] = useLocalStorage<string>('theme', 'zinc');
+
+    useEffect(() => {
+        document.body.classList.remove('theme-zinc', 'theme-slate', 'theme-stone', 'theme-gray', 'theme-neutral', 'theme-red', 'theme-rose', 'theme-orange', 'theme-green', 'theme-blue', 'theme-yellow', 'theme-violet');
+        document.body.classList.add(`theme-${theme}`);
+    }, [theme]);
 
     // Drag and drop state
     const [draggedSegmentId, setDraggedSegmentId] = useState<string | null>(null);
@@ -626,14 +634,14 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
+        <div className="flex h-screen bg-background text-foreground font-sans">
             {isApiKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeyManagerOpen(false)} />}
             {isPromptManagerOpen && activeStory && <CustomPromptsManager prompts={activeStory.customPrompts} setPrompts={(prompts) => setActiveStory({...activeStory, customPrompts: prompts})} onClose={() => setIsPromptManagerOpen(false)} />}
             {isKeywordPresetManagerOpen && activeStory && <KeywordPresetManager presets={activeStory.keywordPresets} setPresets={(presets) => setActiveStory({...activeStory, keywordPresets: presets})} onClose={() => setIsKeywordPresetManagerOpen(false)} />}
             {historyViewerTarget && <VersionHistoryViewer segmentId={historyViewerTarget} onClose={() => setHistoryViewerTarget(null)} onRevert={handleRevertToVersion} />}
             {isCharacterEditorOpen && <CharacterProfileEditor profile={editingProfile} onSave={handleSaveCharacterProfile} onClose={() => setIsCharacterEditorOpen(false)} />}
             {isCharacterPanelOpen && activeStory && (
-                <div className="fixed inset-0 bg-gray-900 bg-opacity-80 flex justify-center items-center z-40">
+                <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-40">
                     <CharacterPanel 
                         profiles={activeStory.characterProfiles}
                         onAdd={handleAddCharacter}
@@ -656,15 +664,16 @@ const App: React.FC = () => {
                     onClose={() => setIsStoryManagerOpen(false)}
                 />
             )}
+            {isThemeManagerOpen && <ThemeManager currentTheme={theme} setTheme={setTheme} onClose={() => setIsThemeManagerOpen(false)} />}
 
 
 
             <main className="flex-1 flex flex-col p-4 overflow-hidden">
                 <header className="flex justify-between items-center mb-4 flex-shrink-0 gap-4">
                     <div className="flex items-center gap-4">
-                        <h1 className="text-2xl font-bold text-gray-100 flex-shrink-0">{activeStory ? activeStory.name : 'AI Creative Writer'}</h1>
+                        <h1 className="text-2xl font-bold text-foreground flex-shrink-0">{activeStory ? activeStory.name : 'AI Creative Writer'}</h1>
                         <div className={`transition-opacity duration-500 ${saveStatus === 'saved' ? 'opacity-100' : 'opacity-0'}`}>
-                            <p className="text-sm text-gray-400 flex items-center gap-1">
+                            <p className="text-sm text-muted-foreground flex items-center gap-1">
                                 <CheckCircleIcon className="w-4 h-4 text-green-500" />
                                 <span>All changes saved.</span>
                             </p>
@@ -674,12 +683,12 @@ const App: React.FC = () => {
                     <div className="flex-1 flex justify-center px-4">
                         <div className="relative w-full max-w-lg">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                <SearchIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                <SearchIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                             </div>
                             <input
                                 id="search-story"
                                 name="search-story"
-                                className="block w-full rounded-md border-0 bg-gray-700 py-2 pl-10 pr-10 text-gray-200 ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
+                                className="block w-full rounded-md border-0 bg-input py-2 pl-10 pr-10 text-foreground ring-1 ring-inset ring-border placeholder:text-muted-foreground focus:ring-2 focus:ring-inset focus:ring-ring sm:text-sm"
                                 placeholder="Search story..."
                                 type="search"
                                 value={searchQuery}
@@ -690,7 +699,7 @@ const App: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => setSearchQuery('')}
-                                        className="p-1 text-gray-400 hover:text-gray-200 focus:outline-none"
+                                        className="p-1 text-muted-foreground hover:text-foreground focus:outline-none"
                                         aria-label="Clear search"
                                     >
                                         <CloseIcon className="w-4 h-4" aria-hidden="true" />
@@ -701,38 +710,41 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-3 flex-shrink-0">
-                         <label htmlFor="load-session" className="cursor-pointer flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Load Story Session">
+                         <label htmlFor="load-session" className="cursor-pointer flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Load Story Session">
                             <UploadIcon className="w-4 h-4" /> Load
                         </label>
                         <input id="load-session" type="file" accept=".json" onChange={handleLoadSession} className="hidden" />
-                        <button onClick={handleSaveSession} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Save Story Session">
+                        <button onClick={handleSaveSession} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Save Story Session">
                             <DownloadIcon className="w-4 h-4" /> Save
                         </button>
-                        <button onClick={() => setIsPromptManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Manage Custom Prompts">
+                        <button onClick={() => setIsPromptManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage Custom Prompts">
                             <BookmarkIcon className="w-4 h-4" /> Prompts
                         </button>
-                        <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Manage API Keys">
+                        <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage API Keys">
                             <KeyIcon className="w-4 h-4" /> API Keys
                         </button>
-                        <button onClick={() => setIsCharacterPanelOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="View Characters">
+                        <button onClick={() => setIsCharacterPanelOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="View Characters">
                             <UserGroupIcon className="w-4 h-4" /> Characters
                         </button>
-                        <button onClick={() => setIsStoryManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Manage Stories">
+                        <button onClick={() => setIsStoryManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage Stories">
                             <CollectionIcon className="w-4 h-4" /> Stories
                         </button>
-                         <button onClick={() => setIsNavigatorOpen(!isNavigatorOpen)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title={isNavigatorOpen ? "Hide AI Panel" : "Show AI Panel"}>
+                        <button onClick={() => setIsThemeManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Customize Theme">
+                            <PaintBrushIcon className="w-4 h-4" /> Theme
+                        </button>
+                         <button onClick={() => setIsNavigatorOpen(!isNavigatorOpen)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title={isNavigatorOpen ? "Hide AI Panel" : "Show AI Panel"}>
                             <PanelRightIcon className="w-4 h-4" />
                         </button>
                     </div>
                 </header>
 
-                <div className="flex-grow bg-gray-800 rounded-lg p-4 overflow-y-auto mb-4 relative">
+                <div className="flex-grow bg-card rounded-lg p-4 overflow-y-auto mb-4 relative">
                     {!activeStory ? (
-                        <div className="text-center text-gray-500 absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
+                        <div className="text-center text-muted-foreground absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
                             <p className="text-lg">Loading story...</p>
                         </div>
                     ) : filteredSegments.length === 0 && (
-                        <div className="text-center text-gray-500 absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
+                        <div className="text-center text-muted-foreground absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
                             {searchQuery ? (
                                 <p className="text-lg">No segments match your search.</p>
                             ) : (
@@ -761,15 +773,15 @@ const App: React.FC = () => {
                             <React.Fragment key={segment.id}>
                                 {showUnreadMarker && (
                                     <div ref={unreadMarkerRef} className="relative my-6 flex items-center" aria-label="New content below">
-                                        <span className="flex-shrink-0 bg-indigo-500 px-2 py-0.5 text-xs font-semibold text-white rounded-full">MỚI</span>
-                                        <div className="flex-grow border-t-2 border-dashed border-indigo-500 ml-2"></div>
+                                        <span className="flex-shrink-0 bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground rounded-full">MỚI</span>
+                                        <div className="flex-grow border-t-2 border-dashed border-primary ml-2"></div>
                                     </div>
                                 )}
                                 {segment.type === 'chapter' ? (
                                     <div ref={setSegmentRef} data-segment-id={segment.id} className="flex items-center my-6">
-                                        <div className="flex-grow border-t border-gray-600"></div>
-                                        <h2 className="flex-shrink-0 px-4 text-center text-lg font-bold text-gray-400 tracking-wider uppercase">{segment.content}</h2>
-                                        <div className="flex-grow border-t border-gray-600"></div>
+                                        <div className="flex-grow border-t border-border"></div>
+                                        <h2 className="flex-shrink-0 px-4 text-center text-lg font-bold text-muted-foreground tracking-wider uppercase">{segment.content}</h2>
+                                        <div className="flex-grow border-t border-border"></div>
                                     </div>
                                 ) : (
                                     <div
@@ -790,19 +802,19 @@ const App: React.FC = () => {
                                         `}
                                     >
                                         {isDropTarget && (
-                                            <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500 rounded-full animate-pulse" />
+                                            <div className="absolute top-0 left-0 right-0 h-1 bg-primary rounded-full animate-pulse" />
                                         )}
-                                        <div className={`relative p-5 rounded-lg mb-6 ${segment.type === 'user' ? 'bg-gray-700' : 'bg-indigo-900/40 border border-indigo-800'}`}>
+                                        <div className={`relative p-5 rounded-lg mb-6 ${segment.type === 'user' ? 'bg-secondary' : 'bg-primary/10 border border-primary/20'}`}>
                                             {editingSegmentId === segment.id ? (
                                                 <textarea
                                                     value={editText}
                                                     onChange={(e) => setEditText(e.target.value)}
-                                                    className="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+                                                    className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
                                                     rows={Math.max(5, editText.split('\n').length)}
                                                     autoFocus
                                                 />
                                             ) : (
-                                                <div className="prose prose-invert max-w-none text-gray-200">
+                                                <div className="prose prose-invert max-w-none text-foreground">
                                                     <MarkdownRenderer content={segment.content} />
                                                 </div>
                                             )}
@@ -814,17 +826,17 @@ const App: React.FC = () => {
                                                 )}
                                                 {editingSegmentId === segment.id ? (
                                                     <>
-                                                        <button onClick={handleSaveEdit} className="p-1.5 rounded hover:bg-gray-600 text-green-400" title="Save"><SaveIcon className="w-4 h-4" /></button>
-                                                        <button onClick={() => setEditingSegmentId(null)} className="p-1.5 rounded hover:bg-gray-600" title="Cancel"><CloseIcon className="w-4 h-4" /></button>
+                                                        <button onClick={handleSaveEdit} className="p-1.5 rounded hover:bg-secondary/80 text-green-400" title="Save"><SaveIcon className="w-4 h-4" /></button>
+                                                        <button onClick={() => setEditingSegmentId(null)} className="p-1.5 rounded hover:bg-secondary/80" title="Cancel"><CloseIcon className="w-4 h-4" /></button>
                                                     </>
                                                 ) : (
-                                                    <button onClick={() => handleStartEdit(segment)} className="p-1.5 rounded hover:bg-gray-600" title="Edit"><EditIcon className="w-4 h-4" /></button>
+                                                    <button onClick={() => handleStartEdit(segment)} className="p-1.5 rounded hover:bg-secondary/80" title="Edit"><EditIcon className="w-4 h-4" /></button>
                                                 )}
                                                 {segment.type === 'ai' && !editingSegmentId && (
-                                                    <button onClick={() => setHistoryViewerTarget(segment.id)} className="p-1.5 rounded hover:bg-gray-600" title="View History"><HistoryIcon className="w-4 h-4" /></button>
+                                                    <button onClick={() => setHistoryViewerTarget(segment.id)} className="p-1.5 rounded hover:bg-secondary/80" title="View History"><HistoryIcon className="w-4 h-4" /></button>
                                                 )}
-                                                <button onClick={() => navigator.clipboard.writeText(segment.content)} className="p-1.5 rounded hover:bg-gray-600" title="Copy"><CopyIcon className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDeleteSegment(segment.id)} className="p-1.5 rounded hover:bg-gray-600 text-red-400" title="Delete"><TrashIcon className="w-4 h-4" /></button>
+                                                <button onClick={() => navigator.clipboard.writeText(segment.content)} className="p-1.5 rounded hover:bg-secondary/80" title="Copy"><CopyIcon className="w-4 h-4" /></button>
+                                                <button onClick={() => handleDeleteSegment(segment.id)} className="p-1.5 rounded hover:bg-secondary/80 text-red-400" title="Delete"><TrashIcon className="w-4 h-4" /></button>
                                             </div>
                                         </div>
                                     </div>
@@ -835,7 +847,7 @@ const App: React.FC = () => {
                     <div ref={endOfStoryRef} />
                 </div>
                  {error && (
-                    <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-2 rounded-md mb-4 text-sm">
+                    <div className="bg-destructive/20 border border-destructive/50 text-destructive-foreground px-4 py-2 rounded-md mb-4 text-sm">
                         <strong>Error:</strong> {error}
                     </div>
                 )}
@@ -894,14 +906,14 @@ const UserInput: React.FC<UserInputProps> = ({ onSubmit, onAddChapter }) => {
     }, [content]);
 
     return (
-        <div className="flex-shrink-0 bg-gray-800 rounded-lg p-2 flex items-start gap-2">
+        <div className="flex-shrink-0 bg-card rounded-lg p-2 flex items-start gap-2">
             <textarea
                 ref={textAreaRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Viết phần tiếp theo của câu chuyện ở đây..."
-                className="w-full bg-gray-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                className="w-full bg-input rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                 rows={1}
                 style={{maxHeight: '200px'}}
                 aria-label="Viết phần tiếp theo của câu chuyện ở đây..."
@@ -909,7 +921,7 @@ const UserInput: React.FC<UserInputProps> = ({ onSubmit, onAddChapter }) => {
             <button
                 type="button"
                 onClick={onAddChapter}
-                className="p-2 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-500 transition-colors self-end"
+                className="p-2 bg-secondary text-white font-semibold rounded-md hover:bg-secondary/80 transition-colors self-end"
                 title="Add Chapter Break"
             >
                 <BookOpenIcon className="w-5 h-5" />
@@ -917,7 +929,7 @@ const UserInput: React.FC<UserInputProps> = ({ onSubmit, onAddChapter }) => {
             <button
                 onClick={handleSubmit}
                 disabled={!content.trim()}
-                className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed self-end"
+                className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:bg-muted disabled:cursor-not-allowed self-end"
             >
                 Thêm
             </button>
