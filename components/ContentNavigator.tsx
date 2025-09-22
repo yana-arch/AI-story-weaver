@@ -79,7 +79,7 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
 
     const handleAdultContentSelection = (option: AdultContentOptions, isChecked: boolean) => {
         setConfig(prev => {
-            const currentOptions = prev.adultContentOptions;
+            const currentOptions = prev.adultContentOptions || [];
             if (isChecked) {
                 return { ...prev, adultContentOptions: [...currentOptions, option] };
             } else {
@@ -179,7 +179,7 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                                 <input
                                     type="checkbox"
                                     id={`adult-${option}`}
-                                    checked={config.adultContentOptions.includes(option)}
+                                    checked={(config.adultContentOptions || []).includes(option)}
                                     onChange={e => handleAdultContentSelection(option, e.target.checked)}
                                     className="h-4 w-4 rounded bg-gray-900 border-gray-600 text-indigo-600 focus:ring-indigo-500"
                                 />

@@ -14,10 +14,24 @@ const initialConfig: GenerationConfig = {
     generationMode: GenerationMode.CONTINUE,
 };
 
+const normalizeGenerationConfig = (config: any): GenerationConfig => {
+    return { ...initialConfig, ...(config || {}) };
+};
+
 export const getStories = (): Record<string, Story> => {
     try {
         const item = window.localStorage.getItem(STORIES_KEY);
-        return item ? JSON.parse(item) : {};
+        if (!item) return {};
+        const stories = JSON.parse(item);
+        // Normalize configs
+        const normalizedStories: Record<string, Story> = {};
+        for (const [id, story] of Object.entries(stories)) {
+            normalizedStories[id] = {
+                ...story,
+                generationConfig: normalizeGenerationConfig((story as Story).generationConfig),
+            };
+        }
+        return normalizedStories;
     } catch (error) {
         console.error('Error reading stories from localStorage:', error);
         return {};
@@ -62,13 +76,16 @@ export const migrateToMultiStory = (): string | null => {
     }
 
     try {
+        const oldConfig = JSON.parse(window.localStorage.getItem('generationConfig') || '{}');
+        const generationConfig = { ...initialConfig, ...oldConfig };
+
         const newStory: Story = {
             id: Date.now().toString(),
             name: 'My First Story',
             createdAt: Date.now(),
             updatedAt: Date.now(),
             storySegments: JSON.parse(window.localStorage.getItem('storySegments') || '[]'),
-            generationConfig: JSON.parse(window.localStorage.getItem('generationConfig') || JSON.stringify(initialConfig)),
+            generationConfig,
             customPrompts: JSON.parse(window.localStorage.getItem('customPrompts') || '[]'),
             selectedPromptIds: JSON.parse(window.localStorage.getItem('selectedPromptIds') || '[]'),
             characterProfiles: JSON.parse(window.localStorage.getItem('characterProfiles') || '[]'),

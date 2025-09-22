@@ -530,10 +530,13 @@ const App: React.FC = () => {
                     Array.isArray(loadedStory.storySegments) &&
                     loadedStory.generationConfig
                 ) {
-                    setStories(prev => ({ ...prev, [loadedStory.id]: loadedStory }));
-                    setActiveStoryId(loadedStory.id);
+                    // Normalize the config
+                    const normalizedConfig = { ...initialConfig, ...loadedStory.generationConfig };
+                    const normalizedStory = { ...loadedStory, generationConfig: normalizedConfig };
+                    setStories(prev => ({ ...prev, [normalizedStory.id]: normalizedStory }));
+                    setActiveStoryId(normalizedStory.id);
                     chatSession.current = null; // Reset chat context
-                    alert(`Story "${loadedStory.name}" loaded successfully!`);
+                    alert(`Story "${normalizedStory.name}" loaded successfully!`);
                 } else {
                     throw new Error('Invalid session file format.');
                 }
