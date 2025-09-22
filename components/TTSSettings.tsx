@@ -85,7 +85,8 @@ export const TTSSettings: React.FC<TTSSettingsProps> = ({
                         <label className="block text-sm font-medium text-foreground mb-2">
                             Voice
                         </label>
-                        <select
+                        <select 
+                            title="Choose Voice"
                             value={localSettings.voiceURI || ''}
                             onChange={(e) => setLocalSettings(prev => ({ ...prev, voiceURI: e.target.value || undefined }))}
                             className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -119,6 +120,7 @@ export const TTSSettings: React.FC<TTSSettingsProps> = ({
                             Speed: {localSettings.rate.toFixed(1)}x
                         </label>
                         <input
+                            aria-label="Speed"
                             type="range"
                             min="0.5"
                             max="2"
@@ -134,6 +136,7 @@ export const TTSSettings: React.FC<TTSSettingsProps> = ({
                             Pitch: {localSettings.pitch.toFixed(1)}
                         </label>
                         <input
+                            aria-label="Pitch"
                             type="range"
                             min="0"
                             max="2"

@@ -12,6 +12,7 @@ const LabeledTextarea: React.FC<{ label: string; value: string; onChange: (value
     <div>
         <label className="block text-sm font-medium text-gray-300 mb-1">{label}</label>
         <textarea
+            aria-label={label}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             rows={rows}
@@ -50,7 +51,7 @@ export const CharacterProfileEditor: React.FC<CharacterProfileEditorProps> = ({ 
                     <h2 className="text-2xl font-bold text-indigo-400">
                         {profile ? 'Edit Character Profile' : 'Add New Character'}
                     </h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700">
+                    <button title={"Đóng"} onClick={onClose} className="p-1 rounded-full hover:bg-gray-700"> 
                         <CloseIcon className="w-6 h-6" />
                     </button>
                 </div>
@@ -61,6 +62,7 @@ export const CharacterProfileEditor: React.FC<CharacterProfileEditorProps> = ({ 
                             type="text"
                             value={editedProfile.name}
                             onChange={(e) => handleChange('name', e.target.value)}
+                            placeholder="Enter character name"
                             className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                     </div>

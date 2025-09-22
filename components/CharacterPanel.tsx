@@ -20,7 +20,7 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({ profiles, onAdd,
                     <UserGroupIcon className="w-6 h-6 mr-2" />
                     Character Profiles
                 </h2>
-                <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700">
+                <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700" aria-label="Close">
                     <CloseIcon className="w-6 h-6" />
                 </button>
             </div>

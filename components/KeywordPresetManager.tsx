@@ -40,7 +40,7 @@ export const KeywordPresetManager: React.FC<KeywordPresetManagerProps> = ({ pres
             <div className="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold text-indigo-400">Quản lý Mẫu từ khóa</h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700">
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700" aria-label="Close">
                         <CloseIcon className="w-6 h-6" />
                     </button>
                 </div>

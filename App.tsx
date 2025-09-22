@@ -829,6 +829,8 @@ const App: React.FC = () => {
                                                     className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
                                                     rows={Math.max(5, editText.split('\n').length)}
                                                     autoFocus
+                                                    placeholder="Chỉnh sửa nội dung đoạn này..."
+                                                    title="Chỉnh sửa nội dung đoạn này"
                                                 />
                                             ) : (
                                                 <StoryContentRenderer
@@ -934,9 +936,8 @@ const UserInput: React.FC<UserInputProps> = ({ onSubmit, onAddChapter }) => {
                 onChange={(e) => setContent(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Viết phần tiếp theo của câu chuyện ở đây..."
-                className="w-full bg-input rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                className="w-full size-200px bg-input rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                 rows={1}
-                style={{maxHeight: '200px'}}
                 aria-label="Viết phần tiếp theo của câu chuyện ở đây..."
             />
             <button

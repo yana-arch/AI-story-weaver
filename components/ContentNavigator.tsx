@@ -43,6 +43,7 @@ const LabeledSelect: React.FC<{label: string; value: string; onChange: (e: React
     <div>
         <label className="block text-sm font-medium text-muted-foreground mb-1">{label}</label>
         <select
+            aria-label={label}
             value={value}
             onChange={onChange}
             className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -66,6 +67,7 @@ const ComboboxInput: React.FC<{
             list={dataListId}
             value={value}
             onChange={onChange}
+            aria-label={label}
             className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
         <datalist id={dataListId}>

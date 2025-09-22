@@ -136,6 +136,7 @@ const StyleEditor: React.FC<{
                             Cỡ chữ
                         </label>
                         <select
+                            aria-label="Font Size"
                             value={style.fontSize}
                             onChange={(e) => updateStyle('fontSize', e.target.value)}
                             className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground"
@@ -153,6 +154,7 @@ const StyleEditor: React.FC<{
                             Độ đậm
                         </label>
                         <select
+                            aria-label="Font Weight"
                             value={style.fontWeight}
                             onChange={(e) => updateStyle('fontWeight', e.target.value)}
                             className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground"
@@ -170,6 +172,7 @@ const StyleEditor: React.FC<{
                             Kiểu chữ
                         </label>
                         <select
+                            aria-label="Font Style"
                             value={style.fontStyle}
                             onChange={(e) => updateStyle('fontStyle', e.target.value)}
                             className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground"
@@ -184,6 +187,7 @@ const StyleEditor: React.FC<{
                             Căn lề
                         </label>
                         <select
+                            aria-label="Text Align"
                             value={style.textAlign}
                             onChange={(e) => updateStyle('textAlign', e.target.value)}
                             className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground"
@@ -200,6 +204,7 @@ const StyleEditor: React.FC<{
                             Màu chữ
                         </label>
                         <input
+                            aria-label="Font Color"
                             type="color"
                             value={style.color.startsWith('#') ? style.color : '#000000'}
                             onChange={(e) => updateStyle('color', e.target.value)}
@@ -212,6 +217,7 @@ const StyleEditor: React.FC<{
                             Màu nền
                         </label>
                         <input
+                            aria-label="Background Color"
                             type="color"
                             value={style.backgroundColor.startsWith('#') || style.backgroundColor.startsWith('rgb') ?
                                 style.backgroundColor : '#ffffff'}
@@ -318,6 +324,7 @@ export const StoryDisplaySettings: React.FC<StoryDisplaySettingsProps> = ({
                         </h2>
                     </div>
                     <button
+                        title="Đóng"
                         onClick={onClose}
                         className="p-2 hover:bg-secondary rounded-md transition-colors"
                     >

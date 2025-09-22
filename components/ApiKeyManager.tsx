@@ -95,7 +95,7 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ apiKeys, setApiKey
                         <KeyIcon className="w-6 h-6 mr-3" />
                         Quản lý API Key
                     </h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700">
+                    <button title={"Đóng"} onClick={onClose} className="p-1 rounded-full hover:bg-gray-700">
                         <CloseIcon className="w-6 h-6" />
                     </button>
                 </div>
@@ -106,7 +106,7 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ apiKeys, setApiKey
                         <p className="text-xs text-gray-400">Sử dụng key được cung cấp sẵn (chia sẻ, có thể bị giới hạn).</p>
                     </div>
                     <label htmlFor="default-key-toggle" className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked={useDefaultKey} onChange={e => setUseDefaultKey(e.target.checked)} id="default-key-toggle" className="sr-only peer" />
+                        <input type="checkbox" title="Toggle default API key" checked={useDefaultKey} onChange={e => setUseDefaultKey(e.target.checked)} id="default-key-toggle" className="sr-only peer" />
                         <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-offset-gray-800 peer-focus:ring-indigo-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                     </label>
                 </div>

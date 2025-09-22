@@ -51,7 +51,7 @@ export const StoryManager: React.FC<StoryManagerProps> = ({
             <div className="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold text-indigo-400">Manage Stories</h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700">
+                    <button title="Đóng" onClick={onClose} className="p-1 rounded-full hover:bg-gray-700">
                         <CloseIcon className="w-6 h-6" />
                     </button>
                 </div>
@@ -74,6 +74,7 @@ export const StoryManager: React.FC<StoryManagerProps> = ({
                                         <input
                                             type="text"
                                             value={newName}
+                                            aria-label="New story name"
                                             onChange={(e) => setNewName(e.target.value)}
                                             className="bg-gray-600 border border-gray-500 rounded-md px-2 py-1 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                             autoFocus

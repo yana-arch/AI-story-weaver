@@ -32,7 +32,7 @@ export const VersionHistoryViewer: React.FC<VersionHistoryViewerProps> = ({ segm
                         <HistoryIcon className="w-6 h-6 mr-3" />
                         Version History
                     </h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700">
+                    <button onClick={onClose} aria-label="Close" className="p-1 rounded-full hover:bg-gray-700">
                         <CloseIcon className="w-6 h-6" />
                     </button>
                 </div>
