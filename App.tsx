@@ -85,8 +85,29 @@ const App: React.FC = () => {
     useEffect(() => {
         const migratedStoryId = storyManager.migrateToMultiStory();
         const allStories = storyManager.getStories();
-        setStories(allStories);
-        setActiveStoryId(migratedStoryId || storyManager.getActiveStoryId() || Object.keys(allStories)[0] || null);
+        let activeId = migratedStoryId || storyManager.getActiveStoryId() || Object.keys(allStories)[0] || null;
+        if (!activeId && Object.keys(allStories).length === 0) {
+            // No stories exist, create a default one
+            const newStory: Story = {
+                id: Date.now().toString(),
+                name: 'New Story',
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                storySegments: [],
+                generationConfig: initialConfig,
+                customPrompts: [],
+                selectedPromptIds: [],
+                characterProfiles: [],
+                lastReadSegmentId: null,
+            };
+            const newStories = { [newStory.id]: newStory };
+            storyManager.saveStories(newStories);
+            setStories(newStories);
+            activeId = newStory.id;
+        } else {
+            setStories(allStories);
+        }
+        setActiveStoryId(activeId);
     }, []);
 
     const activeStory = useMemo(() => {
