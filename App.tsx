@@ -6,6 +6,8 @@ import { CustomPromptsManager } from './components/CustomPromptsManager';
 import { KeywordPresetManager } from './components/KeywordPresetManager';
 import { VersionHistoryViewer } from './components/VersionHistoryViewer';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
+import { StoryContentRenderer } from './components/StoryContentRenderer';
+import { StoryDisplaySettings } from './components/StoryDisplaySettings';
 import { CharacterPanel } from './components/CharacterPanel';
 import { CharacterProfileEditor } from './components/CharacterProfileEditor';
 import { useLocalStorage } from './hooks/useLocalStorage';
@@ -71,6 +73,7 @@ const App: React.FC = () => {
     const [isNavigatorOpen, setIsNavigatorOpen] = useState(true);
     const [isThemeManagerOpen, setIsThemeManagerOpen] = useState(false);
     const [isTTSSettingsOpen, setIsTTSSettingsOpen] = useState(false);
+    const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
     const [ttsSettings, setTtsSettings] = useLocalStorage<TTSOptions>('ttsSettings', { rate: 1, pitch: 1 });
 
     const { isSpeaking, toggle } = useTTS(ttsSettings);
@@ -672,6 +675,7 @@ const App: React.FC = () => {
             )}
             {isThemeManagerOpen && <ThemeManager currentTheme={theme} setTheme={setTheme} onClose={() => setIsThemeManagerOpen(false)} />}
             {isTTSSettingsOpen && <TTSSettings settings={ttsSettings} onSettingsChange={setTtsSettings} onClose={() => setIsTTSSettingsOpen(false)} isOpen={isTTSSettingsOpen} />}
+            {isDisplaySettingsOpen && activeStory && <StoryDisplaySettings settings={activeStory.displaySettings || { autoDetect: true, elements: {} }} onSettingsChange={(settings) => setActiveStory({ ...activeStory, displaySettings: settings })} onClose={() => setIsDisplaySettingsOpen(false)} />}
 
 
 
@@ -741,6 +745,9 @@ const App: React.FC = () => {
                         </button>
                         <button onClick={() => setIsTTSSettingsOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="TTS Settings">
                             <SpeakerIcon className="w-4 h-4" /> TTS
+                        </button>
+                        <button onClick={() => setIsDisplaySettingsOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Display Settings">
+                            <PaintBrushIcon className="w-4 h-4" /> Display
                         </button>
                          <button onClick={() => setIsNavigatorOpen(!isNavigatorOpen)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title={isNavigatorOpen ? "Hide AI Panel" : "Show AI Panel"}>
                             <PanelRightIcon className="w-4 h-4" />
@@ -824,9 +831,10 @@ const App: React.FC = () => {
                                                     autoFocus
                                                 />
                                             ) : (
-                                                <div className="prose prose-invert max-w-none text-foreground">
-                                                    <MarkdownRenderer content={segment.content} />
-                                                </div>
+                                                <StoryContentRenderer
+                                                    content={segment.content}
+                                                    displaySettings={activeStory.displaySettings}
+                                                />
                                             )}
                                             <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 {!editingSegmentId && (

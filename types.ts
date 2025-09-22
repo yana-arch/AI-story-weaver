@@ -63,11 +63,46 @@ export interface HistoryEntry {
   content: string;
 }
 
+export enum ContentElementType {
+  NARRATIVE = 'narrative', // Regular story text
+  DIALOGUE = 'dialogue', // Character dialogue
+  MONOLOGUE = 'monologue', // Internal thoughts
+  INTRODUCTION = 'introduction', // Story introduction/setup
+  DESCRIPTION = 'description', // Scene descriptions
+  TRANSITION = 'transition', // Scene transitions
+}
+
+export interface ContentElementStyle {
+  fontSize: string;
+  fontWeight: string;
+  fontStyle: string;
+  color: string;
+  backgroundColor: string;
+  borderLeft?: string;
+  borderRadius: string;
+  padding: string;
+  margin: string;
+  textAlign: string;
+  lineHeight: string;
+  letterSpacing: string;
+}
+
+export interface ContentDisplayConfig {
+  enabled: boolean;
+  style: ContentElementStyle;
+}
+
+export interface StoryDisplaySettings {
+  elements: Record<ContentElementType, ContentDisplayConfig>;
+  autoDetect: boolean; // Whether to auto-detect content elements
+}
+
 export interface StorySegment {
   id: string;
   type: 'user' | 'ai' | 'chapter';
   content: string;
   config?: GenerationConfig;
+  displaySettings?: StoryDisplaySettings;
 }
 
 export interface CustomPrompt {
