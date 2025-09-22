@@ -123,6 +123,9 @@ export async function generateCharacterProfiles(
                 }
                 const result = await response.json();
                 generatedText = result.choices?.[0]?.message?.content;
+                if (!generatedText) {
+                    throw new Error("Received empty response from OpenAI API.");
+                }
                 const parsedResult = JSON.parse(generatedText);
                 const profiles = Array.isArray(parsedResult) ? parsedResult : (parsedResult.profiles || []);
                 return { profiles, newKeyIndex: keyIndex };

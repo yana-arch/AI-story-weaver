@@ -23,8 +23,7 @@ import {
     type CustomPrompt,
     type HistoryEntry,
     type CharacterProfile,
-    type Story,
-    type StorySession,
+    type Story
 } from './types';
 import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon } from './components/icons';
 
@@ -157,6 +156,10 @@ const App: React.FC = () => {
             });
         };
 
+        if (observer.current) {
+            observer.current.disconnect();
+        }
+
         observer.current = new IntersectionObserver(handleIntersect, {
             root: null,
             rootMargin: '0px',
@@ -170,7 +173,9 @@ const App: React.FC = () => {
         });
 
         return () => {
-            currentObserver.disconnect();
+            if (currentObserver) {
+                currentObserver.disconnect();
+            }
         };
     }, [filteredSegments, activeStory, setActiveStory]);
 
@@ -821,6 +826,7 @@ const UserInput: React.FC<UserInputProps> = ({ onSubmit, onAddChapter }) => {
                 className="w-full bg-gray-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 rows={1}
                 style={{maxHeight: '200px'}}
+                aria-label="Viết phần tiếp theo của câu chuyện ở đây..."
             />
             <button
                 type="button"

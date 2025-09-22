@@ -18,11 +18,16 @@ export const addHistoryEntry = (segmentId: string, currentContent: string) => {
         timestamp: Date.now(),
         content: currentContent,
     };
-    const newHistory = [newEntry, ...history];
+    const newHistory = [newEntry, ...history].slice(0, 50); // Keep only last 50 versions to prevent storage bloat
     try {
-        window.localStorage.setItem(getHistoryKey(segmentId), JSON.stringify(newHistory));
+        const dataStr = JSON.stringify(newHistory);
+        if (dataStr.length > 1024 * 1024) { // 1MB limit per segment history
+            throw new Error('History data is too large. Consider reducing the number of edits.');
+        }
+        window.localStorage.setItem(getHistoryKey(segmentId), dataStr);
     } catch (error) {
         console.error(`Error saving history for segment ${segmentId}:`, error);
+        // Silently fail for history - not critical
     }
 };
 

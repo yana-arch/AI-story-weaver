@@ -26,9 +26,16 @@ export const getStories = (): Record<string, Story> => {
 
 export const saveStories = (stories: Record<string, Story>) => {
     try {
-        window.localStorage.setItem(STORIES_KEY, JSON.stringify(stories));
+        const dataStr = JSON.stringify(stories);
+        // Check if data is too large (localStorage typically has 5-10MB limit)
+        if (dataStr.length > 4 * 1024 * 1024) { // 4MB limit
+            throw new Error('Story data is too large to save. Please reduce the number of stories or their content.');
+        }
+        window.localStorage.setItem(STORIES_KEY, dataStr);
     } catch (error) {
         console.error('Error saving stories to localStorage:', error);
+        // Could emit an event or show user notification here
+        alert('Failed to save stories. Storage may be full or unavailable.');
     }
 };
 
