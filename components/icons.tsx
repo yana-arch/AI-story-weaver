@@ -140,3 +140,9 @@ export const PanelRightIcon: React.FC<IconProps> = (props) => (
         <line x1="15" x2="15" y1="3" y2="21" />
     </svg>
 );
+
+export const SpeakerIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.5 4.5-4.5 4.5V8.25z" />
+    </svg>
+);

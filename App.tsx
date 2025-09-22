@@ -9,7 +9,9 @@ import { MarkdownRenderer } from './components/MarkdownRenderer';
 import { CharacterPanel } from './components/CharacterPanel';
 import { CharacterProfileEditor } from './components/CharacterProfileEditor';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { useTTS } from './hooks/useTTS';
 import { StoryManager } from './components/StoryManager';
+import { TTSSettings, type TTSOptions } from './components/TTSSettings';
 import * as storyManager from './services/storyManagerService';
 import { generateStorySegment, generateCharacterProfiles } from './services/geminiService';
 import { addHistoryEntry, deleteHistory } from './services/historyService';
@@ -28,7 +30,7 @@ import {
     type CharacterProfile,
     type Story
 } from './types';
-import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon, PanelRightIcon, PaintBrushIcon } from './components/icons';
+import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon, PanelRightIcon, PaintBrushIcon, SpeakerIcon } from './components/icons';
 import { ThemeManager } from './components/ThemeManager';
 
 const initialConfig: GenerationConfig = {
@@ -68,6 +70,10 @@ const App: React.FC = () => {
     const [isStoryManagerOpen, setIsStoryManagerOpen] = useState(false);
     const [isNavigatorOpen, setIsNavigatorOpen] = useState(true);
     const [isThemeManagerOpen, setIsThemeManagerOpen] = useState(false);
+    const [isTTSSettingsOpen, setIsTTSSettingsOpen] = useState(false);
+    const [ttsSettings, setTtsSettings] = useLocalStorage<TTSOptions>('ttsSettings', { rate: 1, pitch: 1 });
+
+    const { isSpeaking, toggle } = useTTS(ttsSettings);
 
 
     // Autosave status state
@@ -665,6 +671,7 @@ const App: React.FC = () => {
                 />
             )}
             {isThemeManagerOpen && <ThemeManager currentTheme={theme} setTheme={setTheme} onClose={() => setIsThemeManagerOpen(false)} />}
+            {isTTSSettingsOpen && <TTSSettings settings={ttsSettings} onSettingsChange={setTtsSettings} onClose={() => setIsTTSSettingsOpen(false)} isOpen={isTTSSettingsOpen} />}
 
 
 
@@ -731,6 +738,9 @@ const App: React.FC = () => {
                         </button>
                         <button onClick={() => setIsThemeManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Customize Theme">
                             <PaintBrushIcon className="w-4 h-4" /> Theme
+                        </button>
+                        <button onClick={() => setIsTTSSettingsOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="TTS Settings">
+                            <SpeakerIcon className="w-4 h-4" /> TTS
                         </button>
                          <button onClick={() => setIsNavigatorOpen(!isNavigatorOpen)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title={isNavigatorOpen ? "Hide AI Panel" : "Show AI Panel"}>
                             <PanelRightIcon className="w-4 h-4" />
@@ -830,7 +840,10 @@ const App: React.FC = () => {
                                                         <button onClick={() => setEditingSegmentId(null)} className="p-1.5 rounded hover:bg-secondary/80" title="Cancel"><CloseIcon className="w-4 h-4" /></button>
                                                     </>
                                                 ) : (
-                                                    <button onClick={() => handleStartEdit(segment)} className="p-1.5 rounded hover:bg-secondary/80" title="Edit"><EditIcon className="w-4 h-4" /></button>
+                                                    <>
+                                                        <button onClick={() => toggle(segment.content)} className="p-1.5 rounded hover:bg-secondary/80" title="Read aloud"><SpeakerIcon className="w-4 h-4" /></button>
+                                                        <button onClick={() => handleStartEdit(segment)} className="p-1.5 rounded hover:bg-secondary/80" title="Edit"><EditIcon className="w-4 h-4" /></button>
+                                                    </>
                                                 )}
                                                 {segment.type === 'ai' && !editingSegmentId && (
                                                     <button onClick={() => setHistoryViewerTarget(segment.id)} className="p-1.5 rounded hover:bg-secondary/80" title="View History"><HistoryIcon className="w-4 h-4" /></button>
