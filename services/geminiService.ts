@@ -69,14 +69,14 @@ export async function generateCharacterProfiles(
         throw new Error("Story content is empty. Cannot generate profiles.");
     }
 
-    const systemInstruction = `You are an expert literary analyst. Your task is to read the provided story text and extract detailed profiles for each significant character. Identify their name, appearance, personality, background, and motivations based on the text. Provide the output as a JSON array of objects.`;
+    const systemInstruction = `You are an expert literary analyst. Your task is to read the provided story text and extract detailed profiles for each significant character. Identify their name, appearance, personality, background, and goals based on the text. Provide the output as a JSON array of objects.`;
 
     const userMessage = `
     --- STORY CONTENT ---
     ${storyContent}
 
     --- YOUR TASK ---
-    Analyze the story above and generate a JSON array of character profiles. Each object in the array should represent one character and have the following fields: "id" (a unique string generated from the name), "name", "appearance", "personality", "background", and "motivation". If a piece of information is not available in the text, leave the corresponding field as an empty string. Do not add any commentary before or after the JSON output.
+    Analyze the story above and generate a JSON array of character profiles. Each object in the array should represent one character and have the following fields: "id" (a unique string generated from the name), "name", "appearance", "personality", "background", and "goals". If a piece of information is not available in the text, leave the corresponding field as an empty string. Do not add any commentary before or after the JSON output.
     `;
 
     const responseSchema = {
@@ -89,9 +89,9 @@ export async function generateCharacterProfiles(
                 appearance: { type: Type.STRING },
                 personality: { type: Type.STRING },
                 background: { type: Type.STRING },
-                motivation: { type: Type.STRING }
+                goals: { type: Type.STRING }
             },
-            required: ["id", "name", "appearance", "personality", "background", "motivation"]
+            required: ["id", "name", "appearance", "personality", "background", "goals"]
         }
     };
     
@@ -204,7 +204,7 @@ ${characterProfiles.map(p =>
 `Tên: ${p.name}
 - Ngoại hình: ${p.appearance || 'Chưa xác định'}
 - Tính cách: ${p.personality || 'Chưa xác định'}
-- Động lực: ${p.motivation || 'Chưa xác định'}`
+- Mục tiêu: ${p.goals || 'Chưa xác định'}`
 ).join('\n---\n')}`
         : '';
 
@@ -212,6 +212,7 @@ ${characterProfiles.map(p =>
     const creativeDirection = `
 --- ĐỊNH HƯỚNG SÁNG TẠO ---
 - Kịch bản: ${config.scenario}
+- Cấu trúc tường thuật: ${config.narrativeStructure}
 - Động lực nhân vật: ${config.dynamics}
 - Nhịp độ: ${config.pacing}
 - Từ khóa cần nhấn mạnh: "${config.focusKeywords}"

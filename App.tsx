@@ -3,6 +3,7 @@ import type { Chat } from '@google/ai';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import { ContentNavigator } from './components/ContentNavigator';
 import { CustomPromptsManager } from './components/CustomPromptsManager';
+import { KeywordPresetManager } from './components/KeywordPresetManager';
 import { VersionHistoryViewer } from './components/VersionHistoryViewer';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
 import { CharacterPanel } from './components/CharacterPanel';
@@ -17,20 +18,23 @@ import {
     CharacterDynamics,
     Pacing,
     GenerationMode,
+    NarrativeStructure,
     type GenerationConfig,
     type StorySegment,
     type ApiKey,
     type CustomPrompt,
+    type KeywordPreset,
     type HistoryEntry,
     type CharacterProfile,
     type Story
 } from './types';
-import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon } from './components/icons';
+import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon, PanelRightIcon } from './components/icons';
 
 const initialConfig: GenerationConfig = {
     scenario: Scenario.FIRST_TIME,
     dynamics: CharacterDynamics.A_LEADS,
     pacing: Pacing.MEDIUM,
+    narrativeStructure: NarrativeStructure.FREEFORM,
     adultContentOptions: [],
     avoidKeywords: '',
     focusKeywords: '',
@@ -51,15 +55,17 @@ const App: React.FC = () => {
     const [editingSegmentId, setEditingSegmentId] = useState<string | null>(null);
     const [editText, setEditText] = useState('');
     
-    // Modals visibility state
+    // Modals and panels visibility state
     const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
     const [isPromptManagerOpen, setIsPromptManagerOpen] = useState(false);
+    const [isKeywordPresetManagerOpen, setIsKeywordPresetManagerOpen] = useState(false);
     const [historyViewerTarget, setHistoryViewerTarget] = useState<string | null>(null);
     const [isCharacterEditorOpen, setIsCharacterEditorOpen] = useState(false);
     const [editingProfile, setEditingProfile] = useState<CharacterProfile | null>(null);
     const [isGeneratingProfiles, setIsGeneratingProfiles] = useState(false);
     const [isCharacterPanelOpen, setIsCharacterPanelOpen] = useState(false);
     const [isStoryManagerOpen, setIsStoryManagerOpen] = useState(false);
+    const [isNavigatorOpen, setIsNavigatorOpen] = useState(true);
 
 
     // Autosave status state
@@ -96,6 +102,7 @@ const App: React.FC = () => {
                 storySegments: [],
                 generationConfig: initialConfig,
                 customPrompts: [],
+                keywordPresets: [],
                 selectedPromptIds: [],
                 characterProfiles: [],
                 lastReadSegmentId: null,
@@ -377,7 +384,7 @@ const App: React.FC = () => {
                        appearance: newProfile.appearance || updatedProfiles[existingIndex].appearance,
                        personality: newProfile.personality || updatedProfiles[existingIndex].personality,
                        background: newProfile.background || updatedProfiles[existingIndex].background,
-                       motivation: newProfile.motivation || updatedProfiles[existingIndex].motivation,
+                       goals: newProfile.goals || updatedProfiles[existingIndex].goals,
                     };
                 } else {
                     updatedProfiles.push(newProfile);
@@ -427,6 +434,23 @@ const App: React.FC = () => {
         setEditingProfile(null);
     };
 
+    const handleSaveKeywordPreset = () => {
+        if (!activeStory) return;
+        const name = window.prompt("Enter a name for this keyword preset:");
+        if (name && name.trim()) {
+            const newPreset: KeywordPreset = {
+                id: Date.now().toString(),
+                name: name.trim(),
+                avoidKeywords: activeStory.generationConfig.avoidKeywords,
+                focusKeywords: activeStory.generationConfig.focusKeywords,
+            };
+            setActiveStory({ 
+                ...activeStory, 
+                keywordPresets: [...(activeStory.keywordPresets || []), newPreset] 
+            });
+        }
+    };
+
     const handleCreateStory = () => {
         const newStory: Story = {
             id: Date.now().toString(),
@@ -436,6 +460,7 @@ const App: React.FC = () => {
             storySegments: [],
             generationConfig: initialConfig,
             customPrompts: [],
+            keywordPresets: [],
             selectedPromptIds: [],
             characterProfiles: [],
             lastReadSegmentId: null,
@@ -553,7 +578,7 @@ const App: React.FC = () => {
                 ) {
                     // Normalize the config
                     const normalizedConfig = { ...initialConfig, ...loadedStory.generationConfig };
-                    const normalizedStory = { ...loadedStory, generationConfig: normalizedConfig };
+                    const normalizedStory = { ...loadedStory, generationConfig: normalizedConfig, keywordPresets: loadedStory.keywordPresets || [] };
                     setStories(prev => ({ ...prev, [normalizedStory.id]: normalizedStory }));
                     setActiveStoryId(normalizedStory.id);
                     chatSession.current = null; // Reset chat context
@@ -584,6 +609,7 @@ const App: React.FC = () => {
         <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
             {isApiKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeyManagerOpen(false)} />}
             {isPromptManagerOpen && activeStory && <CustomPromptsManager prompts={activeStory.customPrompts} setPrompts={(prompts) => setActiveStory({...activeStory, customPrompts: prompts})} onClose={() => setIsPromptManagerOpen(false)} />}
+            {isKeywordPresetManagerOpen && activeStory && <KeywordPresetManager presets={activeStory.keywordPresets} setPresets={(presets) => setActiveStory({...activeStory, keywordPresets: presets})} onClose={() => setIsKeywordPresetManagerOpen(false)} />}
             {historyViewerTarget && <VersionHistoryViewer segmentId={historyViewerTarget} onClose={() => setHistoryViewerTarget(null)} onRevert={handleRevertToVersion} />}
             {isCharacterEditorOpen && <CharacterProfileEditor profile={editingProfile} onSave={handleSaveCharacterProfile} onClose={() => setIsCharacterEditorOpen(false)} />}
             {isCharacterPanelOpen && activeStory && (
@@ -647,7 +673,7 @@ const App: React.FC = () => {
                                         className="p-1 text-gray-400 hover:text-gray-200 focus:outline-none"
                                         aria-label="Clear search"
                                     >
-                                        <CloseIcon className="h-4 w-4" aria-hidden="true" />
+                                        <CloseIcon className="w-4 h-4" aria-hidden="true" />
                                     </button>
                                 </div>
                             )}
@@ -673,6 +699,9 @@ const App: React.FC = () => {
                         </button>
                         <button onClick={() => setIsStoryManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title="Manage Stories">
                             <CollectionIcon className="w-4 h-4" /> Stories
+                        </button>
+                         <button onClick={() => setIsNavigatorOpen(!isNavigatorOpen)} className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 rounded-md hover:bg-gray-700 transition-colors" title={isNavigatorOpen ? "Hide AI Panel" : "Show AI Panel"}>
+                            <PanelRightIcon className="w-4 h-4" />
                         </button>
                     </div>
                 </header>
@@ -760,7 +789,7 @@ const App: React.FC = () => {
                                             <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 {!editingSegmentId && (
                                                     <div className="p-1.5 cursor-grab" title="Drag to reorder">
-                                                        <DragHandleIcon className="w-4 h-4 text-gray-400" />
+                                                        <DragHandleIcon className="w-4 h-4" />
                                                     </div>
                                                 )}
                                                 {editingSegmentId === segment.id ? (
@@ -792,18 +821,23 @@ const App: React.FC = () => {
                 )}
                 <UserInput onSubmit={handleAddUserSegment} onAddChapter={handleAddChapter} />
             </main>
-            <aside className="w-[380px] flex-shrink-0">
-                {activeStory && <ContentNavigator
-                    config={activeStory.generationConfig}
-                    setConfig={(config) => setActiveStory({ ...activeStory, generationConfig: config })}
-                    onGenerate={handleGenerate}
-                    isLoading={isLoading}
-                    isGenerateDisabled={isGenerateDisabled}
-                    customPrompts={activeStory.customPrompts}
-                    selectedPromptIds={activeStory.selectedPromptIds}
-                    setSelectedPromptIds={(ids) => setActiveStory({ ...activeStory, selectedPromptIds: ids })}
-                    onManagePrompts={() => setIsPromptManagerOpen(true)}
-                />}
+            <aside className={`flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isNavigatorOpen ? 'w-[380px]' : 'w-0'}`}>
+                <div className="w-[380px] h-full">
+                    {activeStory && <ContentNavigator
+                        config={activeStory.generationConfig}
+                        setConfig={(config) => setActiveStory({ ...activeStory, generationConfig: config })}
+                        onGenerate={handleGenerate}
+                        isLoading={isLoading}
+                        isGenerateDisabled={isGenerateDisabled}
+                        customPrompts={activeStory.customPrompts}
+                        selectedPromptIds={activeStory.selectedPromptIds}
+                        setSelectedPromptIds={(ids) => setActiveStory({ ...activeStory, selectedPromptIds: ids })}
+                        onManagePrompts={() => setIsPromptManagerOpen(true)}
+                        keywordPresets={activeStory.keywordPresets || []}
+                        onManageKeywordPresets={() => setIsKeywordPresetManagerOpen(true)}
+                        onSaveKeywordPreset={handleSaveKeywordPreset}
+                    />}
+                </div>
             </aside>
         </div>
     );

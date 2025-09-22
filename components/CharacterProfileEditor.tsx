@@ -22,14 +22,14 @@ const LabeledTextarea: React.FC<{ label: string; value: string; onChange: (value
 
 export const CharacterProfileEditor: React.FC<CharacterProfileEditorProps> = ({ profile, onSave, onClose }) => {
     const [editedProfile, setEditedProfile] = useState<CharacterProfile>(
-        profile || { id: Date.now().toString(), name: '', appearance: '', personality: '', background: '', motivation: '' }
+        profile || { id: Date.now().toString(), name: '', appearance: '', personality: '', background: '', goals: '', relationships: '', flaws: '' }
     );
 
     useEffect(() => {
         if (profile) {
             setEditedProfile(profile);
         } else {
-            setEditedProfile({ id: Date.now().toString(), name: '', appearance: '', personality: '', background: '', motivation: '' });
+            setEditedProfile({ id: Date.now().toString(), name: '', appearance: '', personality: '', background: '', goals: '', relationships: '', flaws: '' });
         }
     }, [profile]);
 
@@ -67,7 +67,9 @@ export const CharacterProfileEditor: React.FC<CharacterProfileEditorProps> = ({ 
                     <LabeledTextarea label="Appearance" value={editedProfile.appearance} onChange={(v) => handleChange('appearance', v)} />
                     <LabeledTextarea label="Personality" value={editedProfile.personality} onChange={(v) => handleChange('personality', v)} />
                     <LabeledTextarea label="Background / Backstory" value={editedProfile.background} onChange={(v) => handleChange('background', v)} />
-                    <LabeledTextarea label="Motivation / Goals" value={editedProfile.motivation} onChange={(v) => handleChange('motivation', v)} />
+                    <LabeledTextarea label="Goals" value={editedProfile.goals} onChange={(v) => handleChange('goals', v)} />
+                    <LabeledTextarea label="Relationships" value={editedProfile.relationships} onChange={(v) => handleChange('relationships', v)} />
+                    <LabeledTextarea label="Flaws" value={editedProfile.flaws} onChange={(v) => handleChange('flaws', v)} />
                 </div>
                  <div className="mt-6 flex justify-end gap-3">
                     <button onClick={onClose} className="px-4 py-2 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-500 transition-colors">

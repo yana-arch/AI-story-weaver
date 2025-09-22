@@ -19,6 +19,12 @@ export enum Pacing {
   FAST = "Nhanh: Đi thẳng vào hành động chính, tạo cảm giác dồn dập.",
 }
 
+export enum NarrativeStructure {
+    FREEFORM = "Tự do (Không có cấu trúc)",
+    THREE_ACT = "Cấu trúc 3 hồi",
+    HEROS_JOURNEY = "Hành trình của người hùng",
+}
+
 export enum AdultContentOptions {
     ROMANTIC_BUILDUP = "Xây dựng lãng mạn & Cảm xúc",
     SENSUAL_DETAIL = "Miêu tả Gợi cảm & Tinh tế",
@@ -36,6 +42,7 @@ export interface GenerationConfig {
   scenario: string;
   dynamics: string;
   pacing: string;
+  narrativeStructure: NarrativeStructure;
   adultContentOptions: AdultContentOptions[];
   avoidKeywords: string;
   focusKeywords: string;
@@ -69,13 +76,22 @@ export interface CustomPrompt {
   content: string;
 }
 
+export interface KeywordPreset {
+  id: string;
+  name: string;
+  avoidKeywords: string;
+  focusKeywords: string;
+}
+
 export interface CharacterProfile {
   id: string;
   name: string;
   appearance: string;
   personality: string;
   background: string;
-  motivation: string;
+  goals: string;
+  relationships: string;
+  flaws: string;
 }
 
 export interface Story {
@@ -86,6 +102,7 @@ export interface Story {
   storySegments: StorySegment[];
   generationConfig: GenerationConfig;
   customPrompts: CustomPrompt[];
+  keywordPresets: KeywordPreset[];
   selectedPromptIds: string[];
   characterProfiles: CharacterProfile[];
   lastReadSegmentId: string | null;

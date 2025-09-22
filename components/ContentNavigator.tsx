@@ -1,7 +1,7 @@
-import React from 'react';
-import type { GenerationConfig, CustomPrompt } from '../types';
-import { Scenario, CharacterDynamics, Pacing, AdultContentOptions, GenerationMode } from '../types';
-import { WandIcon, BookmarkIcon } from './icons';
+import React, { useState } from 'react';
+import type { GenerationConfig, CustomPrompt, KeywordPreset } from '../types';
+import { Scenario, CharacterDynamics, Pacing, AdultContentOptions, GenerationMode, NarrativeStructure } from '../types';
+import { WandIcon, BookmarkIcon, ChevronDownIcon, SaveIcon } from './icons';
 
 interface ContentNavigatorProps {
     config: GenerationConfig;
@@ -13,12 +13,42 @@ interface ContentNavigatorProps {
     selectedPromptIds: string[];
     setSelectedPromptIds: React.Dispatch<React.SetStateAction<string[]>>;
     onManagePrompts: () => void;
+    keywordPresets: KeywordPreset[];
+    onManageKeywordPresets: () => void;
+    onSaveKeywordPreset: () => void;
 }
 
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-        <h3 className="text-md font-semibold text-indigo-300 mb-3">{title}</h3>
-        <div className="space-y-3">{children}</div>
+const Section: React.FC<{ title: string; children: React.ReactNode, initialOpen?: boolean }> = ({ title, children, initialOpen = true }) => {
+    const [isOpen, setIsOpen] = useState(initialOpen);
+
+    return (
+        <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden">
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex justify-between items-center p-3 text-left"
+            >
+                <h3 className="text-md font-semibold text-indigo-300">{title}</h3>
+                <ChevronDownIcon className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+            </button>
+            {isOpen && (
+                <div className="p-3 pt-0 space-y-3">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const LabeledSelect: React.FC<{label: string; value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; children: React.ReactNode}> = ({ label, value, onChange, children }) => (
+    <div>
+        <label className="block text-sm font-medium text-gray-300 mb-1">{label}</label>
+        <select 
+            value={value} 
+            onChange={onChange}
+            className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+            {children}
+        </select>
     </div>
 );
 
@@ -58,7 +88,7 @@ const TextArea: React.FC<{ label: string; placeholder: string; value: string; on
 );
 
 
-export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled, customPrompts, selectedPromptIds, setSelectedPromptIds, onManagePrompts }) => {
+export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled, customPrompts, selectedPromptIds, setSelectedPromptIds, onManagePrompts, keywordPresets, onManageKeywordPresets, onSaveKeywordPreset }) => {
     
     const handleChange = <K extends keyof GenerationConfig,>(
         field: K,
@@ -88,11 +118,25 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
         });
     };
 
+    const handlePresetSelect = (id: string) => {
+        if (id === 'none') {
+            return;
+        }
+        const selected = keywordPresets.find(p => p.id === id);
+        if (selected) {
+            setConfig(prev => ({
+                ...prev,
+                avoidKeywords: selected.avoidKeywords,
+                focusKeywords: selected.focusKeywords,
+            }));
+        }
+    };
+
     return (
         <div className="h-full flex flex-col bg-gray-800 p-4 border-l border-gray-700">
             <h2 className="text-xl font-bold text-center mb-4 text-gray-100">Bảng điều khiển AI</h2>
             <div className="flex-grow overflow-y-auto pr-2 space-y-4">
-                 <Section title="Chế độ Sáng tạo">
+                 <Section title="Chế độ Sáng tạo" initialOpen={true}>
                     <div className="flex bg-gray-700 rounded-lg p-1">
                         <button 
                             onClick={() => handleChange('generationMode', GenerationMode.CONTINUE)}
@@ -108,13 +152,22 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                         </button>
                     </div>
                  </Section>
-                <Section title="Kịch bản / Bối cảnh">
+                <Section title="Kịch bản / Bối cảnh" initialOpen={true}>
                     <ComboboxInput 
                         label="Chọn kịch bản hoặc nhập tùy chỉnh"
                         value={config.scenario}
                         onChange={e => handleChange('scenario', e.target.value)}
                         options={Object.values(Scenario)}
                         dataListId="scenario-options"
+                    />
+                </Section>
+                 <Section title="Cấu trúc tường thuật" initialOpen={true}>
+                    <ComboboxInput 
+                        label="Chọn cấu trúc tường thuật"
+                        value={config.narrativeStructure}
+                        onChange={e => handleChange('narrativeStructure', e.target.value as NarrativeStructure)}
+                        options={Object.values(NarrativeStructure)}
+                        dataListId="narrative-structure-options"
                     />
                 </Section>
                 <Section title="Động lực nhân vật">
@@ -149,6 +202,12 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                     </div>
                 </Section>
                  <Section title="Bộ lọc và Trọng tâm từ khóa">
+                    <LabeledSelect label="Chọn mẫu đã lưu" value="none" onChange={(e) => handlePresetSelect(e.target.value)}>
+                        <option value="none">-- Chọn một mẫu --</option>
+                        {keywordPresets.map(preset => (
+                            <option key={preset.id} value={preset.id}>{preset.name}</option>
+                        ))}
+                    </LabeledSelect>
                     <TextArea
                         label="Từ khóa cần tránh"
                         placeholder="ví dụ: các từ ngữ thô tục"
@@ -161,6 +220,15 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                         value={config.focusKeywords}
                         onChange={e => handleChange('focusKeywords', e.target.value)}
                     />
+                    <div className="flex gap-2">
+                        <button onClick={onSaveKeywordPreset} className="w-full flex justify-center items-center px-3 py-2 text-sm bg-indigo-600/80 font-semibold rounded-md hover:bg-indigo-600 transition-colors">
+                            <SaveIcon className="w-4 h-4 mr-2" />
+                            Lưu làm mẫu
+                        </button>
+                        <button onClick={onManageKeywordPresets} className="w-full flex justify-center items-center px-3 py-2 text-sm bg-gray-700 font-semibold rounded-md hover:bg-gray-600 transition-colors">
+                            Quản lý mẫu
+                        </button>
+                    </div>
                 </Section>
                 <Section title="Thiết lập nhịp độ">
                     <ComboboxInput 
