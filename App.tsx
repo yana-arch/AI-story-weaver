@@ -434,6 +434,26 @@ const App: React.FC = () => {
         setEditingProfile(null);
     };
 
+    const handleSetConfig = (updater: React.SetStateAction<GenerationConfig>) => {
+        if (!activeStoryId) return;
+        setStories(prevStories => {
+            const currentStory = prevStories[activeStoryId];
+            if (!currentStory) return prevStories;
+
+            const newConfig = typeof updater === 'function' 
+                ? updater(currentStory.generationConfig) 
+                : updater;
+
+            return {
+                ...prevStories,
+                [activeStoryId]: {
+                    ...currentStory,
+                    generationConfig: newConfig,
+                },
+            };
+        });
+    };
+
     const handleSaveKeywordPreset = () => {
         if (!activeStory) return;
         const name = window.prompt("Enter a name for this keyword preset:");
@@ -825,7 +845,7 @@ const App: React.FC = () => {
                 <div className="w-[380px] h-full">
                     {activeStory && <ContentNavigator
                         config={activeStory.generationConfig}
-                        setConfig={(config) => setActiveStory({ ...activeStory, generationConfig: config })}
+                        setConfig={handleSetConfig}
                         onGenerate={handleGenerate}
                         isLoading={isLoading}
                         isGenerateDisabled={isGenerateDisabled}
