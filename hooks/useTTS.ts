@@ -19,9 +19,41 @@ export const useTTS = (options: TTSOptions) => {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.rate = options.rate;
             utterance.pitch = options.pitch;
+
             if (options.voiceURI) {
+                // Try to find the voice immediately
                 const voices = speechSynthesis.getVoices();
-                const selectedVoice = voices.find(voice => voice.voiceURI === options.voiceURI);
+                let selectedVoice = voices.find(voice => voice.voiceURI === options.voiceURI);
+
+                // If not found, try to find by name (for Google voices)
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(voice =>
+                        voice.name.includes(options.voiceURI) ||
+                        options.voiceURI.includes(voice.name)
+                    );
+                }
+
+                // If still not found, try to find by language and gender
+                if (!selectedVoice && options.voiceURI.includes('Google')) {
+                    const isMale = options.voiceURI.includes('Male') || options.voiceURI.includes('Homme') || options.voiceURI.includes('Mann') || options.voiceURI.includes('Hombre') || options.voiceURI.includes('남성') || options.voiceURI.includes('男性');
+                    const lang = options.voiceURI.includes('vi') ? 'vi' :
+                                options.voiceURI.includes('en-US') ? 'en-US' :
+                                options.voiceURI.includes('en-GB') ? 'en-GB' :
+                                options.voiceURI.includes('fr') ? 'fr' :
+                                options.voiceURI.includes('de') ? 'de' :
+                                options.voiceURI.includes('es') ? 'es' :
+                                options.voiceURI.includes('ja') ? 'ja' :
+                                options.voiceURI.includes('ko') ? 'ko' : '';
+
+                    if (lang) {
+                        selectedVoice = voices.find(voice =>
+                            voice.lang.startsWith(lang) &&
+                            ((isMale && voice.name.toLowerCase().includes('male')) ||
+                             (!isMale && !voice.name.toLowerCase().includes('male')))
+                        );
+                    }
+                }
+
                 if (selectedVoice) {
                     utterance.voice = selectedVoice;
                 }
@@ -37,7 +69,8 @@ export const useTTS = (options: TTSOptions) => {
                 setIsPaused(false);
             };
 
-            utterance.onerror = () => {
+            utterance.onerror = (event) => {
+                console.warn('TTS Error:', event);
                 setIsSpeaking(false);
                 setIsPaused(false);
             };
