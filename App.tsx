@@ -10,6 +10,7 @@ import { StoryContentRenderer } from './components/StoryContentRenderer';
 import { StoryDisplaySettings } from './components/StoryDisplaySettings';
 import { CharacterPanel } from './components/CharacterPanel';
 import { CharacterProfileEditor } from './components/CharacterProfileEditor';
+import { ChapterList } from './components/ChapterList';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useTTS } from './hooks/useTTS';
 import { StoryManager } from './components/StoryManager';
@@ -23,6 +24,7 @@ import {
     Pacing,
     GenerationMode,
     NarrativeStructure,
+    RewriteTarget,
     type GenerationConfig,
     type StorySegment,
     type ApiKey,
@@ -44,6 +46,8 @@ const initialConfig: GenerationConfig = {
     avoidKeywords: '',
     focusKeywords: '',
     generationMode: GenerationMode.CONTINUE,
+    rewriteTarget: RewriteTarget.ENTIRE_STORY,
+    selectedChapterId: '',
 };
 
 const App: React.FC = () => {
@@ -74,6 +78,7 @@ const App: React.FC = () => {
     const [isThemeManagerOpen, setIsThemeManagerOpen] = useState(false);
     const [isTTSSettingsOpen, setIsTTSSettingsOpen] = useState(false);
     const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
+    const [isChapterListOpen, setIsChapterListOpen] = useState(false);
     const [ttsSettings, setTtsSettings] = useLocalStorage<TTSOptions>('ttsSettings', { rate: 1, pitch: 1 });
 
     const { isSpeaking, toggle } = useTTS(ttsSettings);
@@ -250,16 +255,37 @@ const App: React.FC = () => {
             setIsLoading(false);
             return;
         }
-        
-        const storyContext = activeStory.storySegments.filter(s => s.type !== 'chapter').map(s => s.content).join('\n\n');
 
+        // Check if rewriting a specific chapter
+        if (activeStory.generationConfig.generationMode === GenerationMode.REWRITE &&
+            activeStory.generationConfig.rewriteTarget === RewriteTarget.SELECTED_CHAPTER &&
+            !activeStory.generationConfig.selectedChapterId) {
+            setError("Vui lòng chọn chương cần viết lại.");
+            setIsLoading(false);
+            return;
+        }
+
+        const storyContext = activeStory.storySegments.filter(s => s.type !== 'chapter').map(s => s.content).join('\n\n');
         const prompt = lastUserSegment?.content || storyContext || '';
-        const fullStoryForRewrite = storyContext;
+
+        // Prepare content for rewriting
+        let fullStoryForRewrite = storyContext;
+        if (activeStory.generationConfig.generationMode === GenerationMode.REWRITE &&
+            activeStory.generationConfig.rewriteTarget === RewriteTarget.SELECTED_CHAPTER &&
+            activeStory.generationConfig.selectedChapterId) {
+
+            // Find the selected chapter and get content up to that chapter
+            const chapterIndex = activeStory.storySegments.findIndex(s => s.id === activeStory.generationConfig.selectedChapterId);
+            if (chapterIndex !== -1) {
+                const segmentsUpToChapter = activeStory.storySegments.slice(0, chapterIndex + 1);
+                fullStoryForRewrite = segmentsUpToChapter.filter(s => s.type !== 'chapter').map(s => s.content).join('\n\n');
+            }
+        }
 
         const selectedPromptsContent = activeStory.customPrompts
             .filter(p => activeStory.selectedPromptIds.includes(p.id))
             .map(p => p.content);
-        
+
         const availableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', key: 'N/A', isDefault: true }, ...apiKeys] : apiKeys;
 
         try {
@@ -273,7 +299,7 @@ const App: React.FC = () => {
                 currentKeyIndex,
                 chatSession.current
             );
-            
+
             const newSegment: StorySegment = {
                 id: Date.now().toString(),
                 type: 'ai',
@@ -282,11 +308,35 @@ const App: React.FC = () => {
             };
 
             if (activeStory.generationConfig.generationMode === GenerationMode.REWRITE) {
-                setActiveStory({ ...activeStory, storySegments: [newSegment] });
+                // For rewrite mode, replace the entire story or just the selected chapter
+                if (activeStory.generationConfig.rewriteTarget === RewriteTarget.SELECTED_CHAPTER &&
+                    activeStory.generationConfig.selectedChapterId) {
+
+                    // Replace only the selected chapter's content
+                    const chapterIndex = activeStory.storySegments.findIndex(s => s.id === activeStory.generationConfig.selectedChapterId);
+                    if (chapterIndex !== -1) {
+                        const newSegments = [...activeStory.storySegments];
+                        newSegments[chapterIndex] = newSegment;
+                        setActiveStory({ ...activeStory, storySegments: newSegments });
+                    } else {
+                        setActiveStory({ ...activeStory, storySegments: [newSegment] });
+                    }
+                } else {
+                    // Replace entire story while preserving chapter structure
+                    const chapters = activeStory.storySegments.filter(s => s.type === 'chapter');
+                    if (chapters.length > 0) {
+                        // If there are chapters, preserve them and replace content with new segment
+                        const newSegments = [...chapters, newSegment];
+                        setActiveStory({ ...activeStory, storySegments: newSegments });
+                    } else {
+                        // If no chapters, just replace with new segment
+                        setActiveStory({ ...activeStory, storySegments: [newSegment] });
+                    }
+                }
             } else {
                 setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newSegment] });
             }
-           
+
             chatSession.current = result.newChatSession;
             setCurrentKeyIndex(result.newKeyIndex);
 
@@ -676,6 +726,63 @@ const App: React.FC = () => {
             {isThemeManagerOpen && <ThemeManager currentTheme={theme} setTheme={setTheme} onClose={() => setIsThemeManagerOpen(false)} />}
             {isTTSSettingsOpen && <TTSSettings settings={ttsSettings} onSettingsChange={setTtsSettings} onClose={() => setIsTTSSettingsOpen(false)} isOpen={isTTSSettingsOpen} />}
             {isDisplaySettingsOpen && activeStory && <StoryDisplaySettings settings={activeStory.displaySettings || { autoDetect: true, elements: {} }} onSettingsChange={(settings) => setActiveStory({ ...activeStory, displaySettings: settings })} onClose={() => setIsDisplaySettingsOpen(false)} />}
+            {isChapterListOpen && activeStory && (
+                <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-40 p-4">
+                    <div className="bg-card rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+                        <div className="flex justify-between items-center p-4 border-b border-border">
+                            <h2 className="text-lg font-semibold text-foreground">Danh sách chương</h2>
+                            <button
+                                onClick={() => setIsChapterListOpen(false)}
+                                className="p-1 hover:bg-muted rounded transition-colors"
+                                title="Đóng danh sách chương"
+                            >
+                                <CloseIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+                            <ChapterList
+                                storySegments={activeStory.storySegments}
+                                onNavigateToChapter={(chapterId) => {
+                                    // Scroll to the chapter in the story
+                                    const chapterElement = document.querySelector(`[data-segment-id="${chapterId}"]`);
+                                    if (chapterElement) {
+                                        chapterElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }
+                                    setIsChapterListOpen(false);
+                                }}
+                                onAddChapter={() => {
+                                    const title = window.prompt("Nhập tiêu đề cho chương mới:");
+                                    if (title && title.trim()) {
+                                        const newChapter: StorySegment = {
+                                            id: Date.now().toString(),
+                                            type: 'chapter',
+                                            content: title.trim()
+                                        };
+                                        setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newChapter] });
+                                    }
+                                }}
+                                onEditChapter={(chapterId, newTitle) => {
+                                    setActiveStory({
+                                        ...activeStory,
+                                        storySegments: activeStory.storySegments.map(s =>
+                                            s.id === chapterId ? { ...s, content: newTitle } : s
+                                        )
+                                    });
+                                }}
+                                onDeleteChapter={(chapterId) => {
+                                    if (window.confirm("Bạn có chắc chắn muốn xóa chương này?")) {
+                                        setActiveStory({
+                                            ...activeStory,
+                                            storySegments: activeStory.storySegments.filter(s => s.id !== chapterId)
+                                        });
+                                    }
+                                }}
+                                currentChapterId={undefined}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
 
 
@@ -736,6 +843,9 @@ const App: React.FC = () => {
                         </button>
                         <button onClick={() => setIsCharacterPanelOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="View Characters">
                             <UserGroupIcon className="w-4 h-4" /> Characters
+                        </button>
+                        <button onClick={() => setIsChapterListOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="View Chapter List">
+                            <BookOpenIcon className="w-4 h-4" /> Chapters
                         </button>
                         <button onClick={() => setIsStoryManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage Stories">
                             <CollectionIcon className="w-4 h-4" /> Stories
@@ -891,6 +1001,7 @@ const App: React.FC = () => {
                         keywordPresets={activeStory.keywordPresets || []}
                         onManageKeywordPresets={() => setIsKeywordPresetManagerOpen(true)}
                         onSaveKeywordPreset={handleSaveKeywordPreset}
+                        storySegments={activeStory.storySegments}
                     />}
                 </div>
             </aside>
@@ -936,7 +1047,7 @@ const UserInput: React.FC<UserInputProps> = ({ onSubmit, onAddChapter }) => {
                 onChange={(e) => setContent(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Viết phần tiếp theo của câu chuyện ở đây..."
-                className="w-full size-200px bg-input rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                className="w-full max-h-96 bg-input rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                 rows={1}
                 aria-label="Viết phần tiếp theo của câu chuyện ở đây..."
             />

@@ -38,6 +38,11 @@ export enum GenerationMode {
     REWRITE = "Viết lại và chèn vào",
 }
 
+export enum RewriteTarget {
+    ENTIRE_STORY = "Toàn bộ câu chuyện",
+    SELECTED_CHAPTER = "Chương được chọn",
+}
+
 export interface GenerationConfig {
   scenario: string;
   dynamics: string;
@@ -47,6 +52,8 @@ export interface GenerationConfig {
   avoidKeywords: string;
   focusKeywords: string;
   generationMode: GenerationMode;
+  rewriteTarget?: RewriteTarget;
+  selectedChapterId?: string;
 }
 
 export interface ApiKey {

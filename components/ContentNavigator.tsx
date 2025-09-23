@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import type { GenerationConfig, CustomPrompt, KeywordPreset } from '../types';
-import { Scenario, CharacterDynamics, Pacing, AdultContentOptions, GenerationMode, NarrativeStructure } from '../types';
+import type { GenerationConfig, CustomPrompt, KeywordPreset, StorySegment } from '../types';
+import { Scenario, CharacterDynamics, Pacing, AdultContentOptions, GenerationMode, NarrativeStructure, RewriteTarget } from '../types';
 import { WandIcon, BookmarkIcon, ChevronDownIcon, SaveIcon } from './icons';
 
 interface ContentNavigatorProps {
@@ -16,6 +16,7 @@ interface ContentNavigatorProps {
     keywordPresets: KeywordPreset[];
     onManageKeywordPresets: () => void;
     onSaveKeywordPreset: () => void;
+    storySegments: StorySegment[];
 }
 
 const Section: React.FC<{ title: string; children: React.ReactNode, initialOpen?: boolean }> = ({ title, children, initialOpen = true }) => {
@@ -90,7 +91,7 @@ const TextArea: React.FC<{ label: string; placeholder: string; value: string; on
 );
 
 
-export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled, customPrompts, selectedPromptIds, setSelectedPromptIds, onManagePrompts, keywordPresets, onManageKeywordPresets, onSaveKeywordPreset }) => {
+export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled, customPrompts, selectedPromptIds, setSelectedPromptIds, onManagePrompts, keywordPresets, onManageKeywordPresets, onSaveKeywordPreset, storySegments }) => {
     
     const handleChange = <K extends keyof GenerationConfig,>(
         field: K,
@@ -153,6 +154,34 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                             {GenerationMode.REWRITE}
                         </button>
                     </div>
+                    {config.generationMode === GenerationMode.REWRITE && (
+                        <div className="mt-3 space-y-3">
+                            <LabeledSelect
+                                label="Chọn mục tiêu viết lại"
+                                value={config.rewriteTarget || RewriteTarget.ENTIRE_STORY}
+                                onChange={(e) => handleChange('rewriteTarget', e.target.value as RewriteTarget)}
+                            >
+                                <option value={RewriteTarget.ENTIRE_STORY}>{RewriteTarget.ENTIRE_STORY}</option>
+                                <option value={RewriteTarget.SELECTED_CHAPTER}>{RewriteTarget.SELECTED_CHAPTER}</option>
+                            </LabeledSelect>
+                            {config.rewriteTarget === RewriteTarget.SELECTED_CHAPTER && (
+                                <LabeledSelect
+                                    label="Chọn chương cần viết lại"
+                                    value={config.selectedChapterId || ''}
+                                    onChange={(e) => handleChange('selectedChapterId', e.target.value)}
+                                >
+                                    <option value="">-- Chọn chương --</option>
+                                    {storySegments
+                                        .filter(segment => segment.type === 'chapter')
+                                        .map(chapter => (
+                                            <option key={chapter.id} value={chapter.id}>
+                                                {chapter.content}
+                                            </option>
+                                        ))}
+                                </LabeledSelect>
+                            )}
+                        </div>
+                    )}
                  </Section>
                 <Section title="Kịch bản / Bối cảnh" initialOpen={true}>
                     <ComboboxInput 
