@@ -50,11 +50,11 @@ export const CustomPromptsManager: React.FC<CustomPromptsManagerProps> = ({ prom
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-80 flex justify-center items-center z-50">
-            <div className="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-3xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-50">
+            <div className="bg-card rounded-lg shadow-2xl p-6 w-full max-w-3xl max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold text-indigo-400">Quản lý yêu cầu tùy chỉnh</h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700" aria-label="Close">
+                    <h2 className="text-2xl font-bold text-primary">Quản lý yêu cầu tùy chỉnh</h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-muted" aria-label="Close">
                         <CloseIcon className="w-6 h-6" />
                     </button>
                 </div>
@@ -62,37 +62,37 @@ export const CustomPromptsManager: React.FC<CustomPromptsManagerProps> = ({ prom
                 <div className="flex gap-6">
                     {/* Add/Edit Form */}
                     <div className="w-1/2 flex flex-col">
-                        <h3 className="font-semibold text-lg mb-2 text-indigo-300">
+                        <h3 className="font-semibold text-lg mb-2 text-primary/80">
                             {editingPrompt ? 'Chỉnh sửa yêu cầu' : 'Thêm yêu cầu mới'}
                         </h3>
-                        <div className="space-y-3 p-4 border border-gray-700 rounded-lg h-full flex flex-col">
+                        <div className="space-y-3 p-4 border border-border rounded-lg h-full flex flex-col">
                             <input
                                 type="text"
                                 placeholder="Tiêu đề (ví dụ: 'Mô tả nhân vật A')"
                                 value={editingPrompt ? editingPrompt.title : newTitle}
                                 onChange={(e) => editingPrompt ? setEditingPrompt({...editingPrompt, title: e.target.value}) : setNewTitle(e.target.value)}
-                                className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                             />
                             <textarea
                                 placeholder="Nội dung yêu cầu..."
                                 rows={10}
                                 value={editingPrompt ? editingPrompt.content : newContent}
                                 onChange={(e) => editingPrompt ? setEditingPrompt({...editingPrompt, content: e.target.value}) : setNewContent(e.target.value)}
-                                className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y flex-grow"
+                                className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y flex-grow"
                             />
                             {editingPrompt ? (
                                 <div className="flex gap-2">
-                                    <button onClick={handleUpdatePrompt} className="w-full flex justify-center items-center px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors">
+                                    <button onClick={handleUpdatePrompt} className="w-full flex justify-center items-center px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors">
                                         <SaveIcon className="w-5 h-5 mr-2" /> Lưu
                                     </button>
-                                    <button onClick={handleCancelEdit} className="px-4 py-2 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-500 transition-colors">
+                                    <button onClick={handleCancelEdit} className="px-4 py-2 bg-muted text-foreground font-semibold rounded-md hover:bg-muted/80 transition-colors">
                                         Hủy
                                     </button>
                                 </div>
                             ) : (
                                 <button
                                     onClick={handleAddPrompt}
-                                    className="w-full flex justify-center items-center px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
+                                    className="w-full flex justify-center items-center px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
                                     disabled={!newTitle.trim() || !newContent.trim()}
                                 >
                                     <PlusIcon className="w-5 h-5 mr-2" /> Thêm yêu cầu
@@ -103,26 +103,26 @@ export const CustomPromptsManager: React.FC<CustomPromptsManagerProps> = ({ prom
 
                     {/* Prompts List */}
                     <div className="w-1/2 flex flex-col">
-                         <h3 className="font-semibold text-lg mb-2 text-gray-300">Danh sách yêu cầu</h3>
-                        <div className="flex-grow overflow-y-auto pr-2 border border-gray-700 rounded-lg p-2">
+                         <h3 className="font-semibold text-lg mb-2 text-muted-foreground">Danh sách yêu cầu</h3>
+                        <div className="flex-grow overflow-y-auto pr-2 border border-border rounded-lg p-2">
                             <ul className="space-y-2">
                                 {prompts.length > 0 ? prompts.map(prompt => (
-                                    <li key={prompt.id} className="p-3 rounded-md bg-gray-700/50 flex justify-between items-start">
+                                    <li key={prompt.id} className="p-3 rounded-md bg-muted/50 flex justify-between items-start">
                                         <div className="overflow-hidden">
-                                            <p className="font-semibold truncate text-gray-200" title={prompt.title}>{prompt.title}</p>
-                                            <p className="text-sm text-gray-400 line-clamp-2" title={prompt.content}>{prompt.content}</p>
+                                            <p className="font-semibold truncate text-foreground" title={prompt.title}>{prompt.title}</p>
+                                            <p className="text-sm text-muted-foreground line-clamp-2" title={prompt.content}>{prompt.content}</p>
                                         </div>
                                         <div className="flex flex-shrink-0 ml-2">
-                                            <button onClick={() => handleStartEdit(prompt)} className="p-2 rounded-full hover:bg-gray-600 text-gray-300 hover:text-white" title="Edit Prompt">
+                                            <button onClick={() => handleStartEdit(prompt)} className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground" title="Edit Prompt">
                                                 <EditIcon className="w-4 h-4" />
                                             </button>
-                                            <button onClick={() => handleDeletePrompt(prompt.id)} className="p-2 rounded-full hover:bg-gray-600 text-red-400 hover:text-red-300" title="Delete Prompt">
+                                            <button onClick={() => handleDeletePrompt(prompt.id)} className="p-2 rounded-full hover:bg-muted text-destructive hover:text-destructive/80" title="Delete Prompt">
                                                 <TrashIcon className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </li>
                                 )) : (
-                                    <li className="text-center text-gray-500 py-8">Chưa có yêu cầu nào.</li>
+                                    <li className="text-center text-muted-foreground py-8">Chưa có yêu cầu nào.</li>
                                 )}
                             </ul>
                         </div>

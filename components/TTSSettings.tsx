@@ -109,7 +109,7 @@ export const TTSSettings: React.FC<TTSSettingsProps> = ({
                             </div>
                         )}
                         {voices.filter(v => v.lang.startsWith('vi')).length > 0 && (
-                            <p className="text-xs text-green-600 mt-1">
+                            <p className="text-xs text-green-500 mt-1">
                                 ✓ Đã tìm thấy {voices.filter(v => v.lang.startsWith('vi')).length} giọng nói tiếng Việt
                             </p>
                         )}
@@ -127,7 +127,7 @@ export const TTSSettings: React.FC<TTSSettingsProps> = ({
                             step="0.1"
                             value={localSettings.rate}
                             onChange={(e) => setLocalSettings(prev => ({ ...prev, rate: parseFloat(e.target.value) }))}
-                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
                         />
                     </div>
 
@@ -143,7 +143,7 @@ export const TTSSettings: React.FC<TTSSettingsProps> = ({
                             step="0.1"
                             value={localSettings.pitch}
                             onChange={(e) => setLocalSettings(prev => ({ ...prev, pitch: parseFloat(e.target.value) }))}
-                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
                         />
                     </div>
                 </div>
