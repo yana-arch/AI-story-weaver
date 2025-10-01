@@ -27,9 +27,19 @@ export const getStories = (): Record<string, Story> => {
         // Normalize configs
         const normalizedStories: Record<string, Story> = {};
         for (const [id, story] of Object.entries(stories)) {
+            const storyObj = story as Story;
             normalizedStories[id] = {
-                ...(story as Story),
-                generationConfig: normalizeGenerationConfig((story as Story).generationConfig),
+                id: storyObj.id,
+                name: storyObj.name,
+                createdAt: storyObj.createdAt,
+                updatedAt: storyObj.updatedAt,
+                storySegments: storyObj.storySegments || [],
+                generationConfig: normalizeGenerationConfig(storyObj.generationConfig),
+                customPrompts: storyObj.customPrompts || [],
+                keywordPresets: storyObj.keywordPresets || [],
+                selectedPromptIds: storyObj.selectedPromptIds || [],
+                characterProfiles: storyObj.characterProfiles || [],
+                lastReadSegmentId: storyObj.lastReadSegmentId,
             };
         }
         return normalizedStories;
@@ -89,7 +99,7 @@ export const migrateToMultiStory = (): string | null => {
             generationConfig,
             customPrompts: JSON.parse(window.localStorage.getItem('customPrompts') || '[]'),
             keywordPresets: [],
-            selectedPromptIds: JSON.parse(window.localStorage.getItem('selectedPromptIds') || '[]'),
+            selectedPromptIds: [],
             characterProfiles: JSON.parse(window.localStorage.getItem('characterProfiles') || '[]'),
             lastReadSegmentId: JSON.parse(window.localStorage.getItem('lastReadSegmentId') || 'null'),
         };

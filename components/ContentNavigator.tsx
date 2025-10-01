@@ -11,7 +11,7 @@ interface ContentNavigatorProps {
     isGenerateDisabled: boolean;
     customPrompts: CustomPrompt[];
     selectedPromptIds: string[];
-    setSelectedPromptIds: React.Dispatch<React.SetStateAction<string[]>>;
+    setSelectedPromptIds: (ids: string[]) => void;
     onManagePrompts: () => void;
     keywordPresets: KeywordPreset[];
     onManageKeywordPresets: () => void;
@@ -101,13 +101,10 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
     };
 
     const handlePromptSelection = (id: string, isChecked: boolean) => {
-        setSelectedPromptIds(prev => {
-            if (isChecked) {
-                return [...prev, id];
-            } else {
-                return prev.filter(promptId => promptId !== id);
-            }
-        });
+        const newIds = isChecked
+            ? [...selectedPromptIds, id]
+            : selectedPromptIds.filter((promptId: string) => promptId !== id);
+        setSelectedPromptIds(newIds);
     };
 
     const handleAdultContentSelection = (option: AdultContentOptions, isChecked: boolean) => {
@@ -221,7 +218,7 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                                 <input
                                     type="checkbox"
                                     id={`prompt-${prompt.id}`}
-                                    checked={selectedPromptIds.includes(prompt.id)}
+                                    checked={Array.isArray(selectedPromptIds) && selectedPromptIds.includes(prompt.id)}
                                     onChange={e => handlePromptSelection(prompt.id, e.target.checked)}
                                     className="h-4 w-4 rounded bg-background border-border text-primary focus:ring-ring"
                                 />

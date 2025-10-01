@@ -322,9 +322,12 @@ const App: React.FC = () => {
             }
         }
 
+        const selectedPromptIds = Array.isArray(activeStory.selectedPromptIds) ? activeStory.selectedPromptIds : [];
         const selectedPromptsContent = activeStory.customPrompts
-            .filter(p => activeStory.selectedPromptIds.includes(p.id))
+            .filter(p => selectedPromptIds.includes(p.id))
             .map(p => p.content);
+
+
 
         const availableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', key: 'N/A', isDefault: true }, ...apiKeys] : apiKeys;
 
@@ -718,9 +721,14 @@ const App: React.FC = () => {
                     Array.isArray(loadedStory.storySegments) &&
                     loadedStory.generationConfig
                 ) {
-                    // Normalize the config
-                    const normalizedConfig = { ...initialConfig, ...loadedStory.generationConfig };
-                    const normalizedStory = { ...loadedStory, generationConfig: normalizedConfig, keywordPresets: loadedStory.keywordPresets || [] };
+                // Normalize the config
+                const normalizedConfig = { ...initialConfig, ...loadedStory.generationConfig };
+                const normalizedStory: Story = {
+                    ...loadedStory,
+                    generationConfig: normalizedConfig,
+                    keywordPresets: loadedStory.keywordPresets || [],
+                    selectedPromptIds: Array.isArray(loadedStory.selectedPromptIds) ? loadedStory.selectedPromptIds : []
+                };
                     setStories(prev => ({ ...prev, [normalizedStory.id]: normalizedStory }));
                     setActiveStoryId(normalizedStory.id);
                     chatSession.current = null; // Reset chat context
@@ -1107,7 +1115,7 @@ const App: React.FC = () => {
                     <div ref={endOfStoryRef} />
                 </div>
                  {error && (
-                    <div className="bg-destructive/20 border border-destructive/50 text-destructive-foreground px-4 py-2 rounded-md mb-4 text-sm">
+                    <div className="bg-destructive/20 border border-destructive/50 px-4 py-2 rounded-md mb-4 text-sm">
                         <strong>Error:</strong> {error}
                     </div>
                 )}
@@ -1117,14 +1125,23 @@ const App: React.FC = () => {
             {isDesktop && <aside className={`flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isNavigatorOpen ? 'w-[380px]' : 'w-0'}`}>
                 <div className="w-[380px] h-full">
                     {activeStory && <ContentNavigator
+                        key={`navigator-${activeStory.id}`}
                         config={activeStory.generationConfig}
                         setConfig={handleSetConfig}
                         onGenerate={handleGenerate}
                         isLoading={isLoading}
                         isGenerateDisabled={isGenerateDisabled}
                         customPrompts={activeStory.customPrompts}
-                        selectedPromptIds={activeStory.selectedPromptIds}
-                        setSelectedPromptIds={(ids) => setActiveStory({ ...activeStory, selectedPromptIds: ids })}
+                        selectedPromptIds={activeStory.selectedPromptIds || []}
+                        setSelectedPromptIds={(ids) => {
+                            setStories(prev => ({
+                                ...prev,
+                                [activeStory.id]: {
+                                    ...activeStory,
+                                    selectedPromptIds: ids
+                                }
+                            }));
+                        }}
                         onManagePrompts={() => setIsPromptManagerOpen(true)}
                         keywordPresets={activeStory.keywordPresets || []}
                         onManageKeywordPresets={() => setIsKeywordPresetManagerOpen(true)}
@@ -1145,8 +1162,16 @@ const App: React.FC = () => {
                             isLoading={isLoading}
                             isGenerateDisabled={isGenerateDisabled}
                             customPrompts={activeStory.customPrompts}
-                            selectedPromptIds={activeStory.selectedPromptIds}
-                            setSelectedPromptIds={(ids) => setActiveStory({ ...activeStory, selectedPromptIds: ids })}
+                            selectedPromptIds={activeStory.selectedPromptIds || []}
+                            setSelectedPromptIds={(ids) => {
+                                setStories(prev => ({
+                                    ...prev,
+                                    [activeStory.id]: {
+                                        ...activeStory,
+                                        selectedPromptIds: ids
+                                    }
+                                }));
+                            }}
                             onManagePrompts={() => setIsPromptManagerOpen(true)}
                             keywordPresets={activeStory.keywordPresets || []}
                             onManageKeywordPresets={() => setIsKeywordPresetManagerOpen(true)}
