@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CloseIcon } from './icons';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 interface TTSSettingsProps {
     isOpen: boolean;
@@ -28,6 +29,7 @@ export const TTSSettings: React.FC<TTSSettingsProps> = ({
     settings,
     onSettingsChange,
 }) => {
+    const { addError } = useErrorHandler();
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [localSettings, setLocalSettings] = useState<TTSOptions>(settings);
 
@@ -137,7 +139,10 @@ export const TTSSettings: React.FC<TTSSettingsProps> = ({
 
             utterance.onerror = (event) => {
                 console.warn('TTS test error:', event);
-                alert('Không thể phát giọng nói. Vui lòng kiểm tra cài đặt giọng nói trên hệ thống.');
+                addError('Không thể phát giọng nói. Vui lòng kiểm tra cài đặt giọng nói trên hệ thống.', {
+                    recoverable: false,
+                    context: 'TTS Test'
+                });
             };
 
             speechSynthesis.speak(utterance);

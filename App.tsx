@@ -94,7 +94,7 @@ const App: React.FC = () => {
     const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
     const [ttsSettings, setTtsSettings] = useLocalStorage<TTSOptions>('ttsSettings', { rate: 1, pitch: 1 });
 
-    const { isSpeaking, toggle } = useTTS(ttsSettings);
+    const { isSpeaking, toggle, stop } = useTTS(ttsSettings);
 
 
     // Autosave status state
@@ -1084,7 +1084,11 @@ const App: React.FC = () => {
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <button onClick={() => toggle(segment.content)} className="p-1.5 rounded hover:bg-secondary/80" title="Read aloud"><SpeakerIcon className="w-4 h-4" /></button>
+                                                        {isSpeaking ? (
+                                                            <button onClick={stop} className="p-1.5 rounded hover:bg-secondary/80 text-red-400" title="Stop reading"><CloseIcon className="w-4 h-4" /></button>
+                                                        ) : (
+                                                            <button onClick={() => toggle(segment.content)} className="p-1.5 rounded hover:bg-secondary/80" title="Read aloud"><SpeakerIcon className="w-4 h-4" /></button>
+                                                        )}
                                                         <button onClick={() => handleStartEdit(segment)} className="p-1.5 rounded hover:bg-secondary/80" title="Edit"><EditIcon className="w-4 h-4" /></button>
                                                     </>
                                                 )}

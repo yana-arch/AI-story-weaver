@@ -6,7 +6,7 @@ export interface TTSOptions {
     voiceURI?: string;
 }
 
-export const useTTS = (options: TTSOptions) => {
+export const useTTS = (options: TTSOptions, onSuccess?: () => void, onError?: (error: SpeechSynthesisErrorEvent) => void) => {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -67,12 +67,14 @@ export const useTTS = (options: TTSOptions) => {
             utterance.onend = () => {
                 setIsSpeaking(false);
                 setIsPaused(false);
+                onSuccess?.();
             };
 
             utterance.onerror = (event) => {
                 console.warn('TTS Error:', event);
                 setIsSpeaking(false);
                 setIsPaused(false);
+                onError?.(event);
             };
 
             utteranceRef.current = utterance;
