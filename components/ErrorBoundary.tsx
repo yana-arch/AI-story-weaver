@@ -14,6 +14,10 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  declare state: State;
+  declare props: Props;
+  declare setState: (state: State | ((prevState: State, props: Props) => State)) => void;
+
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -33,6 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({
+      ...this.state,
       errorInfo,
     });
 
