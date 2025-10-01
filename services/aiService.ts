@@ -9,6 +9,7 @@ import {
   getModelConfig,
   getAvailableModelsByCapability,
   estimateTokenCount,
+  calculateEstimatedCost,
 } from '../types/ai-models';
 
 // Import client adapters for each provider

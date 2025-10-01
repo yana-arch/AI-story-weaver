@@ -1,16 +1,16 @@
-import React, { Component, ReactNode } from 'react';
+import React, { ReactNode, ErrorInfo } from 'react';
 import { ExclamationCircleIcon, RefreshIcon } from './icons';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface State {
   hasError: boolean;
   error: Error | null;
-  errorInfo: React.ErrorInfo | null;
+  errorInfo: ErrorInfo | null;
 }
 
 export class ErrorBoundary extends React.Component<Props, State> {
@@ -31,7 +31,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({
       errorInfo,
     });
