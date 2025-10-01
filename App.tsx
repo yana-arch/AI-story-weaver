@@ -74,7 +74,9 @@ const App: React.FC = () => {
     const [isGeneratingProfiles, setIsGeneratingProfiles] = useState(false);
     const [isCharacterPanelOpen, setIsCharacterPanelOpen] = useState(false);
     const [isStoryManagerOpen, setIsStoryManagerOpen] = useState(false);
-    const [isNavigatorOpen, setIsNavigatorOpen] = useState(true);
+    const [isNavigatorOpen, setIsNavigatorOpen] = useState(window.innerWidth >= 768);
+    const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isThemeManagerOpen, setIsThemeManagerOpen] = useState(false);
     const [isTTSSettingsOpen, setIsTTSSettingsOpen] = useState(false);
     const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
@@ -96,6 +98,22 @@ const App: React.FC = () => {
         document.body.classList.remove('theme-zinc', 'theme-slate', 'theme-stone', 'theme-gray', 'theme-neutral', 'theme-red', 'theme-rose', 'theme-orange', 'theme-green', 'theme-blue', 'theme-yellow', 'theme-violet');
         document.body.classList.add(`theme-${theme}`);
     }, [theme]);
+
+    // Update navigator state on resize
+    useEffect(() => {
+        const handleResize = () => {
+            const isDesktop = window.innerWidth >= 768;
+            setIsDesktop(isDesktop);
+            if (isDesktop) {
+                setIsNavigatorOpen(true); // Always show on desktop
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        // Set initial state again in case of late updates
+        handleResize();
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Drag and drop state
     const [draggedSegmentId, setDraggedSegmentId] = useState<string | null>(null);
@@ -693,7 +711,7 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen bg-background text-foreground font-sans">
+        <div className="flex flex-col md:flex-row h-screen bg-background text-foreground font-sans">
             {isApiKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeyManagerOpen(false)} />}
             {isPromptManagerOpen && activeStory && <CustomPromptsManager prompts={activeStory.customPrompts} setPrompts={(prompts) => setActiveStory({...activeStory, customPrompts: prompts})} onClose={() => setIsPromptManagerOpen(false)} />}
             {isKeywordPresetManagerOpen && activeStory && <KeywordPresetManager presets={activeStory.keywordPresets} setPresets={(presets) => setActiveStory({...activeStory, keywordPresets: presets})} onClose={() => setIsKeywordPresetManagerOpen(false)} />}
@@ -786,10 +804,10 @@ const App: React.FC = () => {
 
 
 
-            <main className="flex-1 flex flex-col p-4 overflow-hidden">
-                <header className="flex justify-between items-center mb-4 flex-shrink-0 gap-4">
+            <main className="flex-1 flex flex-col p-2 md:p-4 overflow-hidden">
+                <header className="flex justify-between items-center mb-4 flex-shrink-0 gap-2 md:gap-4">
                     <div className="flex items-center gap-4">
-                        <h1 className="text-2xl font-bold text-foreground flex-shrink-0">{activeStory ? activeStory.name : 'AI Creative Writer'}</h1>
+                        <h1 className="text-xl md:text-2xl font-bold text-foreground flex-shrink-0">{activeStory ? activeStory.name : 'AI Creative Writer'}</h1>
                         <div className={`transition-opacity duration-500 ${saveStatus === 'saved' ? 'opacity-100' : 'opacity-0'}`}>
                             <p className="text-sm text-muted-foreground flex items-center gap-1">
                                 <CheckCircleIcon className="w-4 h-4 text-green-500" />
@@ -797,8 +815,8 @@ const App: React.FC = () => {
                             </p>
                         </div>
                     </div>
-                    
-                    <div className="flex-1 flex justify-center px-4">
+
+                    <div className="flex-1 flex justify-center px-2 md:px-4">
                         <div className="relative w-full max-w-lg">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                 <SearchIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
@@ -827,36 +845,36 @@ const App: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                         <label htmlFor="load-session" className="cursor-pointer flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Load Story Session">
+                    <div className="flex items-center gap-1 md:gap-3 flex-shrink-0 flex-wrap justify-end">
+                         <label htmlFor="load-session" className="hidden md:flex cursor-pointer items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Load Story Session">
                             <UploadIcon className="w-4 h-4" /> Load
                         </label>
                         <input id="load-session" type="file" accept=".json" onChange={handleLoadSession} className="hidden" />
-                        <button onClick={handleSaveSession} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Save Story Session">
+                        <button onClick={handleSaveSession} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Save Story Session">
                             <DownloadIcon className="w-4 h-4" /> Save
                         </button>
-                        <button onClick={() => setIsPromptManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage Custom Prompts">
+                        <button onClick={() => setIsPromptManagerOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage Custom Prompts">
                             <BookmarkIcon className="w-4 h-4" /> Prompts
                         </button>
-                        <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage API Keys">
+                        <button onClick={() => setIsApiKeyManagerOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage API Keys">
                             <KeyIcon className="w-4 h-4" /> API Keys
                         </button>
-                        <button onClick={() => setIsCharacterPanelOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="View Characters">
+                        <button onClick={() => setIsCharacterPanelOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="View Characters">
                             <UserGroupIcon className="w-4 h-4" /> Characters
                         </button>
-                        <button onClick={() => setIsChapterListOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="View Chapter List">
+                        <button onClick={() => setIsChapterListOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="View Chapter List">
                             <BookOpenIcon className="w-4 h-4" /> Chapters
                         </button>
-                        <button onClick={() => setIsStoryManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage Stories">
+                        <button onClick={() => setIsStoryManagerOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage Stories">
                             <CollectionIcon className="w-4 h-4" /> Stories
                         </button>
-                        <button onClick={() => setIsThemeManagerOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Customize Theme">
+                        <button onClick={() => setIsThemeManagerOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Customize Theme">
                             <PaintBrushIcon className="w-4 h-4" /> Theme
                         </button>
-                        <button onClick={() => setIsTTSSettingsOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="TTS Settings">
+                        <button onClick={() => setIsTTSSettingsOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="TTS Settings">
                             <SpeakerIcon className="w-4 h-4" /> TTS
                         </button>
-                        <button onClick={() => setIsDisplaySettingsOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Display Settings">
+                        <button onClick={() => setIsDisplaySettingsOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Display Settings">
                             <PaintBrushIcon className="w-4 h-4" /> Display
                         </button>
                          <button onClick={() => setIsNavigatorOpen(!isNavigatorOpen)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title={isNavigatorOpen ? "Hide AI Panel" : "Show AI Panel"}>
@@ -986,7 +1004,8 @@ const App: React.FC = () => {
                 )}
                 <UserInput onSubmit={handleAddUserSegment} onAddChapter={handleAddChapter} />
             </main>
-            <aside className={`flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isNavigatorOpen ? 'w-[380px]' : 'w-0'}`}>
+            {/* Desktop Aside */}
+            {isDesktop && <aside className={`flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isNavigatorOpen ? 'w-[380px]' : 'w-0'}`}>
                 <div className="w-[380px] h-full">
                     {activeStory && <ContentNavigator
                         config={activeStory.generationConfig}
@@ -1004,7 +1023,30 @@ const App: React.FC = () => {
                         storySegments={activeStory.storySegments}
                     />}
                 </div>
-            </aside>
+            </aside>}
+            {/* Mobile Overlay */}
+            {isNavigatorOpen && !isDesktop && (
+                <div className="fixed inset-0 z-50">
+                    <div className="fixed inset-0 bg-black/50" onClick={() => setIsNavigatorOpen(false)}></div>
+                    <aside className="absolute right-0 top-0 w-80 h-full bg-secondary border-l border-border">
+                        {activeStory && <ContentNavigator
+                            config={activeStory.generationConfig}
+                            setConfig={handleSetConfig}
+                            onGenerate={handleGenerate}
+                            isLoading={isLoading}
+                            isGenerateDisabled={isGenerateDisabled}
+                            customPrompts={activeStory.customPrompts}
+                            selectedPromptIds={activeStory.selectedPromptIds}
+                            setSelectedPromptIds={(ids) => setActiveStory({ ...activeStory, selectedPromptIds: ids })}
+                            onManagePrompts={() => setIsPromptManagerOpen(true)}
+                            keywordPresets={activeStory.keywordPresets || []}
+                            onManageKeywordPresets={() => setIsKeywordPresetManagerOpen(true)}
+                            onSaveKeywordPreset={handleSaveKeywordPreset}
+                            storySegments={activeStory.storySegments}
+                        />}
+                    </aside>
+                </div>
+            )}
         </div>
     );
 };
@@ -1040,7 +1082,7 @@ const UserInput: React.FC<UserInputProps> = ({ onSubmit, onAddChapter }) => {
     }, [content]);
 
     return (
-        <div className="flex-shrink-0 bg-card rounded-lg p-2 flex items-start gap-2">
+        <div className="flex-shrink-0 bg-card rounded-lg p-2 md:p-4 flex flex-col md:flex-row items-start md:items-end gap-2">
             <textarea
                 ref={textAreaRef}
                 value={content}
@@ -1051,21 +1093,23 @@ const UserInput: React.FC<UserInputProps> = ({ onSubmit, onAddChapter }) => {
                 rows={1}
                 aria-label="Viết phần tiếp theo của câu chuyện ở đây..."
             />
-            <button
-                type="button"
-                onClick={onAddChapter}
-                className="p-2 bg-secondary text-white font-semibold rounded-md hover:bg-secondary/80 transition-colors self-end"
-                title="Add Chapter Break"
-            >
-                <BookOpenIcon className="w-5 h-5" />
-            </button>
-            <button
-                onClick={handleSubmit}
-                disabled={!content.trim()}
-                className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:bg-muted disabled:cursor-not-allowed self-end"
-            >
-                Thêm
-            </button>
+            <div className="flex gap-2 self-end">
+                <button
+                    type="button"
+                    onClick={onAddChapter}
+                    className="p-2 bg-secondary text-white font-semibold rounded-md hover:bg-secondary/80 transition-colors"
+                    title="Add Chapter Break"
+                >
+                    <BookOpenIcon className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={handleSubmit}
+                    disabled={!content.trim()}
+                    className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
+                >
+                    Thêm
+                </button>
+            </div>
         </div>
     );
 };
