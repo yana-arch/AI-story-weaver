@@ -130,7 +130,7 @@ const App: React.FC = () => {
     const [draggedSegmentId, setDraggedSegmentId] = useState<string | null>(null);
     const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
-    const chatSession = useRef<Chat | { messages: any[] } | null>(null);
+    const chatSession = useRef<{ messages: any[] } | null>(null);
     const endOfStoryRef = useRef<HTMLDivElement>(null);
 
     // Reading progress state
