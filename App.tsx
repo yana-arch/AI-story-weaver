@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Chat } from '@google/ai';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorNotificationContainer } from './components/ErrorNotification';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import { ContentNavigator } from './components/ContentNavigator';
 import { CustomPromptsManager } from './components/CustomPromptsManager';
@@ -13,11 +15,14 @@ import { CharacterProfileEditor } from './components/CharacterProfileEditor';
 import { ChapterList } from './components/ChapterList';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useTTS } from './hooks/useTTS';
+import { useNetworkStatus } from './hooks/useNetworkStatus';
+import { useErrorHandler } from './hooks/useErrorHandler';
 import { StoryManager } from './components/StoryManager';
 import { TTSSettings, type TTSOptions } from './components/TTSSettings';
 import * as storyManager from './services/storyManagerService';
 import { generateStorySegment, generateCharacterProfiles } from './services/geminiService';
 import { addHistoryEntry, deleteHistory } from './services/historyService';
+import { withRetry, RETRY_OPTIONS } from './utils/retryUtils';
 import {
     Scenario,
     CharacterDynamics,
@@ -57,10 +62,13 @@ const App: React.FC = () => {
     const [apiKeys, setApiKeys] = useLocalStorage<ApiKey[]>('apiKeys', []);
     const [useDefaultKey, setUseDefaultKey] = useLocalStorage<boolean>('useDefaultKey', true);
 
-
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [currentKeyIndex, setCurrentKeyIndex] = useLocalStorage<number>('currentKeyIndex', 0);
+
+    // Enhanced error handling and network status
+    const { addError, clearErrors } = useErrorHandler();
+    const { isOnline } = useNetworkStatus();
     const [editingSegmentId, setEditingSegmentId] = useState<string | null>(null);
     const [editText, setEditText] = useState('');
     
@@ -267,10 +275,16 @@ const App: React.FC = () => {
 
         setIsLoading(true);
         setError(null);
+        clearErrors();
 
         const lastUserSegment = [...activeStory.storySegments].reverse().find(s => s.type === 'user');
         if (!lastUserSegment && activeStory.generationConfig.generationMode === GenerationMode.CONTINUE && activeStory.storySegments.length > 0) {
-            setError("Cannot continue without a new user prompt. Please add to the story.");
+            const errorMsg = "Cannot continue without a new user prompt. Please add to the story.";
+            setError(errorMsg);
+            addError(errorMsg, {
+                recoverable: false,
+                context: 'Story Generation',
+            });
             setIsLoading(false);
             return;
         }
@@ -279,7 +293,12 @@ const App: React.FC = () => {
         if (activeStory.generationConfig.generationMode === GenerationMode.REWRITE &&
             activeStory.generationConfig.rewriteTarget === RewriteTarget.SELECTED_CHAPTER &&
             !activeStory.generationConfig.selectedChapterId) {
-            setError("Vui lòng chọn chương cần viết lại.");
+            const errorMsg = "Vui lòng chọn chương cần viết lại.";
+            setError(errorMsg);
+            addError(errorMsg, {
+                recoverable: false,
+                context: 'Story Generation',
+            });
             setIsLoading(false);
             return;
         }
@@ -307,16 +326,20 @@ const App: React.FC = () => {
 
         const availableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', key: 'N/A', isDefault: true }, ...apiKeys] : apiKeys;
 
+        // Use retry mechanism for API calls
         try {
-            const result = await generateStorySegment(
-                prompt,
-                fullStoryForRewrite,
-                activeStory.generationConfig,
-                selectedPromptsContent,
-                activeStory.characterProfiles,
-                availableKeys,
-                currentKeyIndex,
-                chatSession.current
+            const result = await withRetry(
+                () => generateStorySegment(
+                    prompt,
+                    fullStoryForRewrite,
+                    activeStory.generationConfig,
+                    selectedPromptsContent,
+                    activeStory.characterProfiles,
+                    availableKeys,
+                    currentKeyIndex,
+                    chatSession.current
+                ),
+                RETRY_OPTIONS.API_CALL
             );
 
             const newSegment: StorySegment = {
@@ -360,11 +383,22 @@ const App: React.FC = () => {
             setCurrentKeyIndex(result.newKeyIndex);
 
         } catch (e: any) {
-            setError(e.message || 'An unknown error occurred.');
+            const errorMsg = isOnline
+                ? (e.message || 'Có lỗi xảy ra khi tạo câu chuyện. Vui lòng thử lại.')
+                : 'Mất kết nối mạng. Vui lòng kiểm tra kết nối và thử lại.';
+
+            setError(errorMsg);
+
+            // Add to error manager with retry action
+            addError(errorMsg, {
+                recoverable: true,
+                context: 'Story Generation',
+                retryAction: handleGenerate,
+            });
         } finally {
             setIsLoading(false);
         }
-    }, [activeStory, apiKeys, useDefaultKey, currentKeyIndex, setActiveStory, setCurrentKeyIndex]);
+    }, [activeStory, apiKeys, useDefaultKey, currentKeyIndex, setActiveStory, setCurrentKeyIndex, isOnline, addError, clearErrors]);
 
     const handleAddUserSegment = (content: string) => {
         if (!content.trim() || !activeStory) return;
