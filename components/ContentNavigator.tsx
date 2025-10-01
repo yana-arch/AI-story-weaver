@@ -292,7 +292,7 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                 <button
                     onClick={onGenerate}
                     disabled={isLoading || isGenerateDisabled}
-                    className="w-full flex justify-center items-center px-6 py-3 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-transform duration-200 active:scale-95 disabled:bg-muted disabled:cursor-not-allowed"
+                    className="w-full flex justify-center items-center px-6 py-3 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-transform duration-200 active:scale-95 disabled:bg-muted disabled:cursor-not-allowed border"
                 >
                     {isLoading ? (
                         <>

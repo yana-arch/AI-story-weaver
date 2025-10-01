@@ -34,7 +34,7 @@ import {
     type CharacterProfile,
     type Story
 } from './types';
-import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon, PanelRightIcon, PaintBrushIcon, SpeakerIcon } from './components/icons';
+import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon, PanelRightIcon, PaintBrushIcon, SpeakerIcon, CogIcon } from './components/icons';
 import { ThemeManager } from './components/ThemeManager';
 
 const initialConfig: GenerationConfig = {
@@ -81,6 +81,7 @@ const App: React.FC = () => {
     const [isTTSSettingsOpen, setIsTTSSettingsOpen] = useState(false);
     const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
     const [isChapterListOpen, setIsChapterListOpen] = useState(false);
+    const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
     const [ttsSettings, setTtsSettings] = useLocalStorage<TTSOptions>('ttsSettings', { rate: 1, pitch: 1 });
 
     const { isSpeaking, toggle } = useTTS(ttsSettings);
@@ -711,7 +712,90 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col md:flex-row h-screen bg-background text-foreground font-sans">
+        <div className="flex h-screen bg-background text-foreground font-sans">
+            {/* Left Sidebar */}
+            <aside className="w-16 bg-card border-r border-border flex flex-col items-center py-4 gap-2">
+                <div className="flex flex-col gap-2 w-full px-2">
+                    {/* Load Button */}
+                    <div className="relative">
+                        <label htmlFor="load-session" className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors cursor-pointer" title="Load Story Session">
+                            <UploadIcon className="w-5 h-5" />
+                            <span className="text-xs text-center">Load</span>
+                        </label>
+                        <input id="load-session" type="file" accept=".json" onChange={handleLoadSession} className="hidden" />
+                    </div>
+
+                    {/* Save Button */}
+                    <button onClick={handleSaveSession} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Save Story Session">
+                        <DownloadIcon className="w-5 h-5" />
+                        <span className="text-xs text-center">Save</span>
+                    </button>
+
+                    <hr/>
+
+                    {/* Prompts Button */}
+                    <button onClick={() => setIsPromptManagerOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Manage Custom Prompts">
+                        <BookmarkIcon className="w-5 h-5" />
+                        <span className="text-xs text-center">Prompts</span>
+                    </button>
+
+                    {/* Characters Button */}
+                    <button onClick={() => setIsCharacterPanelOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="View Characters">
+                        <UserGroupIcon className="w-5 h-5" />
+                        <span className="text-xs text-center">Characters</span>
+                    </button>
+
+                    {/* Chapters Button */}
+                    <button onClick={() => setIsChapterListOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="View Chapter List">
+                        <BookOpenIcon className="w-5 h-5" />
+                        <span className="text-xs text-center">Chapters</span>
+                    </button>
+
+                    {/* Stories Button */}
+                    <button onClick={() => setIsStoryManagerOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Manage Stories">
+                        <CollectionIcon className="w-5 h-5" />
+                        <span className="text-xs text-center">Stories</span>
+                    </button>
+                </div>
+            </aside>
+
+            {/* Settings Panel */}
+            {isSettingsPanelOpen && (
+                <aside className="w-64 bg-card border-r border-border flex flex-col">
+                    <div className="p-4 border-b border-border">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-semibold">Settings</h2>
+                            <button
+                                onClick={() => setIsSettingsPanelOpen(false)}
+                                className="p-1 hover:bg-muted rounded transition-colors"
+                                title="Close Settings"
+                            >
+                                <CloseIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex-1 p-4 space-y-2">
+                        <button onClick={() => { setIsApiKeyManagerOpen(true); setIsSettingsPanelOpen(false); }} className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Manage API Keys">
+                            <KeyIcon className="w-4 h-4" />
+                            <span>API Keys</span>
+                        </button>
+                        <button onClick={() => { setIsThemeManagerOpen(true); setIsSettingsPanelOpen(false); }} className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Customize Theme">
+                            <PaintBrushIcon className="w-4 h-4" />
+                            <span>Theme</span>
+                        </button>
+                        <button onClick={() => { setIsTTSSettingsOpen(true); setIsSettingsPanelOpen(false); }} className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-secondary/50 transition-colors" title="TTS Settings">
+                            <SpeakerIcon className="w-4 h-4" />
+                            <span>TTS</span>
+                        </button>
+                        <button onClick={() => { setIsDisplaySettingsOpen(true); setIsSettingsPanelOpen(false); }} className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Display Settings">
+                            <PaintBrushIcon className="w-4 h-4" />
+                            <span>Display</span>
+                        </button>
+                    </div>
+                </aside>
+            )}
+
+            {/* Modals and panels */}
             {isApiKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeyManagerOpen(false)} />}
             {isPromptManagerOpen && activeStory && <CustomPromptsManager prompts={activeStory.customPrompts} setPrompts={(prompts) => setActiveStory({...activeStory, customPrompts: prompts})} onClose={() => setIsPromptManagerOpen(false)} />}
             {isKeywordPresetManagerOpen && activeStory && <KeywordPresetManager presets={activeStory.keywordPresets} setPresets={(presets) => setActiveStory({...activeStory, keywordPresets: presets})} onClose={() => setIsKeywordPresetManagerOpen(false)} />}
@@ -719,7 +803,7 @@ const App: React.FC = () => {
             {isCharacterEditorOpen && <CharacterProfileEditor profile={editingProfile} onSave={handleSaveCharacterProfile} onClose={() => setIsCharacterEditorOpen(false)} />}
             {isCharacterPanelOpen && activeStory && (
                 <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-40">
-                    <CharacterPanel 
+                    <CharacterPanel
                         profiles={activeStory.characterProfiles}
                         onAdd={handleAddCharacter}
                         onEdit={handleEditCharacter}
@@ -802,8 +886,6 @@ const App: React.FC = () => {
                 </div>
             )}
 
-
-
             <main className="flex-1 flex flex-col p-2 md:p-4 overflow-hidden">
                 <header className="flex justify-between items-center mb-4 flex-shrink-0 gap-2 md:gap-4">
                     <div className="flex items-center gap-4">
@@ -846,36 +928,8 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-1 md:gap-3 flex-shrink-0 flex-wrap justify-end">
-                         <label htmlFor="load-session" className="hidden md:flex cursor-pointer items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Load Story Session">
-                            <UploadIcon className="w-4 h-4" /> Load
-                        </label>
-                        <input id="load-session" type="file" accept=".json" onChange={handleLoadSession} className="hidden" />
-                        <button onClick={handleSaveSession} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Save Story Session">
-                            <DownloadIcon className="w-4 h-4" /> Save
-                        </button>
-                        <button onClick={() => setIsPromptManagerOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage Custom Prompts">
-                            <BookmarkIcon className="w-4 h-4" /> Prompts
-                        </button>
-                        <button onClick={() => setIsApiKeyManagerOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage API Keys">
-                            <KeyIcon className="w-4 h-4" /> API Keys
-                        </button>
-                        <button onClick={() => setIsCharacterPanelOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="View Characters">
-                            <UserGroupIcon className="w-4 h-4" /> Characters
-                        </button>
-                        <button onClick={() => setIsChapterListOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="View Chapter List">
-                            <BookOpenIcon className="w-4 h-4" /> Chapters
-                        </button>
-                        <button onClick={() => setIsStoryManagerOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Manage Stories">
-                            <CollectionIcon className="w-4 h-4" /> Stories
-                        </button>
-                        <button onClick={() => setIsThemeManagerOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Customize Theme">
-                            <PaintBrushIcon className="w-4 h-4" /> Theme
-                        </button>
-                        <button onClick={() => setIsTTSSettingsOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="TTS Settings">
-                            <SpeakerIcon className="w-4 h-4" /> TTS
-                        </button>
-                        <button onClick={() => setIsDisplaySettingsOpen(true)} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Display Settings">
-                            <PaintBrushIcon className="w-4 h-4" /> Display
+                        <button onClick={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Settings">
+                            <CogIcon className="w-4 h-4" />
                         </button>
                          <button onClick={() => setIsNavigatorOpen(!isNavigatorOpen)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title={isNavigatorOpen ? "Hide AI Panel" : "Show AI Panel"}>
                             <PanelRightIcon className="w-4 h-4" />
