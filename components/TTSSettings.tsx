@@ -222,12 +222,13 @@ export const TTSSettings: React.FC<TTSSettingsProps> = ({
                             aria-label="Speed"
                             type="range"
                             min="0.5"
-                            max="2"
+                            max="16"
                             step="0.1"
                             value={localSettings.rate}
                             onChange={(e) => setLocalSettings(prev => ({ ...prev, rate: parseFloat(e.target.value) }))}
                             className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
                         />
+                        <small className="text-red-500">Tốc độ cao có thể không hoạt động ở 1 số voice.</small>
                     </div>
 
                     <div>
