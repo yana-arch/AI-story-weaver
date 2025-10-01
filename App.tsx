@@ -1,29 +1,43 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import type { Chat } from '@google/ai';
+
+// Eager imports for critical components
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ErrorNotificationContainer } from './components/ErrorNotification';
-import { ApiKeyManager } from './components/ApiKeyManager';
-import { ContentNavigator } from './components/ContentNavigator';
-import { CustomPromptsManager } from './components/CustomPromptsManager';
-import { KeywordPresetManager } from './components/KeywordPresetManager';
-import { VersionHistoryViewer } from './components/VersionHistoryViewer';
-import { MarkdownRenderer } from './components/MarkdownRenderer';
-import { StoryContentRenderer } from './components/StoryContentRenderer';
-import { StoryDisplaySettings } from './components/StoryDisplaySettings';
-import { CharacterPanel } from './components/CharacterPanel';
-import { CharacterProfileEditor } from './components/CharacterProfileEditor';
-import { ChapterList } from './components/ChapterList';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { useTTS } from './hooks/useTTS';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { useErrorHandler } from './hooks/useErrorHandler';
-import { StoryManager } from './components/StoryManager';
-import { TTSSettings, type TTSOptions } from './components/TTSSettings';
-import { ExportDialog } from './components/ExportDialog';
+import { type TTSOptions } from './components/TTSSettings';
+import { useTTS } from './hooks/useTTS';
+import { usePerformanceMonitor, useMemoryLeakDetector, useApiPerformanceMonitor } from './hooks/usePerformanceMonitor';
 import * as storyManager from './services/storyManagerService';
 import { generateStorySegment, generateCharacterProfiles } from './services/geminiService';
 import { addHistoryEntry, deleteHistory } from './services/historyService';
 import { withRetry, RETRY_OPTIONS } from './utils/retryUtils';
+
+// Lazy-loaded components for better initial bundle size
+const ApiKeyManager = lazy(() => import('./components/ApiKeyManager').then(module => ({ default: module.ApiKeyManager })));
+const ContentNavigator = lazy(() => import('./components/ContentNavigator').then(module => ({ default: module.ContentNavigator })));
+const CustomPromptsManager = lazy(() => import('./components/CustomPromptsManager').then(module => ({ default: module.CustomPromptsManager })));
+const KeywordPresetManager = lazy(() => import('./components/KeywordPresetManager').then(module => ({ default: module.KeywordPresetManager })));
+const VersionHistoryViewer = lazy(() => import('./components/VersionHistoryViewer').then(module => ({ default: module.VersionHistoryViewer })));
+const MarkdownRenderer = lazy(() => import('./components/MarkdownRenderer').then(module => ({ default: module.MarkdownRenderer })));
+const StoryContentRenderer = lazy(() => import('./components/StoryContentRenderer').then(module => ({ default: module.StoryContentRenderer })));
+const StoryDisplaySettings = lazy(() => import('./components/StoryDisplaySettings').then(module => ({ default: module.StoryDisplaySettings })));
+const CharacterPanel = lazy(() => import('./components/CharacterPanel').then(module => ({ default: module.CharacterPanel })));
+const CharacterProfileEditor = lazy(() => import('./components/CharacterProfileEditor').then(module => ({ default: module.CharacterProfileEditor })));
+const ChapterList = lazy(() => import('./components/ChapterList').then(module => ({ default: module.ChapterList })));
+const StoryManager = lazy(() => import('./components/StoryManager').then(module => ({ default: module.StoryManager })));
+const ThemeManager = lazy(() => import('./components/ThemeManager').then(module => ({ default: module.ThemeManager })));
+const TTSSettings = lazy(() => import('./components/TTSSettings').then(module => ({ default: module.TTSSettings })));
+const ExportDialog = lazy(() => import('./components/ExportDialog').then(module => ({ default: module.ExportDialog })));
+
+// Loading component for lazy-loaded components
+const ComponentLoadingFallback = () => (
+    <div className="flex items-center justify-center p-8">
+        <div className="text-muted-foreground">Loading...</div>
+    </div>
+);
 import {
     Scenario,
     CharacterDynamics,
@@ -41,7 +55,6 @@ import {
     type Story
 } from './types';
 import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon, PanelRightIcon, PaintBrushIcon, SpeakerIcon, CogIcon } from './components/icons';
-import { ThemeManager } from './components/ThemeManager';
 
 const initialConfig: GenerationConfig = {
     scenario: Scenario.FIRST_TIME,
@@ -57,6 +70,11 @@ const initialConfig: GenerationConfig = {
 };
 
 const App: React.FC = () => {
+    // Performance monitoring hooks
+    const performanceMetrics = usePerformanceMonitor('App');
+    const memoryLeakMetrics = useMemoryLeakDetector('App');
+    const { startApiCall, endApiCall } = useApiPerformanceMonitor('AI Generation');
+
     const [stories, setStories] = useState<Record<string, Story>>({});
     const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
 
@@ -331,8 +349,10 @@ const App: React.FC = () => {
 
         const availableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', key: 'N/A', isDefault: true }, ...apiKeys] : apiKeys;
 
-        // Use retry mechanism for API calls
+        // Use retry mechanism for API calls with performance monitoring
         try {
+            const startTime = startApiCall();
+
             const result = await withRetry(
                 () => generateStorySegment(
                     prompt,
@@ -346,6 +366,8 @@ const App: React.FC = () => {
                 ),
                 RETRY_OPTIONS.API_CALL
             );
+
+            endApiCall(startTime, true); // Success
 
             const newSegment: StorySegment = {
                 id: Date.now().toString(),
@@ -405,7 +427,7 @@ const App: React.FC = () => {
         }
     }, [activeStory, apiKeys, useDefaultKey, currentKeyIndex, setActiveStory, setCurrentKeyIndex, isOnline, addError, clearErrors]);
 
-    const handleAddUserSegment = (content: string) => {
+    const handleAddUserSegment = useCallback((content: string) => {
         if (!content.trim() || !activeStory) return;
         const newSegment: StorySegment = {
             id: Date.now().toString(),
@@ -413,9 +435,9 @@ const App: React.FC = () => {
             content: content.trim(),
         };
         setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newSegment] });
-    };
+    }, [activeStory]);
 
-    const handleAddChapter = () => {
+    const handleAddChapter = useCallback(() => {
         if (!activeStory) return;
         const title = window.prompt("Enter the title for the new chapter:");
         if (title && title.trim()) {
@@ -426,7 +448,7 @@ const App: React.FC = () => {
             };
             setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newChapter] });
         }
-    };
+    }, [activeStory]);
 
 
     const handleStartEdit = (segment: StorySegment) => {
@@ -845,105 +867,97 @@ const App: React.FC = () => {
                 </aside>
             )}
 
-            {/* Modals and panels */}
-            {isApiKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeyManagerOpen(false)} />}
-            {isPromptManagerOpen && activeStory && <CustomPromptsManager prompts={activeStory.customPrompts} setPrompts={(prompts) => setActiveStory({...activeStory, customPrompts: prompts})} onClose={() => setIsPromptManagerOpen(false)} />}
-            {isKeywordPresetManagerOpen && activeStory && <KeywordPresetManager presets={activeStory.keywordPresets} setPresets={(presets) => setActiveStory({...activeStory, keywordPresets: presets})} onClose={() => setIsKeywordPresetManagerOpen(false)} />}
-            {historyViewerTarget && <VersionHistoryViewer segmentId={historyViewerTarget} onClose={() => setHistoryViewerTarget(null)} onRevert={handleRevertToVersion} />}
-            {isCharacterEditorOpen && <CharacterProfileEditor profile={editingProfile} onSave={handleSaveCharacterProfile} onClose={() => setIsCharacterEditorOpen(false)} />}
-            {isCharacterPanelOpen && activeStory && (
-                <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-40">
-                    <CharacterPanel
-                        profiles={activeStory.characterProfiles}
-                        onAdd={handleAddCharacter}
-                        onEdit={handleEditCharacter}
-                        onDelete={handleDeleteCharacter}
-                        onGenerate={handleGenerateProfiles}
-                        isGenerating={isGeneratingProfiles}
-                        onClose={() => setIsCharacterPanelOpen(false)}
+            {/* Modals and panels with lazy loading */}
+            <Suspense fallback={null}>
+                {isApiKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeyManagerOpen(false)} />}
+                {isPromptManagerOpen && activeStory && <CustomPromptsManager prompts={activeStory.customPrompts} setPrompts={(prompts) => setActiveStory({...activeStory, customPrompts: prompts})} onClose={() => setIsPromptManagerOpen(false)} />}
+                {isKeywordPresetManagerOpen && activeStory && <KeywordPresetManager presets={activeStory.keywordPresets} setPresets={(presets) => setActiveStory({...activeStory, keywordPresets: presets})} onClose={() => setIsKeywordPresetManagerOpen(false)} />}
+                {historyViewerTarget && <VersionHistoryViewer segmentId={historyViewerTarget} onClose={() => setHistoryViewerTarget(null)} onRevert={handleRevertToVersion} />}
+                {isCharacterEditorOpen && <CharacterProfileEditor profile={editingProfile} onSave={handleSaveCharacterProfile} onClose={() => setIsCharacterEditorOpen(false)} />}
+                {isCharacterPanelOpen && activeStory && (
+                    <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-40">
+                        <CharacterPanel
+                            profiles={activeStory.characterProfiles}
+                            onAdd={handleAddCharacter}
+                            onEdit={handleEditCharacter}
+                            onDelete={handleDeleteCharacter}
+                            onGenerate={handleGenerateProfiles}
+                            isGenerating={isGeneratingProfiles}
+                            onClose={() => setIsCharacterPanelOpen(false)}
+                        />
+                    </div>
+                )}
+                {isStoryManagerOpen && (
+                    <StoryManager
+                        stories={stories}
+                        activeStoryId={activeStoryId}
+                        onLoadStory={handleLoadStory}
+                        onCreateStory={handleCreateStory}
+                        onDeleteStory={handleDeleteStory}
+                        onRenameStory={handleRenameStory}
+                        onClose={() => setIsStoryManagerOpen(false)}
                     />
-                </div>
-            )}
-            {isStoryManagerOpen && (
-                <StoryManager
-                    stories={stories}
-                    activeStoryId={activeStoryId}
-                    onLoadStory={handleLoadStory}
-                    onCreateStory={handleCreateStory}
-                    onDeleteStory={handleDeleteStory}
-                    onRenameStory={handleRenameStory}
-                    onClose={() => setIsStoryManagerOpen(false)}
-                />
-            )}
-            {isThemeManagerOpen && <ThemeManager currentTheme={theme} setTheme={setTheme} onClose={() => setIsThemeManagerOpen(false)} />}
-            {isTTSSettingsOpen && <TTSSettings settings={ttsSettings} onSettingsChange={setTtsSettings} onClose={() => setIsTTSSettingsOpen(false)} isOpen={isTTSSettingsOpen} />}
-            {isDisplaySettingsOpen && activeStory && <StoryDisplaySettings settings={activeStory.displaySettings || { autoDetect: true, elements: {} }} onSettingsChange={(settings) => setActiveStory({ ...activeStory, displaySettings: settings })} onClose={() => setIsDisplaySettingsOpen(false)} />}
-            {isChapterListOpen && activeStory && (
-                <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-40 p-4">
-                    <div className="bg-card rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
-                        <div className="flex justify-between items-center p-4 border-b border-border">
-                            <h2 className="text-lg font-semibold text-foreground">Danh sách chương</h2>
-                            <button
-                                onClick={() => setIsChapterListOpen(false)}
-                                className="p-1 hover:bg-muted rounded transition-colors"
-                                title="Đóng danh sách chương"
-                            >
-                                <CloseIcon className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-                            <ChapterList
-                                storySegments={activeStory.storySegments}
-                                onNavigateToChapter={(chapterId) => {
-                                    // Scroll to the chapter in the story
-                                    const chapterElement = document.querySelector(`[data-segment-id="${chapterId}"]`);
-                                    if (chapterElement) {
-                                        chapterElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    }
-                                    setIsChapterListOpen(false);
-                                }}
-                                onAddChapter={() => {
-                                    const title = window.prompt("Nhập tiêu đề cho chương mới:");
-                                    if (title && title.trim()) {
-                                        const newChapter: StorySegment = {
-                                            id: Date.now().toString(),
-                                            type: 'chapter',
-                                            content: title.trim()
-                                        };
-                                        setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newChapter] });
-                                    }
-                                }}
-                                onEditChapter={(chapterId, newTitle) => {
-                                    setActiveStory({
-                                        ...activeStory,
-                                        storySegments: activeStory.storySegments.map(s =>
-                                            s.id === chapterId ? { ...s, content: newTitle } : s
-                                        )
-                                    });
-                                }}
-                                onDeleteChapter={(chapterId) => {
-                                    if (window.confirm("Bạn có chắc chắn muốn xóa chương này?")) {
+                )}
+                {isThemeManagerOpen && <ThemeManager currentTheme={theme} setTheme={setTheme} onClose={() => setIsThemeManagerOpen(false)} />}
+                {isDisplaySettingsOpen && activeStory && <StoryDisplaySettings settings={activeStory.displaySettings || { autoDetect: true, elements: {} }} onSettingsChange={(settings) => setActiveStory({ ...activeStory, displaySettings: settings })} onClose={() => setIsDisplaySettingsOpen(false)} />}
+                {isChapterListOpen && activeStory && (
+                    <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-40 p-4">
+                        <div className="bg-card rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+                            <div className="flex justify-between items-center p-4 border-b border-border">
+                                <h2 className="text-lg font-semibold text-foreground">Danh sách chương</h2>
+                                <button
+                                    onClick={() => setIsChapterListOpen(false)}
+                                    className="p-1 hover:bg-muted rounded transition-colors"
+                                    title="Đóng danh sách chương"
+                                >
+                                    <CloseIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+                                <ChapterList
+                                    storySegments={activeStory.storySegments}
+                                    onNavigateToChapter={(chapterId) => {
+                                        // Scroll to the chapter in the story
+                                        const chapterElement = document.querySelector(`[data-segment-id="${chapterId}"]`);
+                                        if (chapterElement) {
+                                            chapterElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        }
+                                        setIsChapterListOpen(false);
+                                    }}
+                                    onAddChapter={() => {
+                                        const title = window.prompt("Nhập tiêu đề cho chương mới:");
+                                        if (title && title.trim()) {
+                                            const newChapter: StorySegment = {
+                                                id: Date.now().toString(),
+                                                type: 'chapter',
+                                                content: title.trim()
+                                            };
+                                            setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newChapter] });
+                                        }
+                                    }}
+                                    onEditChapter={(chapterId, newTitle) => {
                                         setActiveStory({
                                             ...activeStory,
-                                            storySegments: activeStory.storySegments.filter(s => s.id !== chapterId)
+                                            storySegments: activeStory.storySegments.map(s =>
+                                                s.id === chapterId ? { ...s, content: newTitle } : s
+                                            )
                                         });
-                                    }
-                                }}
-                                currentChapterId={undefined}
-                            />
+                                    }}
+                                    onDeleteChapter={(chapterId) => {
+                                        if (window.confirm("Bạn có chắc chắn muốn xóa chương này?")) {
+                                            setActiveStory({
+                                                ...activeStory,
+                                                storySegments: activeStory.storySegments.filter(s => s.id !== chapterId)
+                                            });
+                                        }
+                                    }}
+                                    currentChapterId={undefined}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {isExportDialogOpen && activeStory && (
-                <ExportDialog
-                    story={activeStory}
-                    segments={filteredSegments}
-                    isOpen={isExportDialogOpen}
-                    onClose={() => setIsExportDialogOpen(false)}
-                />
-            )}
+                )}
+            </Suspense>
 
             <main className="flex-1 flex flex-col p-2 md:p-4 overflow-hidden">
                 <header className="flex justify-between items-center mb-4 flex-shrink-0 gap-2 md:gap-4">
@@ -1124,30 +1138,34 @@ const App: React.FC = () => {
             {/* Desktop Aside */}
             {isDesktop && <aside className={`flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isNavigatorOpen ? 'w-[380px]' : 'w-0'}`}>
                 <div className="w-[380px] h-full">
-                    {activeStory && <ContentNavigator
-                        key={`navigator-${activeStory.id}`}
-                        config={activeStory.generationConfig}
-                        setConfig={handleSetConfig}
-                        onGenerate={handleGenerate}
-                        isLoading={isLoading}
-                        isGenerateDisabled={isGenerateDisabled}
-                        customPrompts={activeStory.customPrompts}
-                        selectedPromptIds={activeStory.selectedPromptIds || []}
-                        setSelectedPromptIds={(ids) => {
-                            setStories(prev => ({
-                                ...prev,
-                                [activeStory.id]: {
-                                    ...activeStory,
-                                    selectedPromptIds: ids
-                                }
-                            }));
-                        }}
-                        onManagePrompts={() => setIsPromptManagerOpen(true)}
-                        keywordPresets={activeStory.keywordPresets || []}
-                        onManageKeywordPresets={() => setIsKeywordPresetManagerOpen(true)}
-                        onSaveKeywordPreset={handleSaveKeywordPreset}
-                        storySegments={activeStory.storySegments}
-                    />}
+                    {activeStory && (
+                        <Suspense fallback={<ComponentLoadingFallback />}>
+                            <ContentNavigator
+                                key={`navigator-${activeStory.id}`}
+                                config={activeStory.generationConfig}
+                                setConfig={handleSetConfig}
+                                onGenerate={handleGenerate}
+                                isLoading={isLoading}
+                                isGenerateDisabled={isGenerateDisabled}
+                                customPrompts={activeStory.customPrompts}
+                                selectedPromptIds={activeStory.selectedPromptIds || []}
+                                setSelectedPromptIds={(ids) => {
+                                    setStories(prev => ({
+                                        ...prev,
+                                        [activeStory.id]: {
+                                            ...activeStory,
+                                            selectedPromptIds: ids
+                                        }
+                                    }));
+                                }}
+                                onManagePrompts={() => setIsPromptManagerOpen(true)}
+                                keywordPresets={activeStory.keywordPresets || []}
+                                onManageKeywordPresets={() => setIsKeywordPresetManagerOpen(true)}
+                                onSaveKeywordPreset={handleSaveKeywordPreset}
+                                storySegments={activeStory.storySegments}
+                            />
+                        </Suspense>
+                    )}
                 </div>
             </aside>}
             {/* Mobile Overlay */}
@@ -1155,35 +1173,43 @@ const App: React.FC = () => {
                 <div className="fixed inset-0 z-50">
                     <div className="fixed inset-0 bg-black/50" onClick={() => setIsNavigatorOpen(false)}></div>
                     <aside className="absolute right-0 top-0 w-80 h-full bg-secondary border-l border-border">
-                        {activeStory && <ContentNavigator
-                            config={activeStory.generationConfig}
-                            setConfig={handleSetConfig}
-                            onGenerate={handleGenerate}
-                            isLoading={isLoading}
-                            isGenerateDisabled={isGenerateDisabled}
-                            customPrompts={activeStory.customPrompts}
-                            selectedPromptIds={activeStory.selectedPromptIds || []}
-                            setSelectedPromptIds={(ids) => {
-                                setStories(prev => ({
-                                    ...prev,
-                                    [activeStory.id]: {
-                                        ...activeStory,
-                                        selectedPromptIds: ids
-                                    }
-                                }));
-                            }}
-                            onManagePrompts={() => setIsPromptManagerOpen(true)}
-                            keywordPresets={activeStory.keywordPresets || []}
-                            onManageKeywordPresets={() => setIsKeywordPresetManagerOpen(true)}
-                            onSaveKeywordPreset={handleSaveKeywordPreset}
-                            storySegments={activeStory.storySegments}
-                        />}
+                        {activeStory && (
+                            <Suspense fallback={<ComponentLoadingFallback />}>
+                                <ContentNavigator
+                                    config={activeStory.generationConfig}
+                                    setConfig={handleSetConfig}
+                                    onGenerate={handleGenerate}
+                                    isLoading={isLoading}
+                                    isGenerateDisabled={isGenerateDisabled}
+                                    customPrompts={activeStory.customPrompts}
+                                    selectedPromptIds={activeStory.selectedPromptIds || []}
+                                    setSelectedPromptIds={(ids) => {
+                                        setStories(prev => ({
+                                            ...prev,
+                                            [activeStory.id]: {
+                                                ...activeStory,
+                                                selectedPromptIds: ids
+                                            }
+                                        }));
+                                    }}
+                                    onManagePrompts={() => setIsPromptManagerOpen(true)}
+                                    keywordPresets={activeStory.keywordPresets || []}
+                                    onManageKeywordPresets={() => setIsKeywordPresetManagerOpen(true)}
+                                    onSaveKeywordPreset={handleSaveKeywordPreset}
+                                    storySegments={activeStory.storySegments}
+                                />
+                            </Suspense>
+                        )}
                     </aside>
                 </div>
             )}
         </div>
     );
 };
+
+App.displayName = 'App';
+
+export default React.memo(App);
 
 interface UserInputProps {
     onSubmit: (content: string) => void;
@@ -1248,4 +1274,5 @@ const UserInput: React.FC<UserInputProps> = ({ onSubmit, onAddChapter }) => {
     );
 };
 
-export default App;
+
+UserInput.displayName = 'UserInput';
