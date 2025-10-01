@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export interface PerformanceMetrics {
   renderCount: number;
@@ -17,38 +17,44 @@ export const usePerformanceMonitor = (componentName: string) => {
   });
   const renderStartTimeRef = useRef<number>(0);
   const lastRenderCountRef = useRef<number>(0);
+  const metricsRef = useRef<PerformanceMetrics>({
+    renderCount: 0,
+    renderTime: 0,
+    lastRenderAt: 0,
+    componentName,
+    memoryUsage: 0,
+  });
 
-  useEffect(() => {
-    const startTime = performance.now();
-    renderStartTimeRef.current = startTime;
+  useLayoutEffect(() => {
+    renderStartTimeRef.current = performance.now();
 
     return () => {
-      const endTime = performance.now();
-      const renderTime = endTime - startTime;
-
-      // Update performance metrics
-      setMetrics(prev => ({
-        ...prev,
-        renderCount: prev.renderCount + 1,
+      const renderTime = performance.now() - renderStartTimeRef.current;
+      lastRenderCountRef.current += 1;
+      metricsRef.current = {
+        renderCount: lastRenderCountRef.current,
         renderTime,
         lastRenderAt: Date.now(),
+        componentName,
         memoryUsage: (performance as any).memory?.usedJSHeapSize,
-      }));
+      };
 
-      // Log slow renders (> 16ms)
       if (renderTime > 16) {
         console.warn(`🚨 Slow render in ${componentName}: ${renderTime.toFixed(2)}ms`);
       }
 
-      // Log render count increases
-      const renderCount = lastRenderCountRef.current + 1;
-      lastRenderCountRef.current = renderCount;
-
-      if (renderCount % 10 === 0) {
-        console.info(`📊 ${componentName} render count: ${renderCount}`);
+      if (lastRenderCountRef.current % 10 === 0) {
+        console.info(`📊 ${componentName} render count: ${lastRenderCountRef.current}`);
       }
     };
   });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMetrics(metricsRef.current);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [componentName]);
 
   // Log memory usage periodically
   useEffect(() => {
