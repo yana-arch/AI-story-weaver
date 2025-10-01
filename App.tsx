@@ -19,6 +19,7 @@ import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { useErrorHandler } from './hooks/useErrorHandler';
 import { StoryManager } from './components/StoryManager';
 import { TTSSettings, type TTSOptions } from './components/TTSSettings';
+import { ExportDialog } from './components/ExportDialog';
 import * as storyManager from './services/storyManagerService';
 import { generateStorySegment, generateCharacterProfiles } from './services/geminiService';
 import { addHistoryEntry, deleteHistory } from './services/historyService';
@@ -90,6 +91,7 @@ const App: React.FC = () => {
     const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
     const [isChapterListOpen, setIsChapterListOpen] = useState(false);
     const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
+    const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
     const [ttsSettings, setTtsSettings] = useLocalStorage<TTSOptions>('ttsSettings', { rate: 1, pitch: 1 });
 
     const { isSpeaking, toggle } = useTTS(ttsSettings);
@@ -785,6 +787,12 @@ const App: React.FC = () => {
                         <span className="text-xs text-center">Chapters</span>
                     </button>
 
+                    {/* Export Button */}
+                    <button onClick={() => setIsExportDialogOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Export Story">
+                        <DownloadIcon className="w-5 h-5" />
+                        <span className="text-xs text-center">Export</span>
+                    </button>
+
                     {/* Stories Button */}
                     <button onClick={() => setIsStoryManagerOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Manage Stories">
                         <CollectionIcon className="w-5 h-5" />
@@ -918,6 +926,15 @@ const App: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {isExportDialogOpen && activeStory && (
+                <ExportDialog
+                    story={activeStory}
+                    segments={filteredSegments}
+                    isOpen={isExportDialogOpen}
+                    onClose={() => setIsExportDialogOpen(false)}
+                />
             )}
 
             <main className="flex-1 flex flex-col p-2 md:p-4 overflow-hidden">
