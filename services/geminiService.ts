@@ -226,7 +226,7 @@ ${characterProfilesSection}`;
 
     if (config.generationMode === GenerationMode.REWRITE) {
         if (config.rewriteTarget === 'Chương được chọn' && config.selectedChapterId) {
-            systemInstruction = `Bạn là một biên tập viên viết văn sáng tạo đẳng cấp thế giới, chuyên về tiểu thuyết người lớn. Nhiệm vụ của bạn là đọc và viết lại một chương cụ thể của câu chuyện được cung cấp. Bạn phải phân tích văn bản, xác định những cơ hội tự nhiên để chèn các cảnh 18+ chi tiết, và sau đó viết lại chương đó, lồng ghép các cảnh mới này một cách liền mạch. Đầu ra cuối cùng phải là một chương duy nhất, mạch lạc bằng tiếng Việt.`;
+            systemInstruction = `Bạn là một biên tập viên viết văn sáng tạo đẳng cấp thế giới, chuyên về tiểu thuyết người lớn. Nhiệm vụ của bạn là đọc và viết lại một chương cụ thể của câu chuyện được cung cấp. Bạn phải phân tích văn bản, xác định những cơ hội tự nhiên để chèn các cảnh 18+ chi tiết, và sau đó viết lại chương đó, lồng ghép các cảnh mới này một cách liền mạch. Đầu ra cuối cùng phải là một chương duy nhất, mạch lạc bằng tiếng Việt. Giữ phong cách ngôn ngữ và văn phong của nội dung gốc để đảm bảo tính nhất quán trong câu chuyện.`;
             userMessage = `
     --- NỘI DUNG GỐC CẦN VIẾT LẠI ---
     ${fullStoryForRewrite}
@@ -234,7 +234,7 @@ ${characterProfilesSection}`;
     --- NHIỆM VỤ CỦA BẠN ---
     Viết lại chương được chọn trong câu chuyện được cung cấp ở trên bằng tiếng Việt. Bản viết lại của bạn phải kết hợp các cảnh 18+ chi tiết mới dựa trên định hướng sáng tạo. Các cảnh này nên được chèn vào những thời điểm thích hợp để tăng cường cốt truyện và phát triển nhân vật. Kết quả cuối cùng phải là chương hoàn chỉnh đã được viết lại. Không thêm bất kỳ bình luận hay giải thích nào trước hoặc sau chương.`;
         } else {
-            systemInstruction = `Bạn là một biên tập viên viết văn sáng tạo đẳng cấp thế giới, chuyên về tiểu thuyết người lớn. Nhiệm vụ của bạn là đọc và viết lại một đoạn truyện được cung cấp. Bạn phải phân tích văn bản, xác định những cơ hội tự nhiên để chèn các cảnh 18+ chi tiết, và sau đó viết lại toàn bộ đoạn văn, lồng ghép các cảnh mới này một cách liền mạch. Đầu ra cuối cùng phải là một văn bản duy nhất, mạch lạc bằng tiếng Việt.`;
+            systemInstruction = `Bạn là một biên tập viên viết văn sáng tạo đẳng cấp thế giới, chuyên về tiểu thuyết người lớn. Nhiệm vụ của bạn là đọc và viết lại một đoạn truyện được cung cấp. Bạn phải phân tích văn bản, xác định những cơ hội tự nhiên để chèn các cảnh 18+ chi tiết, và sau đó viết lại toàn bộ đoạn văn, lồng ghép các cảnh mới này một cách liền mạch. Đầu ra cuối cùng phải là một văn bản duy nhất, mạch lạc bằng tiếng Việt. Giữ phong cách ngôn ngữ và văn phong của nội dung gốc để đảm bảo tính nhất quán trong câu chuyện.`;
             userMessage = `
     --- NỘI DUNG GỐC CẦN VIẾT LẠI ---
     ${fullStoryForRewrite}
@@ -243,7 +243,7 @@ ${characterProfilesSection}`;
     Viết lại toàn bộ câu chuyện được cung cấp ở trên bằng tiếng Việt. Bản viết lại của bạn phải kết hợp các cảnh 18+ chi tiết mới dựa trên định hướng sáng tạo. Các cảnh này nên được chèn vào những thời điểm thích hợp để tăng cường cốt truyện và phát triển nhân vật. Đừng chỉ nối thêm cảnh mới vào cuối. Kết quả cuối cùng phải là câu chuyện hoàn chỉnh đã được viết lại. Không thêm bất kỳ bình luận hay giải thích nào trước hoặc sau câu chuyện.`;
         }
     } else { // GenerationMode.CONTINUE
-        systemInstruction = `Bạn là một trợ lý viết văn sáng tạo đẳng cấp thế giới, chuyên về tiểu thuyết người lớn. Nhiệm vụ của bạn là tiếp nối đoạn truyện được cung cấp bằng cách viết một phân cảnh mới dựa trên định hướng sáng tạo cụ thể của người dùng. Phân cảnh phải được tích hợp một cách liền mạch với văn bản hiện có và được viết bằng tiếng Việt. Tuân thủ nghiêm ngặt các tham số sau.`;
+        systemInstruction = `Bạn là một trợ lý viết văn sáng tạo đẳng cấp thế giới, chuyên về tiểu thuyết người lớn. Nhiệm vụ của bạn là tiếp nối đoạn truyện được cung cấp bằng cách viết một phân cảnh mới dựa trên định hướng sáng tạo cụ thể của người dùng. Phân cảnh phải được tích hợp một cách liền mạch với văn bản hiện có và được viết bằng tiếng Việt. Tuân thủ nghiêm ngặt các tham số sau. Giữ phong cách ngôn ngữ và văn phong của nội dung gốc để đảm bảo tính nhất quán trong câu chuyện.`;
         if (isNewChat) {
              userMessage = `
     --- BỐI CẢNH TRUYỆN ---

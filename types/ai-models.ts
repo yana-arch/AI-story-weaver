@@ -40,6 +40,7 @@ export interface AIPrompt {
 }
 
 export interface AIRequestOptions {
+  model?: string;
   temperature?: number;
   maxTokens?: number;
   topP?: number;

@@ -3,7 +3,6 @@ import { CloseIcon } from './icons';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 
 interface TTSSettingsProps {
-    isOpen: boolean;
     onClose: () => void;
     settings: TTSOptions;
     onSettingsChange: (settings: TTSOptions) => void;
@@ -23,8 +22,8 @@ interface VoiceOption {
     type: 'google' | 'system' | 'other';
 }
 
+
 export const TTSSettings: React.FC<TTSSettingsProps> = ({
-    isOpen,
     onClose,
     settings,
     onSettingsChange,
@@ -149,7 +148,7 @@ export const TTSSettings: React.FC<TTSSettingsProps> = ({
         }
     };
 
-    if (!isOpen) return null;
+
 
     return (
         <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-50">

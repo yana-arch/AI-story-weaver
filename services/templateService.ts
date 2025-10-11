@@ -9,6 +9,7 @@ import {
   TemplateType,
   PromptTemplate,
   TemplateVariable,
+  TemplateRecommendation,
 } from '../types/templates';
 
 class TemplateService {
@@ -48,6 +49,15 @@ class TemplateService {
         favoriteCategories: [],
         autoSaveVariations: true,
       },
+      // Initialize new analytics and intelligence fields
+      usageAnalytics: {},
+      intelligence: {
+        templateSimilarities: {},
+        userTemplates: [],
+        contextTemplates: {},
+      },
+      abTests: [],
+      templateRecommendations: [],
     };
   }
 
@@ -571,12 +581,373 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
       if (variable.required && (!value || value.trim() === '')) {
         errors.push(`"${variable.displayName}" là bắt buộc`);
       }
+
+      // Advanced validation
+      if (value) {
+        if (variable.validation?.pattern && !new RegExp(variable.validation.pattern).test(value)) {
+          errors.push(`"${variable.displayName}" không đúng định dạng`);
+        }
+
+        if (variable.validation?.customValidator && typeof window !== 'undefined') {
+          try {
+            const validator = new Function('value', variable.validation.customValidator);
+            if (!validator(value)) {
+              errors.push(variable.validation.customValidator + ' failed for ' + variable.displayName);
+            }
+          } catch (e) {
+            errors.push(`Lỗi validation cho "${variable.displayName}"`);
+          }
+        }
+      }
     });
 
     return {
       valid: errors.length === 0,
       errors,
     };
+  }
+
+  // Advanced template features
+  applyTemplateWithComposition(templateId: string, userVariables: Record<string, string>, context: {
+    storySegments?: Array<{ type: string; content: string }>;
+    characterProfiles?: Array<{ name: string; personality?: string; background?: string }>;
+    generationConfig?: any;
+  } = {}): { content: string; variables: Record<string, string>; metadata: any } {
+    const template = this.getTemplateById(templateId);
+    if (!template || template.type !== TemplateType.PROMPT_TEMPLATE) {
+      throw new Error('Template not found or not supported');
+    }
+
+    const promptTemplate = template as PromptTemplate;
+    const resolvedVariables = this.resolveVariables(promptTemplate.variables, userVariables, context);
+
+    // Apply parent template inheritance
+    let finalContent = promptTemplate.content;
+    if (promptTemplate.parentTemplateId) {
+      const parentTemplate = this.getTemplateById(promptTemplate.parentTemplateId);
+      if (parentTemplate && parentTemplate.type === TemplateType.PROMPT_TEMPLATE) {
+        // Inherit parent content and merge variables
+        finalContent = (parentTemplate as PromptTemplate).content + '\n\n' + finalContent;
+      }
+    }
+
+    // Apply sub-templates (composition)
+    if (promptTemplate.subTemplates) {
+      for (const composition of promptTemplate.subTemplates) {
+        if (this.evaluateCompositionCondition(composition, resolvedVariables, context)) {
+          const subTemplate = promptTemplate.subTemplates.find(st => st.templateId === composition.templateId);
+          if (subTemplate) {
+            const subTemplateData = this.getTemplateById(subTemplate.templateId);
+            if (subTemplateData && subTemplateData.type === TemplateType.PROMPT_TEMPLATE) {
+              const subContent = this.applyTemplate(subTemplateData as PromptTemplate, subTemplate.variables || {});
+              finalContent = this.insertSubTemplateContent(finalContent, subContent, subTemplate.insertionPoint);
+            }
+          }
+        }
+      }
+    }
+
+    // Apply variable substitution
+    const content = this.applyTemplateComposed({ ...promptTemplate, content: finalContent }, resolvedVariables);
+
+    return {
+      content,
+      variables: resolvedVariables,
+      metadata: {
+        templateId,
+        composition: promptTemplate.subTemplates,
+        inheritance: promptTemplate.parentTemplateId,
+        resolvedVariables: Object.keys(resolvedVariables)
+      }
+    };
+  }
+
+  private resolveVariables(variables: TemplateVariable[], userVariables: Record<string, string>, context: any): Record<string, string> {
+    const resolved: Record<string, string> = { ...userVariables };
+
+    variables.forEach(variable => {
+      const userValue = userVariables[variable.name];
+
+      if (userValue) {
+        resolved[variable.name] = userValue;
+      } else {
+        // Try to auto-fill from context
+        const contextValue = this.getValueFromContext(variable, context);
+        if (contextValue) {
+          resolved[variable.name] = contextValue;
+        } else if (variable.fallbackExpression) {
+          resolved[variable.name] = this.computeFallback(variable.fallbackExpression, resolved);
+        } else if (variable.defaultValue) {
+          resolved[variable.name] = variable.defaultValue;
+        }
+      }
+    });
+
+    // Handle dependent variables (run multiple times to resolve dependencies)
+    for (let i = 0; i < 3; i++) {
+      variables.forEach(variable => {
+        if (variable.type === 'computed' && variable.fallbackExpression) {
+          resolved[variable.name] = this.computeFallback(variable.fallbackExpression, resolved);
+        }
+      });
+    }
+
+    return resolved;
+  }
+
+  private getValueFromContext(variable: TemplateVariable, context: any): string | null {
+    if (!variable.source) return null;
+
+    switch (variable.source) {
+      case 'character_profile':
+        if (context.characterProfiles && variable.name.includes('character')) {
+          // Extract character name from variable name
+          const charName = variable.name.replace(/character[0-9]*_/, '').replace(/_.*$/, '');
+          const charProfile = context.characterProfiles.find((c: any) => c.name.toLowerCase().includes(charName));
+          if (charProfile) {
+            return variable.name.includes('age') ? charProfile.age :
+                   variable.name.includes('job') || variable.name.includes('occupation') ? charProfile.occupation :
+                   variable.name.includes('appearance') ? charProfile.appearance :
+                   charProfile.name;
+          }
+        }
+        break;
+
+      case 'story_context':
+        if (variable.name.includes('scene') && context.storySegments) {
+          const lastScene = context.storySegments.findLast((s: any) => s.type === 'ai' || s.type === 'user');
+          if (lastScene) return lastScene.content.substring(0, 100) + '...';
+        }
+        break;
+
+      case 'generation_config':
+        if (context.generationConfig && context.generationConfig[variable.name]) {
+          return context.generationConfig[variable.name];
+        }
+        break;
+    }
+
+    return null;
+  }
+
+  private computeFallback(expression: string, resolvedVariables: Record<string, string>): string {
+    try {
+      // Simple expression evaluator - expand as needed
+      if (expression === 'join_spaces') {
+        return Object.values(resolvedVariables).filter(v => v).join(' ');
+      }
+      if (expression === 'random_choice') {
+        const values = Object.values(resolvedVariables).filter(v => v);
+        return values[Math.floor(Math.random() * values.length)];
+      }
+      if (expression.startsWith('concat:')) {
+        const parts = expression.replace('concat:', '').split(',');
+        return parts.map(part => resolvedVariables[part.trim()] || part.trim()).join('');
+      }
+      return '';
+    } catch (e) {
+      console.warn(`Fallback expression failed: ${expression}`, e);
+      return '';
+    }
+  }
+
+  private evaluateCompositionCondition(composition: any, variables: Record<string, string>, context: any): boolean {
+    if (!composition.condition) return true;
+
+    try {
+      // Simple condition evaluator
+      const condition = composition.condition;
+      if (condition.startsWith('variable:')) {
+        const varName = condition.replace('variable:', '');
+        return !!variables[varName];
+      }
+      if (condition === 'has_characters') {
+        return context.characterProfiles && context.characterProfiles.length > 0;
+      }
+      if (condition === 'story_length_long') {
+        return context.storySegments && context.storySegments.length > 5;
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  private insertSubTemplateContent(parentContent: string, subContent: string, insertionPoint: string): string {
+    if (insertionPoint === 'before') {
+      return subContent + '\n\n' + parentContent;
+    }
+    if (insertionPoint === 'after') {
+      return parentContent + '\n\n' + subContent;
+    }
+    if (insertionPoint.startsWith('replace:')) {
+      const varName = insertionPoint.replace('replace:', '');
+      const placeholder = `{{${varName}}}`;
+      return parentContent.replace(placeholder, subContent);
+    }
+    return parentContent;
+  }
+
+  private applyTemplateComposed(template: PromptTemplate, variables: Record<string, string>): string {
+    let result = template.content;
+
+    // Apply pre-processing
+    if (template.preProcessing) {
+      for (const preProcess of template.preProcessing) {
+        try {
+          const processor = new Function('content', 'variables', preProcess);
+          result = processor(result, variables);
+        } catch (e) {
+          console.warn('Pre-processing failed:', e);
+        }
+      }
+    }
+
+    // Variable substitution
+    Object.entries(variables).forEach(([key, value]) => {
+      const placeholder = `{{${key}}}`;
+      result = result.replace(new RegExp(placeholder, 'g'), value || '');
+    });
+
+    // Apply post-processing
+    if (template.postProcessing) {
+      for (const postProcess of template.postProcessing) {
+        try {
+          const processor = new Function('content', postProcess);
+          result = processor(result);
+        } catch (e) {
+          console.warn('Post-processing failed:', e);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  // Analytics and intelligence
+  recordTemplatePerformance(templateId: string, metrics: {
+    generationTime: number;
+    tokenCount: number;
+    success: boolean;
+    qualityRating: number;
+    userFeedback?: string;
+    contextFeatures: string[];
+  }): void {
+    let analytics = this.userTemplateData.usageAnalytics[templateId];
+    if (!analytics) {
+      analytics = {
+        templateId,
+        usageStats: {
+          totalUsage: 0,
+          successfulGenerations: 0,
+          averageGenerationTime: 0,
+          averageTokenCount: 0,
+          popularVariables: {},
+          commonContexts: []
+        },
+        qualityMetrics: {
+          averageRating: 0,
+          userFeedback: [],
+          coherence: 0,
+          creativity: 0,
+          consistency: 0
+        },
+        performanceHistory: []
+      };
+      this.userTemplateData.usageAnalytics[templateId] = analytics;
+    }
+
+    // Update usage stats
+    analytics.usageStats.totalUsage++;
+    if (metrics.success) analytics.usageStats.successfulGenerations++;
+    analytics.usageStats.averageGenerationTime = (analytics.usageStats.averageGenerationTime * (analytics.usageStats.totalUsage - 1) + metrics.generationTime) / analytics.usageStats.totalUsage;
+    analytics.usageStats.averageTokenCount = (analytics.usageStats.averageTokenCount * (analytics.usageStats.totalUsage - 1) + metrics.tokenCount) / analytics.usageStats.totalUsage;
+
+    // Update quality metrics
+    analytics.qualityMetrics.averageRating = (analytics.qualityMetrics.averageRating * (analytics.qualityMetrics.userFeedback.length) + metrics.qualityRating) / (analytics.qualityMetrics.userFeedback.length + 1);
+    analytics.qualityMetrics.userFeedback.push({
+      rating: metrics.qualityRating,
+      comment: metrics.userFeedback,
+      date: Date.now(),
+      context: 'technical'
+    });
+
+    // Add performance point
+    analytics.performanceHistory.push({
+      date: Date.now(),
+      usageCount: analytics.usageStats.totalUsage,
+      successRate: analytics.usageStats.successfulGenerations / analytics.usageStats.totalUsage,
+      averageRating: analytics.qualityMetrics.averageRating,
+      contextFeatures: metrics.contextFeatures
+    });
+
+    // Keep last 100 history points
+    analytics.performanceHistory = analytics.performanceHistory.slice(-100);
+
+    this.saveUserData();
+  }
+
+  getTemplateRecommendations(context?: {
+    storyType?: string;
+    generationMode?: string;
+    hasCharacters?: boolean;
+    storyLength?: number;
+  }): Promise<TemplateRecommendation[]> {
+    return new Promise((resolve) => {
+      setTimeout(() => { // Simulate async processing
+        const recommendations: TemplateRecommendation[] = [];
+        const allTemplates = this.getAllTemplates();
+
+        allTemplates.forEach(template => {
+          if (template.type !== TemplateType.PROMPT_TEMPLATE) return;
+
+          const promptTemplate = template as PromptTemplate;
+          let confidence = 0;
+          let reasons: string[] = [];
+
+          // Match compatibility
+          if (promptTemplate.compatibility && context) {
+            if (context.storyType && promptTemplate.compatibility.storyTypes.includes(context.storyType)) {
+              confidence += 0.4;
+              reasons.push('Phù hợp với thể loại truyện');
+            }
+            if (context.generationMode && promptTemplate.compatibility.generationModes.includes(context.generationMode)) {
+              confidence += 0.3;
+              reasons.push('Phù hợp với chế độ tạo');
+            }
+          }
+
+          // Usage history
+          const analytics = this.userTemplateData.usageAnalytics[template.id];
+          if (analytics && analytics.qualityMetrics.averageRating > 4) {
+            confidence += 0.3;
+            reasons.push('Đánh giá cao');
+          }
+
+          // Popularity
+          if (template.usageCount > 10) {
+            confidence += 0.2;
+            reasons.push('Được sử dụng phổ biến');
+          }
+
+          if (confidence > 0.1) {
+            recommendations.push({
+              templateId: template.id,
+              confidence,
+              reasoning: reasons.join(', '),
+              contextMatch: {
+                category: template.category.includes(context?.storyType || '') ? 1 : 0,
+                compatibility: confidence > 0.3 ? 1 : 0,
+                popularity: template.usageCount > 5 ? 1 : 0
+              }
+            });
+          }
+        });
+
+        recommendations.sort((a, b) => b.confidence - a.confidence);
+        resolve(recommendations.slice(0, 5));
+      }, 100);
+    });
   }
 }
 

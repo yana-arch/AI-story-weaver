@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
-import type { Chat } from '@google/ai';
+import type { Chat } from '@google/genai';
 
 // Eager imports for critical components
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -109,7 +109,14 @@ const App: React.FC = () => {
     const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
     const [isChapterListOpen, setIsChapterListOpen] = useState(false);
     const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
+    const [activeSettingsTab, setActiveSettingsTab] = useState<'api-keys' | 'theme' | 'tts' | 'display'>('api-keys');
     const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+
+    // Individual modal states for settings tabs
+    const [isApiKeysModalOpen, setIsApiKeysModalOpen] = useState(false);
+    const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+    const [isTTSModalOpen, setIsTTSModalOpen] = useState(false);
+    const [isDisplayModalOpen, setIsDisplayModalOpen] = useState(false);
     const [ttsSettings, setTtsSettings] = useLocalStorage<TTSOptions>('ttsSettings', { rate: 1, pitch: 1 });
 
     const { isSpeaking, toggle, stop } = useTTS(ttsSettings);
@@ -831,41 +838,15 @@ const App: React.FC = () => {
                 </div>
             </aside>
 
-            {/* Settings Panel */}
-            {isSettingsPanelOpen && (
-                <aside className="w-64 bg-card border-r border-border flex flex-col">
-                    <div className="p-4 border-b border-border">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold">Settings</h2>
-                            <button
-                                onClick={() => setIsSettingsPanelOpen(false)}
-                                className="p-1 hover:bg-muted rounded transition-colors"
-                                title="Close Settings"
-                            >
-                                <CloseIcon className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
-                    <div className="flex-1 p-4 space-y-2">
-                        <button onClick={() => { setIsApiKeyManagerOpen(true); setIsSettingsPanelOpen(false); }} className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Manage API Keys">
-                            <KeyIcon className="w-4 h-4" />
-                            <span>API Keys</span>
-                        </button>
-                        <button onClick={() => { setIsThemeManagerOpen(true); setIsSettingsPanelOpen(false); }} className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Customize Theme">
-                            <PaintBrushIcon className="w-4 h-4" />
-                            <span>Theme</span>
-                        </button>
-                        <button onClick={() => { setIsTTSSettingsOpen(true); setIsSettingsPanelOpen(false); }} className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-secondary/50 transition-colors" title="TTS Settings">
-                            <SpeakerIcon className="w-4 h-4" />
-                            <span>TTS</span>
-                        </button>
-                        <button onClick={() => { setIsDisplaySettingsOpen(true); setIsSettingsPanelOpen(false); }} className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Display Settings">
-                            <PaintBrushIcon className="w-4 h-4" />
-                            <span>Display</span>
-                        </button>
-                    </div>
-                </aside>
-            )}
+
+
+            {/* Individual settings modals */}
+            <Suspense fallback={null}>
+                {isApiKeysModalOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeysModalOpen(false)} />}
+                {isThemeModalOpen && <ThemeManager currentTheme={theme} setTheme={setTheme} onClose={() => setIsThemeModalOpen(false)} />}
+                {isTTSModalOpen && <TTSSettings settings={ttsSettings} onSettingsChange={setTtsSettings} onClose={() => setIsTTSModalOpen(false)} />}
+                {isDisplayModalOpen && activeStory && <StoryDisplaySettings settings={activeStory.displaySettings || { autoDetect: true, elements: {} }} onSettingsChange={(settings) => setActiveStory({ ...activeStory, displaySettings: settings })} onClose={() => setIsDisplayModalOpen(false)} />}
+            </Suspense>
 
             {/* Modals and panels with lazy loading */}
             <Suspense fallback={null}>
@@ -1001,9 +982,57 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-1 md:gap-3 flex-shrink-0 flex-wrap justify-end">
-                        <button onClick={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Settings">
-                            <CogIcon className="w-4 h-4" />
-                        </button>
+                        <div className="relative">
+                            <button onClick={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title="Settings">
+                                <CogIcon className="w-4 h-4" />
+                            </button>
+                            {isSettingsPanelOpen && (
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-md shadow-lg z-50">
+                                    <div className="p-2">
+                                        <button
+                                            onClick={() => {
+                                                setIsSettingsPanelOpen(false);
+                                                setIsApiKeysModalOpen(true);
+                                            }}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted rounded text-left"
+                                        >
+                                            <KeyIcon className="w-4 h-4" />
+                                            API Keys
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setIsSettingsPanelOpen(false);
+                                                setIsThemeModalOpen(true);
+                                            }}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted rounded text-left"
+                                        >
+                                            <PaintBrushIcon className="w-4 h-4" />
+                                            Theme
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setIsSettingsPanelOpen(false);
+                                                setIsTTSModalOpen(true);
+                                            }}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted rounded text-left"
+                                        >
+                                            <SpeakerIcon className="w-4 h-4" />
+                                            TTS
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setIsSettingsPanelOpen(false);
+                                                setIsDisplayModalOpen(true);
+                                            }}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted rounded text-left"
+                                        >
+                                            <PaintBrushIcon className="w-4 h-4" />
+                                            Display
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                          <button onClick={() => setIsNavigatorOpen(!isNavigatorOpen)} className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" title={isNavigatorOpen ? "Hide AI Panel" : "Show AI Panel"}>
                             <PanelRightIcon className="w-4 h-4" />
                         </button>

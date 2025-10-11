@@ -16,6 +16,16 @@ export enum TemplateType {
   CHARACTER_TEMPLATE = 'character_template',
 }
 
+export type TemplateVariableType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'select'
+  | 'character_reference'
+  | 'story_context'
+  | 'computed'
+  | 'conditional';
+
 export interface TemplateVariable {
   name: string; // e.g., "character_name", "setting"
   displayName: string; // e.g., "Tên nhân vật", "Bối cảnh"
@@ -23,13 +33,21 @@ export interface TemplateVariable {
   placeholder?: string;
   defaultValue?: string;
   required: boolean;
-  type: 'text' | 'textarea' | 'number' | 'select';
+  type: TemplateVariableType;
   min?: number;
   max?: number;
   maxLength?: number;
   options?: string[]; // for select type
+  // Advanced features
+  source?: 'character_profile' | 'story_context' | 'generation_config' | 'user_input';
+  fallbackExpression?: string; // Expression to compute fallback value
+  validation?: {
+    pattern?: string;
+    customValidator?: string; // JavaScript function as string
+  };
+  dependsOn?: string[]; // Names of variables this depends on
+  visibilityCondition?: string; // Expression to control visibility
 }
-// @deprecated - placeholder, min, maxLength removed to match type definition
 
 export interface BaseTemplate {
   id: string;
@@ -69,6 +87,35 @@ export interface PromptTemplate extends BaseTemplate {
   temperature?: number;
   maxTokens?: number;
   expectedOutput: 'story_continuation' | 'character_description' | 'plot_outline' | 'scene_description';
+  // Composition and inheritance
+  parentTemplateId?: string; // For inheritance
+  subTemplates?: TemplateComposition[]; // For composition
+  preProcessing?: string[]; // JavaScript functions to run before using template
+  postProcessing?: string[]; // JavaScript functions to run after generation
+
+  // Advanced features
+  constraints?: TemplateConstraint[];
+  compatibility?: TemplateCompatibility;
+  contextRequirements?: string[]; // Required context elements
+}
+
+export interface TemplateComposition {
+  templateId: string;
+  insertionPoint: string; // Where to insert in parent template: 'before', 'after', 'replace:variable_name'
+  variables?: Record<string, string>; // Specific values for this sub-template
+  condition?: string; // When to apply this composition
+}
+
+export interface TemplateConstraint {
+  type: 'min_characters' | 'max_characters' | 'required_keywords' | 'forbidden_keywords' | 'format' | 'custom';
+  value: any;
+  message: string;
+}
+
+export interface TemplateCompatibility {
+  storyTypes: string[]; // E.g., ['romance', 'fantasy']
+  generationModes: string[]; // E.g., ['continue', 'rewrite']
+  outputFormats: string[]; // E.g., ['story', 'character', 'scene']
 }
 
 export interface SceneTemplate extends BaseTemplate {
@@ -127,6 +174,11 @@ export interface UserTemplateData {
     favoriteCategories: TemplateCategory[];
     autoSaveVariations: boolean;
   };
+  // Analytics và intelligence
+  usageAnalytics: Record<string, TemplateUsageAnalytics>;
+  intelligence: TemplateIntelligence;
+  abTests: ABLTest[];
+  templateRecommendations: TemplateRecommendation[];
 }
 
 // Template application and generation
@@ -140,6 +192,96 @@ export interface TemplateApplication {
     tokensUsed?: number;
     generationTime: number;
   };
+}
+
+export interface TemplateUsageAnalytics {
+  templateId: string;
+  usageStats: {
+    totalUsage: number;
+    successfulGenerations: number;
+    averageGenerationTime: number;
+    averageTokenCount: number;
+    popularVariables: Record<string, number>;
+    commonContexts: string[];
+  };
+  qualityMetrics: {
+    averageRating: number;
+    userFeedback: Array<{
+      rating: number;
+      comment?: string;
+      date: number;
+      context: 'story_quality' | 'technical' | 'usability';
+    }>;
+    coherence: number; // 0-1 scale based on user feedback
+    creativity: number;
+    consistency: number;
+  };
+  performanceHistory: Array<TemplatePerformancePoint>;
+}
+
+export interface TemplatePerformancePoint {
+  date: number;
+  usageCount: number;
+  successRate: number;
+  averageRating: number;
+  contextFeatures: string[]; // What context was used
+}
+
+export interface TemplateRecommendation {
+  templateId: string;
+  confidence: number; // 0-1 how confident the system is in this recommendation
+  reasoning: string; // Why this template is recommended
+  contextMatch: Record<string, number>; // How well it matches different aspects
+}
+
+export interface TemplateIntelligence {
+  templateSimilarities: Record<string, TemplateSimilarity[]>;
+  userTemplates: TemplateLearning[]; // What users have learned about templates usage
+  contextTemplates: Record<string, TemplateContextMapping>; // Context patterns to templates
+}
+
+export interface TemplateSimilarity {
+  similarTemplateId: string;
+  similarity: number; // Cosine similarity or other metric
+  sharedFeatures: string[]; // What features they share
+}
+
+export interface TemplateLearning {
+  templateId: string;
+  learnedPatterns: {
+    preferredContexts: string[];
+    commonAdjustments: Record<string, string>;
+    successCorrelations: string[];
+  };
+}
+
+export interface TemplateContextMapping {
+  contextPattern: string;
+  templateId: string;
+  successRate: number;
+  usageCount: number;
+}
+
+export interface ABLTest {
+  id: string;
+  name: string;
+  templateIdA: string;
+  templateIdB: string;
+  context: string;
+  variableVariant: Record<string, string>; // Same variables, different values
+  results: ABLResult[];
+  status: 'running' | 'completed' | 'cancelled';
+  startDate: number;
+  endDate?: number;
+}
+
+export interface ABLResult {
+  testId: string;
+  userId?: string; // Anonymous if not logged in
+  winner: 'A' | 'B' | 'tie';
+  justification?: string;
+  contextUsed: string;
+  preference: 'quality' | 'style' | 'speed';
 }
 
 export interface TemplateSearchOptions {

@@ -1,9 +1,9 @@
+import { GoogleGenAI } from '@google/genai';
 import { AIProvider, AIPrompt, AIRequestOptions, AIResponse, AIError } from '../../types/ai-models';
-import { NarrativeStructure, GenerationMode } from '../../types';
-import { generateStorySegment } from '../geminiService';
 
-// Stub implementation - will integrate with actual Gemini API later
 export class GoogleGeminiClient {
+  private client: GoogleGenAI | null = null;
+
   getProvider(): AIProvider {
     return AIProvider.GOOGLE;
   }
@@ -13,73 +13,140 @@ export class GoogleGeminiClient {
   }
 
   async testConnection(apiKey?: string): Promise<boolean> {
-    // TODO: Implement actual Gemini API testing
-    return !!apiKey;
+    const effectiveApiKey = apiKey || process.env.API_KEY;
+    if (!effectiveApiKey) {
+      return false;
+    }
+
+    try {
+      const testClient = new GoogleGenAI({ apiKey: effectiveApiKey });
+      const response = await testClient.models.generateContent({
+        model: 'gemini-2.0-flash-exp',
+        contents: 'Say "OK"',
+      });
+      const text = response.text;
+      return !!(text && text.includes('OK'));
+    } catch (error) {
+      console.warn('Gemini connection test failed:', error);
+      return false;
+    }
   }
 
   async generateText(
     prompts: AIPrompt[],
     options: AIRequestOptions = {}
   ): Promise<AIResponse> {
-    try {
-      // For now, delegate to the existing Gemini service
-      // This will be refactored to use direct API integration later
-      const storyContext = prompts.find(p => p.role === 'assistant')?.content || '';
-      const userPrompt = prompts.find(p => p.role === 'user')?.content || '';
-
-      // Check if this looks like a story continuation
-      if (storyContext || userPrompt.includes('Continue')) {
-        const result = await generateStorySegment(
-          userPrompt,
-          storyContext,
-          {
-            scenario: 'GENERAL',
-            dynamics: 'GENERAL',
-            pacing: 'GENERAL',
-            narrativeStructure: NarrativeStructure.FREEFORM,
-            adultContentOptions: [],
-            avoidKeywords: '',
-            focusKeywords: '',
-            generationMode: GenerationMode.CONTINUE,
-          },
-          [],
-          [],
-          [], // Use default API keys
-          0,  // current key index
-          undefined // chat session
-        );
-
-        return {
-          provider: AIProvider.GOOGLE,
-          model: 'gemini-pro', // Default model, should be configurable
-          content: result.content,
-          usage: {
-            promptTokens: 0, // TODO: Implement proper token counting
-            completionTokens: 0,
-            totalTokens: 0,
-          },
-          finishReason: 'stop',
-        };
-      }
-
-      // For other types of requests, throw not implemented
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
       throw new AIError(
         AIProvider.GOOGLE,
-        'NOT_IMPLEMENTED',
-        'This Gemini model capability is not yet implemented',
-        'unknown',
+        'NO_API_KEY',
+        'Google Gemini API key is not configured (API_KEY environment variable)',
+        'auth',
         false
       );
+    }
 
-    } catch (error) {
+    if (!this.client) {
+      this.client = new GoogleGenAI({ apiKey });
+    }
+
+    try {
+      // Convert prompts to Gemini format
+      let systemInstruction = '';
+      const contents: string[] = [];
+
+      for (const prompt of prompts) {
+        if (prompt.role === 'system') {
+          systemInstruction = prompt.content;
+        } else {
+          contents.push(`${prompt.role === 'assistant' ? 'Assistant' : 'User'}: ${prompt.content}`);
+        }
+      }
+
+      const fullPrompt = contents.join('\n\n');
+      const effectiveModel = options.model || 'gemini-2.0-flash-exp';
+
+      let config: any = {
+        temperature: options.temperature ?? 0.7,
+        maxOutputTokens: options.maxTokens,
+        topP: options.topP,
+      };
+
+      if (systemInstruction) {
+        config.systemInstruction = systemInstruction;
+      }
+
+      const response = await this.client.models.generateContent({
+        model: effectiveModel,
+        contents: fullPrompt,
+        config,
+      });
+
+      const text = response.text;
+      if (!text) {
+        throw new AIError(
+          AIProvider.GOOGLE,
+          'NO_RESPONSE',
+          'No text content in Gemini response',
+          'server',
+          true
+        );
+      }
+
+      return {
+        provider: AIProvider.GOOGLE,
+        model: effectiveModel,
+        content: text,
+        usage: {
+          // Note: Google Gemini API usage information is not available in the basic response
+          promptTokens: 0, // TODO: Implement proper token counting
+          completionTokens: 0,
+          totalTokens: 0,
+        },
+        finishReason: response.candidates?.[0]?.finishReason || 'stop',
+      };
+    } catch (error: any) {
       if (error instanceof AIError) {
         throw error;
       }
 
+      const errorMessage = error?.message || 'Unknown Google Gemini API error';
+
+      if (errorMessage.includes('API_KEY_INVALID')) {
+        throw new AIError(
+          AIProvider.GOOGLE,
+          'INVALID_API_KEY',
+          'Invalid Google Gemini API key',
+          'auth',
+          false
+        );
+      }
+
+      if (errorMessage.includes('RATE_LIMIT')) {
+        throw new AIError(
+          AIProvider.GOOGLE,
+          'RATE_LIMIT_EXCEEDED',
+          'Google Gemini API rate limit exceeded',
+          'rate_limit',
+          true
+        );
+      }
+
+      if (errorMessage.includes('QUOTA_EXCEEDED')) {
+        throw new AIError(
+          AIProvider.GOOGLE,
+          'QUOTA_EXCEEDED',
+          'Google Gemini API quota exceeded',
+          'unknown',
+          false
+        );
+      }
+
       throw new AIError(
         AIProvider.GOOGLE,
-        'GENERATION_ERROR',
-        error instanceof Error ? error.message : 'Unknown error occurred',
+        'API_ERROR',
+        `Google Gemini API error: ${errorMessage}`,
         'server',
         true
       );
