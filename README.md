@@ -31,12 +31,14 @@ AI Story Weaver là một công cụ viết truyện sáng tạo được hỗ t
 ## Cài đặt
 
 1. **Clone repository:**
+
    ```bash
    git clone https://github.com/yana-arch/AI-story-weaver.git
    cd ai-story-weaver
    ```
 
 2. **Cài đặt dependencies:**
+
    ```bash
    npm install
    ```
@@ -52,6 +54,7 @@ AI Story Weaver là một công cụ viết truyện sáng tạo được hỗ t
    ```
 
 4. **Chạy ứng dụng:**
+
    ```bash
    npm run dev
    ```
@@ -61,16 +64,19 @@ AI Story Weaver là một công cụ viết truyện sáng tạo được hỗ t
 ## Cách sử dụng
 
 1. **Bắt đầu truyện mới:**
+
    - Nhấp vào nút "New Story" để tạo dự án truyện mới
    - Nhập đoạn mở đầu của truyện
 
 2. **Sử dụng AI để sáng tạo:**
+
    - Mở bảng điều khiển AI ở bên phải
    - Thiết lập kịch bản, cấu trúc truyện, động lực nhân vật
    - Sử dụng prompt tùy chỉnh để hướng dẫn AI
    - Nhấp "Sáng tạo với AI" để tạo nội dung
 
 3. **Quản lý nhân vật:**
+
    - Sử dụng công cụ phân tích để trích xuất nhân vật tự động
    - Chỉnh sửa hồ sơ nhân vật chi tiết
 
@@ -105,6 +111,26 @@ ai-story-weaver/
 
 Dự án này được phát hành dưới giấy phép MIT. Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
 
+## Tính năng mới (v1.0.0)
+
+### ✨ Cải tiến Giao diện & Trải nghiệm
+
+- **Settings Modal Redesigned**: Các tùy chọn Settings giờ hiển thị trong modal riêng biệt thay vì tab navigation, giúp tránh xung đột hiển thị
+- **TTS Settings Enhanced**: Sửa lỗi hiển thị modal cài đặt Text-to-Speech
+- **Responsive Design**: Tối ưu hóa giao diện cho cả thiết bị di động và máy tính
+
+### 🚀 Hiệu suất & Ổn định
+
+- **Build Optimization**: Cải thiện quá trình build và gói ứng dụng
+- **Error Handling Improved**: Xử lý lỗi tốt hơn với thông báo cụ thể
+- **Performance Monitoring**: Giám sát hiệu suất ứng dụng
+
+### 🛠️ Sửa lỗi
+
+- Sửa modal settings bị đè lên nhau
+- Sửa TTS modal không hiển thị
+- Cải thiện trải nghiệm người dùng với dropdown settings
+
 ## Liên hệ
 
 - **GitHub**: [yana-arch/AI-story-weaver](https://github.com/yana-arch/AI-story-weaver)
@@ -112,4 +138,4 @@ Dự án này được phát hành dưới giấy phép MIT. Xem file [LICENSE](
 
 ---
 
-*Powered by AI, crafted by creativity*
+_Powered by AI, crafted by creativity_

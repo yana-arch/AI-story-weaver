@@ -31,12 +31,14 @@ AI Story Weaver is an AI-powered creative storytelling tool that helps you craft
 ## Installation
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/yana-arch/AI-story-weaver.git
    cd ai-story-weaver
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    ```
@@ -52,6 +54,7 @@ AI Story Weaver is an AI-powered creative storytelling tool that helps you craft
    ```
 
 4. **Run the application:**
+
    ```bash
    npm run dev
    ```
@@ -61,16 +64,19 @@ AI Story Weaver is an AI-powered creative storytelling tool that helps you craft
 ## Usage
 
 1. **Start a new story:**
+
    - Click the "New Story" button to create a new story project
    - Enter the opening segment of your story
 
 2. **Use AI for creative writing:**
+
    - Open the AI control panel on the right side
    - Set up scenario, story structure, character dynamics
    - Use custom prompts to guide the AI
    - Click "Generate with AI" to create content
 
 3. **Manage characters:**
+
    - Use analysis tools to automatically extract characters
    - Edit detailed character profiles
 
@@ -105,6 +111,26 @@ ai-story-weaver/
 
 This project is released under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
+## What's New (v1.0.0)
+
+### ✨ Interface & Experience Improvements
+
+- **Settings Modal Redesigned**: Settings options now display in separate modals instead of tab navigation, preventing display conflicts
+- **TTS Settings Enhanced**: Fixed TTS settings modal display issue
+- **Responsive Design**: Optimized interface for both mobile and desktop devices
+
+### 🚀 Performance & Stability
+
+- **Build Optimization**: Improved application build and bundling process
+- **Enhanced Error Handling**: Better error handling with specific notifications
+- **Performance Monitoring**: Application performance monitoring
+
+### 🛠️ Bug Fixes
+
+- Fixed overlapping settings modals
+- Fixed TTS modal not displaying
+- Improved user experience with dropdown settings
+
 ## Contact
 
 - **GitHub**: [yana-arch/AI-story-weaver](https://github.com/yana-arch/AI-story-weaver)
@@ -112,4 +138,4 @@ This project is released under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-*Powered by AI, crafted by creativity*
+_Powered by AI, crafted by creativity_
