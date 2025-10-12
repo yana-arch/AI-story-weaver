@@ -111,26 +111,6 @@ ai-story-weaver/
 
 Dự án này được phát hành dưới giấy phép MIT. Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
 
-## Tính năng mới (v1.0.0)
-
-### ✨ Cải tiến Giao diện & Trải nghiệm
-
-- **Settings Modal Redesigned**: Các tùy chọn Settings giờ hiển thị trong modal riêng biệt thay vì tab navigation, giúp tránh xung đột hiển thị
-- **TTS Settings Enhanced**: Sửa lỗi hiển thị modal cài đặt Text-to-Speech
-- **Responsive Design**: Tối ưu hóa giao diện cho cả thiết bị di động và máy tính
-
-### 🚀 Hiệu suất & Ổn định
-
-- **Build Optimization**: Cải thiện quá trình build và gói ứng dụng
-- **Error Handling Improved**: Xử lý lỗi tốt hơn với thông báo cụ thể
-- **Performance Monitoring**: Giám sát hiệu suất ứng dụng
-
-### 🛠️ Sửa lỗi
-
-- Sửa modal settings bị đè lên nhau
-- Sửa TTS modal không hiển thị
-- Cải thiện trải nghiệm người dùng với dropdown settings
-
 ## Liên hệ
 
 - **GitHub**: [yana-arch/AI-story-weaver](https://github.com/yana-arch/AI-story-weaver)

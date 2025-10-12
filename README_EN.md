@@ -111,26 +111,6 @@ ai-story-weaver/
 
 This project is released under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
-## What's New (v1.0.0)
-
-### ✨ Interface & Experience Improvements
-
-- **Settings Modal Redesigned**: Settings options now display in separate modals instead of tab navigation, preventing display conflicts
-- **TTS Settings Enhanced**: Fixed TTS settings modal display issue
-- **Responsive Design**: Optimized interface for both mobile and desktop devices
-
-### 🚀 Performance & Stability
-
-- **Build Optimization**: Improved application build and bundling process
-- **Enhanced Error Handling**: Better error handling with specific notifications
-- **Performance Monitoring**: Application performance monitoring
-
-### 🛠️ Bug Fixes
-
-- Fixed overlapping settings modals
-- Fixed TTS modal not displaying
-- Improved user experience with dropdown settings
-
 ## Contact
 
 - **GitHub**: [yana-arch/AI-story-weaver](https://github.com/yana-arch/AI-story-weaver)
