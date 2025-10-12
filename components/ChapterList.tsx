@@ -1,42 +1,62 @@
-import React, { useState } from 'react';
-import type { StorySegment } from '../types';
-import { BookOpenIcon, ChevronDownIcon, ChevronRightIcon, EditIcon, TrashIcon, PlusIcon } from './icons';
+import React, { useState, useMemo } from 'react';
+import { useChapter } from '../contexts/ChapterContext';
+import { useStory } from '../contexts/StoryContext';
+import {
+  BookOpenIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  EditIcon,
+  TrashIcon,
+  PlusIcon,
+} from './icons';
+import {
+  ChapterStatus,
+  ChapterType,
+  EnhancedStorySegment
+} from '../types/chapter';
 
 interface ChapterListProps {
-    storySegments: StorySegment[];
+    storySegments: any[]; // Keep for compatibility, but we use ChapterContext
     onNavigateToChapter: (chapterId: string) => void;
-    onAddChapter: () => void;
-    onEditChapter: (chapterId: string, newTitle: string) => void;
-    onDeleteChapter: (chapterId: string) => void;
+    onAddChapter?: () => void; // Make optional as we handle internally
+    onEditChapter?: (chapterId: string, newTitle: string) => void;
+    onDeleteChapter?: (chapterId: string) => void;
     currentChapterId?: string;
 }
 
 interface ChapterItemProps {
-    chapter: StorySegment;
+    chapter: EnhancedStorySegment;
+    level: number;
     isExpanded: boolean;
     onToggle: () => void;
     onNavigate: () => void;
     onEdit: () => void;
     onDelete: () => void;
     isCurrent: boolean;
+    hasChildren: boolean;
 }
 
 const ChapterItem: React.FC<ChapterItemProps> = ({
     chapter,
+    level,
     isExpanded,
     onToggle,
     onNavigate,
     onEdit,
     onDelete,
-    isCurrent
+    isCurrent,
+    hasChildren
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editTitle, setEditTitle] = useState(chapter.content);
+    const { updateChapterStatus } = useChapter();
 
     const handleSaveEdit = () => {
-        if (editTitle.trim()) {
-            onEdit(chapter.id, editTitle.trim());
+        if (editTitle.trim() && editTitle.trim() !== chapter.content) {
+            onEdit(editTitle.trim());
             setIsEditing(false);
+        } else {
+            handleCancelEdit();
         }
     };
 
@@ -53,24 +73,50 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
         }
     };
 
+    const getStatusColor = (status: ChapterStatus) => {
+        switch (status) {
+            case ChapterStatus.DRAFT: return 'text-gray-400';
+            case ChapterStatus.IN_PROGRESS: return 'text-blue-400';
+            case ChapterStatus.COMPLETED: return 'text-green-400';
+            case ChapterStatus.PUBLISHED: return 'text-purple-400';
+            default: return 'text-gray-400';
+        }
+    };
+
+    const getStatusIcon = (status: ChapterStatus) => {
+        switch (status) {
+            case ChapterStatus.DRAFT: return '📝';
+            case ChapterStatus.IN_PROGRESS: return '⏳';
+            case ChapterStatus.COMPLETED: return '✓';
+            case ChapterStatus.PUBLISHED: return '📚';
+            default: return '📝';
+        }
+    };
+
     return (
         <div className={`border-l-2 pl-3 py-2 transition-all duration-200 ${
+            level > 0 ? 'ml-4' : ''
+        } ${
             isCurrent
                 ? 'border-l-primary bg-primary/10'
                 : 'border-l-border hover:border-l-primary/50 hover:bg-muted/30'
         }`}>
             <div className="flex items-center gap-2">
-                <button
-                    onClick={onToggle}
-                    className="p-1 hover:bg-muted rounded transition-colors"
-                    title={isExpanded ? "Thu gọn" : "Mở rộng"}
-                >
-                    {isExpanded ? (
-                        <ChevronDownIcon className="w-4 h-4" />
-                    ) : (
-                        <ChevronRightIcon className="w-4 h-4" />
-                    )}
-                </button>
+                {hasChildren && (
+                    <button
+                        onClick={onToggle}
+                        className="p-1 hover:bg-muted rounded transition-colors"
+                        title={isExpanded ? "Thu gọn" : "Mở rộng"}
+                    >
+                        {isExpanded ? (
+                            <ChevronDownIcon className="w-4 h-4" />
+                        ) : (
+                            <ChevronRightIcon className="w-4 h-4" />
+                        )}
+                    </button>
+                )}
+
+                {!hasChildren && <div className="w-6" />} {/* Spacer for alignment */}
 
                 <button
                     onClick={onNavigate}
@@ -79,7 +125,7 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
                             ? 'bg-primary text-primary-foreground'
                             : 'hover:bg-muted'
                     }`}
-                    title="Điều hướng đến chương này"
+                    title={`Điều hướng đến chương này (${chapter.chapterData?.metadata.estimatedReadingTime} phút đọc)`}
                 >
                     {isEditing ? (
                         <input
@@ -94,12 +140,33 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
                             aria-label="Chỉnh sửa tiêu đề chương"
                         />
                     ) : (
-                        <span className="text-sm font-medium">{chapter.content}</span>
+                        <div className="flex items-center gap-2">
+                            <span className={`text-xs ${getStatusColor(chapter.chapterData?.metadata.status || ChapterStatus.DRAFT)}`}>
+                                {getStatusIcon(chapter.chapterData?.metadata.status || ChapterStatus.DRAFT)}
+                            </span>
+                            <span className="text-sm font-medium">{chapter.content}</span>
+                            {chapter.chapterData?.metadata.wordCount && chapter.chapterData.metadata.wordCount > 0 && (
+                                <span className="text-xs text-muted-foreground">
+                                    ({chapter.chapterData.metadata.wordCount} từ)
+                                </span>
+                            )}
+                        </div>
                     )}
                 </button>
 
                 {!isEditing && (
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <select
+                            value={chapter.chapterData?.metadata.status || ChapterStatus.DRAFT}
+                            onChange={(e) => updateChapterStatus(chapter.id, e.target.value as ChapterStatus)}
+                            className="text-xs p-1 bg-background border border-border rounded"
+                            title="Trạng thái chương"
+                        >
+                            <option value={ChapterStatus.DRAFT}>📝 Draft</option>
+                            <option value={ChapterStatus.IN_PROGRESS}>⏳ In Progress</option>
+                            <option value={ChapterStatus.COMPLETED}>✓ Completed</option>
+                            <option value={ChapterStatus.PUBLISHED}>📚 Published</option>
+                        </select>
                         <button
                             onClick={() => setIsEditing(true)}
                             className="p-1 hover:bg-muted rounded transition-colors"
@@ -118,16 +185,22 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
                 )}
             </div>
 
-            {isExpanded && (
-                <div className="mt-2 text-xs text-muted-foreground">
-                    Nhấn vào tiêu đề để điều hướng đến chương này
+            {isExpanded && chapter.chapterData?.metadata.description && (
+                <div className="mt-2 text-xs text-muted-foreground pl-8">
+                    {chapter.chapterData.metadata.description}
+                </div>
+            )}
+
+            {level > 0 && (
+                <div className="text-xs text-muted-foreground pl-8 mt-1">
+                    Level {level} chapter
                 </div>
             )}
         </div>
     );
 };
 
-export const ChapterList: React.FC<ChapterListProps> = ({
+const EnhancedChapterList: React.FC<ChapterListProps> = ({
     storySegments,
     onNavigateToChapter,
     onAddChapter,
@@ -137,9 +210,12 @@ export const ChapterList: React.FC<ChapterListProps> = ({
 }) => {
     const [isExpanded, setIsExpanded] = useState(true);
     const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
+    const { getChildChapters, updateChapter } = useChapter();
+    const { activeStory } = useStory();
 
-    const chapters = storySegments.filter(segment => segment.type === 'chapter');
-    const contentSegments = storySegments.filter(segment => segment.type !== 'chapter');
+    const rootChapters = useMemo(() => {
+        return activeStory ? getChildChapters() : [];
+    }, [activeStory, getChildChapters]);
 
     const toggleChapterExpansion = (chapterId: string) => {
         setExpandedChapters(prev => {
@@ -153,13 +229,50 @@ export const ChapterList: React.FC<ChapterListProps> = ({
         });
     };
 
-    const getChapterContentCount = (chapterIndex: number) => {
-        const nextChapterIndex = chapters.findIndex((_, i) => i > chapterIndex);
-        if (nextChapterIndex === -1) {
-            return contentSegments.slice(chapterIndex).length;
-        }
-        return contentSegments.slice(chapterIndex, nextChapterIndex).length;
+    const handleEditChapter = (chapterId: string, newTitle: string) => {
+        updateChapter(chapterId, { content: newTitle });
+        if (onEditChapter) onEditChapter(chapterId, newTitle);
     };
+
+    const handleDeleteChapter = (chapterId: string) => {
+        if (onDeleteChapter) onDeleteChapter(chapterId);
+    };
+
+    const renderChapterTree = (chapters: EnhancedStorySegment[], level: number = 0): React.JSX.Element[] => {
+        return chapters.map(chapter => {
+            const childChapters = getChildChapters(chapter.id);
+            const hasChildren = childChapters.length > 0;
+            const isChapterExpanded = expandedChapters.has(chapter.id);
+
+            return (
+                <React.Fragment key={chapter.id}>
+                    <ChapterItem
+                        chapter={chapter}
+                        level={level}
+                        isExpanded={isChapterExpanded}
+                        onToggle={() => toggleChapterExpansion(chapter.id)}
+                        onNavigate={() => onNavigateToChapter(chapter.id)}
+                        onEdit={(newTitle) => handleEditChapter(chapter.id, newTitle)}
+                        onDelete={() => handleDeleteChapter(chapter.id)}
+                        isCurrent={currentChapterId === chapter.id}
+                        hasChildren={hasChildren}
+                    />
+                    {(isChapterExpanded || level > 0) && hasChildren && (
+                        renderChapterTree(childChapters, level + 1)
+                    )}
+                </React.Fragment>
+            );
+        });
+    };
+
+    const totalChapters = rootChapters.length;
+    const completedChapters = rootChapters.filter(c =>
+        c.chapterData?.metadata.status === ChapterStatus.COMPLETED ||
+        c.chapterData?.metadata.status === ChapterStatus.PUBLISHED
+    ).length;
+    const totalWords = rootChapters.reduce((sum, c) =>
+        sum + (c.chapterData?.metadata.wordCount || 0), 0
+    );
 
     return (
         <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -170,7 +283,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                         className="flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
                     >
                         <BookOpenIcon className="w-4 h-4" />
-                        <span>Danh sách chương ({chapters.length})</span>
+                        <span>Danh sách chương ({totalChapters})</span>
                         {isExpanded ? (
                             <ChevronDownIcon className="w-4 h-4" />
                         ) : (
@@ -189,7 +302,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
 
             {isExpanded && (
                 <div className="max-h-96 overflow-y-auto">
-                    {chapters.length === 0 ? (
+                    {rootChapters.length === 0 ? (
                         <div className="p-4 text-center text-muted-foreground text-sm">
                             <p>Chưa có chương nào trong câu chuyện.</p>
                             <button
@@ -201,36 +314,24 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                         </div>
                     ) : (
                         <div className="divide-y divide-border">
-                            {chapters.map((chapter, index) => (
-                                <div key={chapter.id} className="group">
-                                    <ChapterItem
-                                        chapter={chapter}
-                                        isExpanded={expandedChapters.has(chapter.id)}
-                                        onToggle={() => toggleChapterExpansion(chapter.id)}
-                                        onNavigate={() => onNavigateToChapter(chapter.id)}
-                                        onEdit={(newTitle) => onEditChapter(chapter.id, newTitle)}
-                                        onDelete={() => onDeleteChapter(chapter.id)}
-                                        isCurrent={currentChapterId === chapter.id}
-                                    />
-                                </div>
-                            ))}
+                            {renderChapterTree(rootChapters)}
                         </div>
                     )}
 
-                    {chapters.length > 0 && (
+                    {totalChapters > 0 && (
                         <div className="p-3 border-t border-border bg-muted/30">
                             <div className="text-xs text-muted-foreground space-y-1">
                                 <div className="flex justify-between">
                                     <span>Tổng số chương:</span>
-                                    <span>{chapters.length}</span>
+                                    <span>{totalChapters}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span>Tổng số đoạn nội dung:</span>
-                                    <span>{contentSegments.length}</span>
+                                    <span>Đã hoàn thành:</span>
+                                    <span>{completedChapters}/{totalChapters}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Tổng số từ:</span>
-                                    <span>{contentSegments.reduce((acc, segment) => acc + segment.content.split(' ').length, 0)}</span>
+                                    <span>{totalWords.toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>
@@ -240,3 +341,5 @@ export const ChapterList: React.FC<ChapterListProps> = ({
         </div>
     );
 };
+
+export const ChapterList = EnhancedChapterList;
