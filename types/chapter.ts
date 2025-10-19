@@ -174,3 +174,93 @@ export interface ChapterSettings {
   enableAnalytics: boolean;
   maxChapterDepth: number;
 }
+
+// Import Related Types
+export interface ImportResult {
+  success: boolean;
+  chapters: ImportedChapter[];
+  errors: ImportError[];
+  metadata: ImportMetadata;
+}
+
+export interface ImportedChapter {
+  id: string;
+  title: string;
+  content: string;
+  originalPosition: number;
+  wordCount: number;
+  characterCount: number;
+  estimatedReadingTime: number;
+  metadata?: ChapterMetadata;
+}
+
+export interface ImportError {
+  type: 'parse' | 'encoding' | 'format' | 'size' | 'content';
+  message: string;
+  position?: number;
+  line?: number;
+}
+
+export interface ImportMetadata {
+  totalSize: number;
+  totalCharacters: number;
+  totalWords: number;
+  encoding: string;
+  fileName: string;
+  importDate: number;
+  processingTime: number;
+}
+
+export interface ImportOptions {
+  fileFormat: 'txt' | 'md' | 'docx';
+  encoding?: string;
+  autoSplit: boolean;
+  splitOptions: ChapterSplitOptions;
+  aiProcessing: boolean;
+  aiProcessingOptions: AIProcessingOptions;
+  preserveFormatting: boolean;
+  createHierarchy: boolean;
+}
+
+export interface ChapterSplitOptions {
+  method: 'pattern' | 'word_count' | 'manual' | 'ai';
+  pattern?: string;
+  wordCount?: number;
+  minChapterSize?: number;
+  maxChapterSize?: number;
+  preserveTitles: boolean;
+  generateTitles: boolean;
+}
+
+export interface ChapterPattern {
+  name: string;
+  pattern: RegExp;
+  titleGroup?: number;
+  contentGroup?: number;
+  priority: number;
+}
+
+export interface AIProcessingOptions {
+  enableContentModeration: boolean;
+  enableContentEnhancement: boolean;
+  enableTranslation: boolean;
+  targetLanguage?: string;
+  contentFilters: ContentFilter[];
+  enhancementLevel: 'light' | 'moderate' | 'heavy';
+  preserveStyle: boolean;
+}
+
+export interface ContentFilter {
+  type: 'violence' | 'explicit' | 'profanity' | 'sensitive' | 'custom';
+  action: 'remove' | 'replace' | 'flag' | 'rewrite';
+  severity: 'low' | 'medium' | 'high';
+  customPattern?: string;
+}
+
+export interface ProcessingProgress {
+  stage: 'uploading' | 'parsing' | 'splitting' | 'ai_processing' | 'saving';
+  progress: number; // 0-100
+  message: string;
+  currentItem?: string;
+  estimatedTimeRemaining?: number;
+}

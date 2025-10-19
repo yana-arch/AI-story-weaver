@@ -148,4 +148,5 @@ export interface Story {
   selectedPromptIds: string[];
   characterProfiles: CharacterProfile[];
   lastReadSegmentId: string | null;
+  displaySettings?: StoryDisplaySettings;
 }

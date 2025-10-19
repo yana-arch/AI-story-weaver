@@ -10,10 +10,12 @@ import { useErrorHandler } from './hooks/useErrorHandler';
 import { type TTSOptions } from './components/TTSSettings';
 import { useTTS } from './hooks/useTTS';
 import { usePerformanceMonitor, useMemoryLeakDetector, useApiPerformanceMonitor } from './hooks/usePerformanceMonitor';
+import { useImportManager } from './hooks/useImportManager';
 import * as storyManager from './services/storyManagerService';
 import { generateStorySegment, generateCharacterProfiles } from './services/geminiService';
 import { addHistoryEntry, deleteHistory } from './services/historyService';
 import { withRetry, RETRY_OPTIONS } from './utils/retryUtils';
+import chapterService from './services/chapterService';
 
 // Lazy-loaded components for better initial bundle size
 const ApiKeyManager = lazy(() => import('./components/ApiKeyManager').then(module => ({ default: module.ApiKeyManager })));
@@ -31,6 +33,8 @@ const StoryManager = lazy(() => import('./components/StoryManager').then(module 
 const ThemeManager = lazy(() => import('./components/ThemeManager').then(module => ({ default: module.ThemeManager })));
 const TTSSettings = lazy(() => import('./components/TTSSettings').then(module => ({ default: module.TTSSettings })));
 const ExportDialog = lazy(() => import('./components/ExportDialog').then(module => ({ default: module.ExportDialog })));
+const ImportDialog = lazy(() => import('./components/ImportDialog').then(module => ({ default: module.ImportDialog })));
+const ChapterPreviewDialog = lazy(() => import('./components/ChapterPreviewDialog').then(module => ({ default: module.ChapterPreviewDialog })));
 
 // Loading component for lazy-loaded components
 const ComponentLoadingFallback = () => (
@@ -121,6 +125,18 @@ const App: React.FC = () => {
 
     const { isSpeaking, toggle, stop } = useTTS(ttsSettings);
 
+    // Import Manager
+    const {
+        isImportDialogOpen,
+        isPreviewDialogOpen,
+        importResult,
+        openImportDialog,
+        closeImportDialog,
+        closePreviewDialog,
+        handleImportComplete,
+        handlePreviewConfirm,
+    } = useImportManager();
+
 
     // Autosave status state
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
@@ -155,7 +171,7 @@ const App: React.FC = () => {
     const [draggedSegmentId, setDraggedSegmentId] = useState<string | null>(null);
     const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
-    const chatSession = useRef<{ messages: any[] } | null>(null);
+    const chatSession = useRef<Chat | { messages: any[] } | null>(null);
     const endOfStoryRef = useRef<HTMLDivElement>(null);
 
     // Reading progress state
@@ -830,6 +846,12 @@ const App: React.FC = () => {
                         <span className="text-xs text-center">Export</span>
                     </button>
 
+                    {/* Import Button */}
+                    <button onClick={() => openImportDialog()} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Import Story from File">
+                        <UploadIcon className="w-5 h-5" />
+                        <span className="text-xs text-center">Import</span>
+                    </button>
+
                     {/* Stories Button */}
                     <button onClick={() => setIsStoryManagerOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Manage Stories">
                         <CollectionIcon className="w-5 h-5" />
@@ -845,14 +867,30 @@ const App: React.FC = () => {
                 {isApiKeysModalOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeysModalOpen(false)} />}
                 {isThemeModalOpen && <ThemeManager currentTheme={theme} setTheme={setTheme} onClose={() => setIsThemeModalOpen(false)} />}
                 {isTTSModalOpen && <TTSSettings settings={ttsSettings} onSettingsChange={setTtsSettings} onClose={() => setIsTTSModalOpen(false)} />}
-                {isDisplayModalOpen && activeStory && <StoryDisplaySettings settings={activeStory.displaySettings || { autoDetect: true, elements: {} }} onSettingsChange={(settings) => setActiveStory({ ...activeStory, displaySettings: settings })} onClose={() => setIsDisplayModalOpen(false)} />}
+                {isDisplayModalOpen && activeStory && <StoryDisplaySettings settings={activeStory.displaySettings || {
+                    autoDetect: true,
+                    elements: {
+                        narrative: { enabled: true, style: { fontSize: '14px', fontWeight: 'normal', fontStyle: 'normal', color: '#000000', backgroundColor: 'transparent', borderRadius: '0px', padding: '0px', margin: '0px', textAlign: 'left', lineHeight: '1.6', letterSpacing: 'normal' } },
+                        dialogue: { enabled: true, style: { fontSize: '14px', fontWeight: 'normal', fontStyle: 'italic', color: '#000000', backgroundColor: 'transparent', borderLeft: '2px solid #ccc', borderRadius: '0px', padding: '8px', margin: '8px 0', textAlign: 'left', lineHeight: '1.6', letterSpacing: 'normal' } },
+                        monologue: { enabled: true, style: { fontSize: '14px', fontWeight: 'normal', fontStyle: 'italic', color: '#666666', backgroundColor: 'transparent', borderRadius: '0px', padding: '0px', margin: '0px', textAlign: 'left', lineHeight: '1.6', letterSpacing: 'normal' } },
+                        introduction: { enabled: true, style: { fontSize: '16px', fontWeight: 'bold', fontStyle: 'normal', color: '#000000', backgroundColor: 'transparent', borderRadius: '0px', padding: '0px', margin: '0px', textAlign: 'center', lineHeight: '1.8', letterSpacing: 'normal' } },
+                        description: { enabled: true, style: { fontSize: '14px', fontWeight: 'normal', fontStyle: 'normal', color: '#444444', backgroundColor: 'transparent', borderRadius: '0px', padding: '0px', margin: '0px', textAlign: 'left', lineHeight: '1.6', letterSpacing: 'normal' } },
+                        transition: { enabled: true, style: { fontSize: '14px', fontWeight: 'normal', fontStyle: 'normal', color: '#888888', backgroundColor: 'transparent', borderRadius: '0px', padding: '0px', margin: '16px 0', textAlign: 'center', lineHeight: '1.6', letterSpacing: 'normal' } }
+                    }
+                }} onSettingsChange={(settings) => setActiveStory({ ...activeStory, displaySettings: settings })} onClose={() => setIsDisplayModalOpen(false)} />}
             </Suspense>
 
             {/* Modals and panels with lazy loading */}
             <Suspense fallback={null}>
                 {isApiKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeyManagerOpen(false)} />}
-                {isPromptManagerOpen && activeStory && <CustomPromptsManager prompts={activeStory.customPrompts} setPrompts={(prompts) => setActiveStory({...activeStory, customPrompts: prompts})} onClose={() => setIsPromptManagerOpen(false)} />}
-                {isKeywordPresetManagerOpen && activeStory && <KeywordPresetManager presets={activeStory.keywordPresets} setPresets={(presets) => setActiveStory({...activeStory, keywordPresets: presets})} onClose={() => setIsKeywordPresetManagerOpen(false)} />}
+                {isPromptManagerOpen && activeStory && <CustomPromptsManager prompts={activeStory.customPrompts} setPrompts={(updater) => {
+                    const newPrompts = typeof updater === 'function' ? updater(activeStory.customPrompts) : updater;
+                    setActiveStory({ ...activeStory, customPrompts: newPrompts });
+                }} onClose={() => setIsPromptManagerOpen(false)} />}
+                {isKeywordPresetManagerOpen && activeStory && <KeywordPresetManager presets={activeStory.keywordPresets} setPresets={(updater) => {
+                    const newPresets = typeof updater === 'function' ? updater(activeStory.keywordPresets || []) : updater;
+                    setActiveStory({ ...activeStory, keywordPresets: newPresets });
+                }} onClose={() => setIsKeywordPresetManagerOpen(false)} />}
                 {historyViewerTarget && <VersionHistoryViewer segmentId={historyViewerTarget} onClose={() => setHistoryViewerTarget(null)} onRevert={handleRevertToVersion} />}
                 {isCharacterEditorOpen && <CharacterProfileEditor profile={editingProfile} onSave={handleSaveCharacterProfile} onClose={() => setIsCharacterEditorOpen(false)} />}
                 {isCharacterPanelOpen && activeStory && (
@@ -880,7 +918,17 @@ const App: React.FC = () => {
                     />
                 )}
                 {isThemeManagerOpen && <ThemeManager currentTheme={theme} setTheme={setTheme} onClose={() => setIsThemeManagerOpen(false)} />}
-                {isDisplaySettingsOpen && activeStory && <StoryDisplaySettings settings={activeStory.displaySettings || { autoDetect: true, elements: {} }} onSettingsChange={(settings) => setActiveStory({ ...activeStory, displaySettings: settings })} onClose={() => setIsDisplaySettingsOpen(false)} />}
+                {isDisplaySettingsOpen && activeStory && <StoryDisplaySettings settings={activeStory.displaySettings || {
+                    autoDetect: true,
+                    elements: {
+                        narrative: { enabled: true, style: { fontSize: '14px', fontWeight: 'normal', fontStyle: 'normal', color: '#000000', backgroundColor: 'transparent', borderRadius: '0px', padding: '0px', margin: '0px', textAlign: 'left', lineHeight: '1.6', letterSpacing: 'normal' } },
+                        dialogue: { enabled: true, style: { fontSize: '14px', fontWeight: 'normal', fontStyle: 'italic', color: '#000000', backgroundColor: 'transparent', borderLeft: '2px solid #ccc', borderRadius: '0px', padding: '8px', margin: '8px 0', textAlign: 'left', lineHeight: '1.6', letterSpacing: 'normal' } },
+                        monologue: { enabled: true, style: { fontSize: '14px', fontWeight: 'normal', fontStyle: 'italic', color: '#666666', backgroundColor: 'transparent', borderRadius: '0px', padding: '0px', margin: '0px', textAlign: 'left', lineHeight: '1.6', letterSpacing: 'normal' } },
+                        introduction: { enabled: true, style: { fontSize: '16px', fontWeight: 'bold', fontStyle: 'normal', color: '#000000', backgroundColor: 'transparent', borderRadius: '0px', padding: '0px', margin: '0px', textAlign: 'center', lineHeight: '1.8', letterSpacing: 'normal' } },
+                        description: { enabled: true, style: { fontSize: '14px', fontWeight: 'normal', fontStyle: 'normal', color: '#444444', backgroundColor: 'transparent', borderRadius: '0px', padding: '0px', margin: '0px', textAlign: 'left', lineHeight: '1.6', letterSpacing: 'normal' } },
+                        transition: { enabled: true, style: { fontSize: '14px', fontWeight: 'normal', fontStyle: 'normal', color: '#888888', backgroundColor: 'transparent', borderRadius: '0px', padding: '0px', margin: '16px 0', textAlign: 'center', lineHeight: '1.6', letterSpacing: 'normal' } }
+                    }
+                }} onSettingsChange={(settings) => setActiveStory({ ...activeStory, displaySettings: settings })} onClose={() => setIsDisplaySettingsOpen(false)} />}
                 {isChapterListOpen && activeStory && (
                     <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-40 p-4">
                         <div className="bg-card rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
@@ -937,6 +985,55 @@ const App: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                )}
+            </Suspense>
+
+            {/* Import Dialogs */}
+            <Suspense fallback={null}>
+                {isImportDialogOpen && (
+                    <ImportDialog
+                        isOpen={isImportDialogOpen}
+                        onClose={closeImportDialog}
+                        onImportComplete={handleImportComplete}
+                    />
+                )}
+                {isPreviewDialogOpen && (
+                    <ChapterPreviewDialog
+                        isOpen={isPreviewDialogOpen}
+                        onClose={closePreviewDialog}
+                        importResult={importResult}
+                        onConfirmImport={(selectedChapters) => handlePreviewConfirm(selectedChapters, (chapters) => {
+                            // Add imported chapters to the current story
+                            if (activeStory && chapters.length > 0) {
+                                const newSegments = chapters.map(chapter => ({
+                                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                                    type: 'chapter' as const,
+                                    content: chapter.title
+                                }));
+
+                                // Add chapter title segments
+                                newSegments.forEach(segment => {
+                                    setActiveStory({
+                                        ...activeStory,
+                                        storySegments: [...activeStory.storySegments, segment]
+                                    });
+                                });
+
+                                // Add chapter content segments
+                                chapters.forEach((chapter, index) => {
+                                    const contentSegment = {
+                                        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                                        type: 'ai' as const,
+                                        content: chapter.content
+                                    };
+                                    setActiveStory({
+                                        ...activeStory,
+                                        storySegments: [...activeStory.storySegments, contentSegment]
+                                    });
+                                });
+                            }
+                        })}
+                    />
                 )}
             </Suspense>
 
