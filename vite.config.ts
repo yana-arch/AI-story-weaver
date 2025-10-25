@@ -28,15 +28,15 @@ export default defineConfig(({ mode, command }) => {
               'react-vendor': ['react', 'react-dom'],
               'ui-vendor': ['lucide-react', '@radix-ui/react-slot'],
               'ai-vendor': ['@anthropic-ai/sdk', '@google/genai', 'openai'],
-              'utils': ['markdown-it', 'lodash'],
+              'utils': ['markdown-it'],
 
               // Dynamic imports for lazy-loaded components
               'components': [
-                './src/components/ApiKeyManager',
-                './src/components/ContentNavigator',
-                './src/components/CustomPromptsManager',
-                './src/components/CharacterPanel',
-                './src/components/StoryManager'
+                './components/ApiKeyManager',
+                './components/ContentNavigator',
+                './components/CustomPromptsManager',
+                './components/CharacterPanel',
+                './components/StoryManager'
               ]
             },
 
@@ -107,13 +107,12 @@ export default defineConfig(({ mode, command }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
           '~': path.resolve(__dirname, '.'),
-          'src': path.resolve(__dirname, './src'),
-          'components': path.resolve(__dirname, './src/components'),
-          'hooks': path.resolve(__dirname, './src/hooks'),
-          'services': path.resolve(__dirname, './src/services'),
-          'utils': path.resolve(__dirname, './src/utils'),
-          'types': path.resolve(__dirname, './src/types'),
-          'contexts': path.resolve(__dirname, './src/contexts'),
+          'components': path.resolve(__dirname, './components'),
+          'hooks': path.resolve(__dirname, './hooks'),
+          'services': path.resolve(__dirname, './services'),
+          'utils': path.resolve(__dirname, './utils'),
+          'types': path.resolve(__dirname, './types'),
+          'contexts': path.resolve(__dirname, './contexts'),
         }
       },
 
