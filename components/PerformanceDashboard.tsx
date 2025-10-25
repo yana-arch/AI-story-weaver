@@ -151,13 +151,6 @@ export const PerformanceDashboard: React.FC = () => {
       </div>
 
       {/* Keyboard shortcut */}
-      <style jsx>{`
-        @media (max-width: 640px) {
-          .performance-dashboard {
-            min-width: 250px;
-          }
-        }
-      `}</style>
     </div>
   );
 };

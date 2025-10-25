@@ -30,7 +30,7 @@ interface ChapterItemProps {
     isExpanded: boolean;
     onToggle: () => void;
     onNavigate: () => void;
-    onEdit: () => void;
+    onEdit: (newTitle: string) => void;
     onDelete: () => void;
     isCurrent: boolean;
     hasChildren: boolean;

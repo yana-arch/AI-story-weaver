@@ -3,18 +3,19 @@ import { useStory } from '../contexts/StoryContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useErrorHandler } from './useErrorHandler';
 import { useNetworkStatus } from './useNetworkStatus';
-import { usePerformanceMonitor } from './usePerformanceMonitor';
+import { useApiPerformanceMonitor } from './usePerformanceMonitor';
 import { generateStorySegment, generateCharacterProfiles } from '../services/geminiService';
 import { addHistoryEntry } from '../services/historyService';
 import { withRetry, RETRY_OPTIONS } from '../utils/retryUtils';
 import type { StorySegment, HistoryEntry } from '../types';
+import { GenerationMode, RewriteTarget } from '../types';
 
 export const useStoryOperations = () => {
-  const { activeStory, setActiveStory, currentKeyIndex, setCurrentKeyIndex } = useStory();
-  const { apiKeys, useDefaultKey } = useSettings();
+  const { activeStory, setActiveStory } = useStory();
+  const { apiKeys, useDefaultKey, currentKeyIndex, setCurrentKeyIndex } = useSettings();
   const { addError, clearErrors } = useErrorHandler();
   const { isOnline } = useNetworkStatus();
-  const { startApiCall, endApiCall } = usePerformanceMonitor('AI Generation');
+  const { startApiCall, endApiCall } = useApiPerformanceMonitor('AI Generation');
 
   const chatSession = useRef<{ messages: any[] } | null>(null);
 
@@ -24,7 +25,7 @@ export const useStoryOperations = () => {
     clearErrors();
 
     const lastUserSegment = [...activeStory.storySegments].reverse().find(s => s.type === 'user');
-    if (!lastUserSegment && activeStory.generationConfig.generationMode === 'CONTINUE' && activeStory.storySegments.length > 0) {
+    if (!lastUserSegment && activeStory.generationConfig.generationMode === GenerationMode.CONTINUE && activeStory.storySegments.length > 0) {
       const errorMsg = "Cannot continue without a new user prompt. Please add to the story.";
       addError(errorMsg, {
         recoverable: false,
@@ -34,8 +35,8 @@ export const useStoryOperations = () => {
     }
 
     // Check if rewriting a specific chapter
-    if (activeStory.generationConfig.generationMode === 'REWRITE' &&
-        activeStory.generationConfig.rewriteTarget === 'SELECTED_CHAPTER' &&
+    if (activeStory.generationConfig.generationMode === GenerationMode.REWRITE &&
+        activeStory.generationConfig.rewriteTarget === RewriteTarget.SELECTED_CHAPTER &&
         !activeStory.generationConfig.selectedChapterId) {
       const errorMsg = "Vui lòng chọn chương cần viết lại.";
       addError(errorMsg, {
@@ -50,8 +51,8 @@ export const useStoryOperations = () => {
 
     // Prepare content for rewriting
     let fullStoryForRewrite = storyContext;
-    if (activeStory.generationConfig.generationMode === 'REWRITE' &&
-        activeStory.generationConfig.rewriteTarget === 'SELECTED_CHAPTER' &&
+    if (activeStory.generationConfig.generationMode === GenerationMode.REWRITE &&
+        activeStory.generationConfig.rewriteTarget === RewriteTarget.SELECTED_CHAPTER &&
         activeStory.generationConfig.selectedChapterId) {
 
       // Find the selected chapter and get content up to that chapter
@@ -95,9 +96,9 @@ export const useStoryOperations = () => {
         config: { ...activeStory.generationConfig },
       };
 
-      if (activeStory.generationConfig.generationMode === 'REWRITE') {
+      if (activeStory.generationConfig.generationMode === GenerationMode.REWRITE) {
         // For rewrite mode, replace the entire story or just the selected chapter
-        if (activeStory.generationConfig.rewriteTarget === 'SELECTED_CHAPTER' &&
+        if (activeStory.generationConfig.rewriteTarget === RewriteTarget.SELECTED_CHAPTER &&
             activeStory.generationConfig.selectedChapterId) {
 
           // Replace only the selected chapter's content
@@ -125,7 +126,7 @@ export const useStoryOperations = () => {
         setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newSegment] });
       }
 
-      chatSession.current = result.newChatSession;
+      chatSession.current = result.newChatSession as { messages: any[] };
       setCurrentKeyIndex(result.newKeyIndex);
 
     } catch (e: any) {
