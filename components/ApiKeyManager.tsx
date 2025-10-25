@@ -23,6 +23,8 @@ const DEFAULT_API_KEY: ApiKey = {
     isDefault: true
 };
 
+const isApiKeyAvailable = !!process.env.API_KEY?.trim();
+
 export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ apiKeys, setApiKeys, useDefaultKey, setUseDefaultKey, onClose }) => {
     const [newKeyName, setNewKeyName] = useState('');
     const [newKeyValue, setNewKeyValue] = useState('');
@@ -162,12 +164,12 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ apiKeys, setApiKey
                 
                 <div className="flex items-center justify-between p-3 mb-4 bg-muted/50 rounded-lg">
                     <div>
-                        <h3 className="font-semibold text-foreground">Sử dụng API Key mặc định của Gemini</h3>
-                        <p className="text-xs text-muted-foreground">Sử dụng key được cung cấp sẵn (chia sẻ, có thể bị giới hạn).</p>
+                        <h3 className="font-semibold text-foreground">{isApiKeyAvailable ? 'Sử dụng API Key mặc định của Gemini' : 'API Key mặc định không khả dụng'}</h3>
+                        <p className="text-xs text-muted-foreground">{isApiKeyAvailable ? 'Sử dụng key được cung cấp sẵn (chia sẻ, có thể bị giới hạn).' : 'Vui lòng thiết lập API_KEY trong file biến môi trường.'}</p>
                     </div>
-                    <label htmlFor="default-key-toggle" className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" title="Toggle default API key" checked={useDefaultKey} onChange={e => setUseDefaultKey(e.target.checked)} id="default-key-toggle" className="sr-only peer" />
-                        <div className="w-11 h-6 bg-muted rounded-full peer peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-offset-background peer-focus:ring-ring peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <label htmlFor="default-key-toggle" className={`relative inline-flex items-center ${isApiKeyAvailable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
+                        <input type="checkbox" title={isApiKeyAvailable ? "Toggle default API key" : "API key not available"} disabled={!isApiKeyAvailable} checked={useDefaultKey && isApiKeyAvailable} onChange={e => isApiKeyAvailable && setUseDefaultKey(e.target.checked)} id="default-key-toggle" className="sr-only peer" />
+                        <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-offset-background peer-focus:ring-ring peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${isApiKeyAvailable ? 'bg-muted peer-checked:bg-primary' : 'bg-red-300'}`}></div>
                     </label>
                 </div>
 

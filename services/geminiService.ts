@@ -1,11 +1,83 @@
 import { GoogleGenAI, Chat, Type } from "@google/genai";
 import type { ApiKey, GenerationConfig, CharacterProfile } from '../types';
 import { GenerationMode } from '../types';
+import { withRetry, RETRY_OPTIONS } from '../utils/retryUtils';
 
 interface GenerationResult {
     content: string;
     newKeyIndex: number;
     newChatSession: Chat | { messages: any[] };
+}
+
+// Utility function for strict JSON parsing with retry
+async function parseJsonResponse<T>(
+    jsonString: string,
+    options: {
+        maxRetries?: number;
+        retryCallback?: () => Promise<string>;
+        validateResult?: (result: any) => boolean;
+        defaultEmptyResult?: T;
+    } = {}
+): Promise<T> {
+    const {
+        maxRetries = 2,
+        retryCallback,
+        validateResult,
+        defaultEmptyResult
+    } = options;
+
+    let currentJsonString = jsonString;
+    let attempt = 0;
+
+    while (attempt <= maxRetries) {
+        try {
+            // Clean the JSON string (remove potential markdown formatting)
+            currentJsonString = currentJsonString.trim();
+
+            // Remove markdown code block markers if present
+            if (currentJsonString.startsWith('```json')) {
+                currentJsonString = currentJsonString.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+            } else if (currentJsonString.startsWith('```')) {
+                currentJsonString = currentJsonString.replace(/^```\s*/, '').replace(/\s*```$/, '');
+            }
+
+            // Parse JSON
+            const parsed = JSON.parse(currentJsonString);
+
+            // Validate result if validator provided
+            if (validateResult && !validateResult(parsed)) {
+                throw new Error('JSON validation failed');
+            }
+
+            return parsed as T;
+        } catch (error) {
+            console.warn(`JSON parse attempt ${attempt + 1} failed:`, error);
+
+            // If this is not the last attempt and we have a retry callback, try again
+            if (attempt < maxRetries && retryCallback) {
+                attempt++;
+                try {
+                    console.log(`Retrying JSON parsing with new API call (attempt ${attempt + 1})`);
+                    currentJsonString = await retryCallback();
+                    continue;
+                } catch (retryError) {
+                    console.error('Retry callback failed:', retryError);
+                    throw error; // Throw original error
+                }
+            }
+
+            // If no more retries or no retry callback, return default or throw
+            if (defaultEmptyResult !== undefined) {
+                console.warn('Using default empty result due to JSON parse failure');
+                return defaultEmptyResult;
+            }
+
+            throw new Error(`Failed to parse JSON response after ${attempt + 1} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    // This should not be reached, but just in case
+    throw new Error('Unexpected end of JSON parsing logic');
 }
 
 export async function testApiKey(apiKey: ApiKey): Promise<void> {
@@ -145,7 +217,19 @@ export async function generateCharacterProfiles(
                 if (!generatedText) {
                     throw new Error("Received empty response from OpenAI API.");
                 }
-                const parsedResult = JSON.parse(generatedText);
+
+                // Strict JSON parsing with retry for OpenAI-compatible endpoints
+                const parsedResult = await parseJsonResponse<any>(
+                    generatedText,
+                    {
+                        maxRetries: 2,
+                        validateResult: (result: any) => {
+                            // Validate that we have an array or an object with profiles array
+                            return Array.isArray(result) || (result && Array.isArray(result.profiles));
+                        },
+                        defaultEmptyResult: []
+                    }
+                );
                 const profiles = Array.isArray(parsedResult) ? parsedResult : (parsedResult.profiles || []);
                 return { profiles, newKeyIndex: keyIndex };
 
@@ -175,7 +259,15 @@ export async function generateCharacterProfiles(
               throw new Error("Received empty response from API.");
             }
 
-            const profiles: CharacterProfile[] = JSON.parse(generatedText);
+            // Strict JSON parsing for Google Gemini API responses
+            const profiles: CharacterProfile[] = await parseJsonResponse<CharacterProfile[]>(
+                generatedText,
+                {
+                    maxRetries: 0, // No retries since Gemini should give valid JSON with schema
+                    validateResult: (result: any) => Array.isArray(result),
+                    defaultEmptyResult: []
+                }
+            );
             return { profiles, newKeyIndex: keyIndex };
 
         } catch (error) {
