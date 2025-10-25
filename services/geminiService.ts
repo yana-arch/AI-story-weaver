@@ -31,6 +31,14 @@ export async function testApiKey(apiKey: ApiKey): Promise<void> {
         });
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ message: response.statusText }));
+
+            // Handle OpenRouter specific errors during testing
+            if (apiKey.endpoint?.includes('openrouter.ai') && errorData.error) {
+                if (errorData.error.message?.includes('No endpoints found matching your data policy')) {
+                    throw new Error(`OpenRouter Connection Test Failed: ${errorData.error.message}\n\nPlease visit https://openrouter.ai/settings/privacy to configure your account's data policy.`);
+                }
+            }
+
             throw new Error(`Test failed: ${errorData.error?.message || response.statusText}`);
         }
         const result = await response.json();
@@ -122,6 +130,14 @@ export async function generateCharacterProfiles(
                 });
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ message: response.statusText }));
+
+                    // Handle OpenRouter specific errors with better messages
+                    if (item.apiKey.endpoint?.includes('openrouter.ai') && errorData.error) {
+                        if (errorData.error.message?.includes('No endpoints found matching your data policy')) {
+                            throw new Error(`OpenRouter API Error: ${errorData.error.message}\n\nTo fix this, visit https://openrouter.ai/settings/privacy and configure your data policy settings.`);
+                        }
+                    }
+
                     throw new Error(`API call failed: ${errorData.error?.message || response.statusText}`);
                 }
                 const result = await response.json();

@@ -117,6 +117,7 @@ export interface CustomPrompt {
   id: string;
   title: string;
   content: string;
+  provider?: string; // AI provider this prompt is optimized for (e.g., 'google', 'openai', 'anthropic')
 }
 
 export interface KeywordPreset {

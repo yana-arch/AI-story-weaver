@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { CustomPrompt } from '../types';
-import { CloseIcon, PlusIcon, TrashIcon, EditIcon, SaveIcon } from './icons';
+import { AIProvider } from '../types/ai-models';
+import { CloseIcon, PlusIcon, TrashIcon, EditIcon, SaveIcon, ChevronDownIcon } from './icons';
 
 interface CustomPromptsManagerProps {
     prompts: CustomPrompt[];
@@ -12,7 +13,22 @@ interface CustomPromptsManagerProps {
 export const CustomPromptsManager: React.FC<CustomPromptsManagerProps> = ({ prompts, setPrompts, onClose }) => {
     const [newTitle, setNewTitle] = useState('');
     const [newContent, setNewContent] = useState('');
+    const [newProvider, setNewProvider] = useState<string>('');
     const [editingPrompt, setEditingPrompt] = useState<CustomPrompt | null>(null);
+    const [selectedProviderFilter, setSelectedProviderFilter] = useState<string>('all');
+
+    const providerOptions = [
+        { value: '', label: 'Tất cả nhà cung cấp' },
+        { value: AIProvider.GOOGLE, label: 'Google (Gemini)' },
+        { value: AIProvider.OPENAI, label: 'OpenAI (GPT)' },
+        { value: AIProvider.ANTHROPIC, label: 'Anthropic (Claude)' },
+    ];
+
+    const filteredPrompts = useMemo(() => {
+        return selectedProviderFilter === 'all'
+            ? prompts
+            : prompts.filter(prompt => prompt.provider === selectedProviderFilter);
+    }, [prompts, selectedProviderFilter]);
 
     const handleAddPrompt = () => {
         if (newTitle.trim() && newContent.trim()) {
@@ -20,10 +36,12 @@ export const CustomPromptsManager: React.FC<CustomPromptsManagerProps> = ({ prom
                 id: Date.now().toString(),
                 title: newTitle.trim(),
                 content: newContent.trim(),
+                provider: newProvider || undefined,
             };
             setPrompts([...prompts, newPrompt]);
             setNewTitle('');
             setNewContent('');
+            setNewProvider('');
         }
     };
 
@@ -73,9 +91,21 @@ export const CustomPromptsManager: React.FC<CustomPromptsManagerProps> = ({ prom
                                 onChange={(e) => editingPrompt ? setEditingPrompt({...editingPrompt, title: e.target.value}) : setNewTitle(e.target.value)}
                                 className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                             />
+                            <select
+                                value={editingPrompt ? editingPrompt.provider || '' : newProvider}
+                                onChange={(e) => editingPrompt
+                                    ? setEditingPrompt({...editingPrompt, provider: e.target.value || undefined})
+                                    : setNewProvider(e.target.value)}
+                                className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                            >
+                                <option value="">Tất cả nhà cung cấp (chia sẻ)</option>
+                                <option value={AIProvider.GOOGLE}>Google (Gemini)</option>
+                                <option value={AIProvider.OPENAI}>OpenAI (GPT)</option>
+                                <option value={AIProvider.ANTHROPIC}>Anthropic (Claude)</option>
+                            </select>
                             <textarea
                                 placeholder="Nội dung yêu cầu..."
-                                rows={10}
+                                rows={8}
                                 value={editingPrompt ? editingPrompt.content : newContent}
                                 onChange={(e) => editingPrompt ? setEditingPrompt({...editingPrompt, content: e.target.value}) : setNewContent(e.target.value)}
                                 className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y flex-grow"

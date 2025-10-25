@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import type { ApiKey } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { KeyIcon, TrashIcon, PlusIcon, CloseIcon, RefreshIcon, CheckCircleIcon, ExclamationCircleIcon, ChevronDownIcon, ChevronRightIcon } from './icons';
+import { KeyIcon, TrashIcon, PlusIcon, CloseIcon, RefreshIcon, CheckCircleIcon, ExclamationCircleIcon, ChevronDownIcon, ChevronRightIcon, EditIcon, SaveIcon } from './icons';
 import { testApiKey } from '../services/geminiService';
 
 interface ApiKeyManagerProps {
@@ -32,6 +32,10 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ apiKeys, setApiKey
     const [testStatus, setTestStatus] = useState<Record<string, TestStatus>>({});
     const [testError, setTestError] = useState<Record<string, string | null>>({});
     const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
+    const [editingProvider, setEditingProvider] = useState<string | null>(null);
+    const [editName, setEditName] = useState('');
+    const [editEndpoint, setEditEndpoint] = useState('');
+    const [editModelId, setEditModelId] = useState('');
 
     const toggleProviderExpansion = (apiKeyId: string) => {
         setExpandedProviders(prev => {
@@ -118,6 +122,31 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ apiKeys, setApiKey
         setApiKeys(newApiKeys);
     };
 
+    const startEditingProvider = (apiKey: ApiKey) => {
+        setEditingProvider(apiKey.id);
+        setEditName(apiKey.name);
+        setEditEndpoint(apiKey.endpoint || '');
+        setEditModelId(apiKey.modelId || '');
+    };
+
+    const cancelEditingProvider = () => {
+        setEditingProvider(null);
+        setEditName('');
+        setEditEndpoint('');
+        setEditModelId('');
+    };
+
+    const saveEditedProvider = () => {
+        if (editingProvider && editName.trim()) {
+            setApiKeys(prev => prev.map(apiKey =>
+                apiKey.id === editingProvider
+                    ? { ...apiKey, name: editName.trim(), endpoint: editEndpoint.trim() || undefined, modelId: editModelId.trim() || undefined }
+                    : apiKey
+            ));
+            cancelEditingProvider();
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-50">
             <div className="bg-card rounded-lg shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
@@ -181,15 +210,53 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ apiKeys, setApiKey
                                                 <ChevronRightIcon className="w-5 h-5 mr-2 text-primary flex-shrink-0" />
                                             )}
                                             <KeyIcon className="w-5 h-5 mr-3 text-primary flex-shrink-0" />
-                                            <div className="overflow-hidden">
-                                                <p className="font-semibold truncate" title={apiKey.name}>{apiKey.name}</p>
-                                                {!apiKey.isDefault && apiKey.endpoint && apiKey.modelId ? (
-                                                    <p className="text-xs text-muted-foreground font-mono truncate" title={apiKey.modelId}>{apiKey.modelId} @ {apiKey.endpoint}</p>
-                                                ) : !apiKey.isDefault ? (
-                                                    <p className="text-xs text-muted-foreground font-mono">
-                                                        {apiKey.activeIndexes.length}/{apiKey.keys.length} keys active
-                                                    </p>
-                                                ) : null}
+                                            <div className="overflow-hidden flex-grow">
+                                                {editingProvider === apiKey.id ? (
+                                                    <div className="flex flex-col space-y-2 pr-2">
+                                                        <input
+                                                            type="text"
+                                                            value={editName}
+                                                            onChange={(e) => setEditName(e.target.value)}
+                                                            className="text-sm font-semibold bg-input border border-border rounded px-2 py-1 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                                            placeholder="Provider name"
+                                                        />
+                                                        <div className="flex space-x-2">
+                                                            <input
+                                                                type="text"
+                                                                value={editEndpoint}
+                                                                onChange={(e) => setEditEndpoint(e.target.value)}
+                                                                className="text-xs bg-input border border-border rounded px-2 py-1 text-foreground focus:outline-none focus:ring-2 focus:ring-ring flex-grow"
+                                                                placeholder="Endpoint URL"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={editModelId}
+                                                                onChange={(e) => setEditModelId(e.target.value)}
+                                                                className="text-xs bg-input border border-border rounded px-2 py-1 text-foreground focus:outline-none focus:ring-2 focus:ring-ring flex-grow"
+                                                                placeholder="Model ID"
+                                                            />
+                                                        </div>
+                                                        <div className="flex space-x-2">
+                                                            <button onClick={(e) => { e.stopPropagation(); saveEditedProvider(); }} className="px-3 py-1 bg-primary text-primary-foreground text-xs rounded hover:bg-primary/90" title="Save">
+                                                                <SaveIcon className="w-3 h-3" />
+                                                            </button>
+                                                            <button onClick={(e) => { e.stopPropagation(); cancelEditingProvider(); }} className="px-3 py-1 bg-muted text-foreground text-xs rounded hover:bg-muted/80" title="Cancel">
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <p className="font-semibold truncate" title={apiKey.name}>{apiKey.name}</p>
+                                                        {!apiKey.isDefault && apiKey.endpoint && apiKey.modelId ? (
+                                                            <p className="text-xs text-muted-foreground font-mono truncate" title={apiKey.modelId}>{apiKey.modelId} @ {apiKey.endpoint}</p>
+                                                        ) : !apiKey.isDefault ? (
+                                                            <p className="text-xs text-muted-foreground font-mono">
+                                                                {apiKey.activeIndexes.length}/{apiKey.keys.length} keys active
+                                                            </p>
+                                                        ) : null}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         {!apiKey.isDefault && (
@@ -201,6 +268,9 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ apiKeys, setApiKey
                                                 </div>
                                                 <button onClick={(e) => { e.stopPropagation(); handleTestKey(apiKey); }} disabled={testStatus[apiKey.id] === 'testing'} className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground disabled:text-muted disabled:cursor-not-allowed" title="Test Key">
                                                     <RefreshIcon className="w-5 h-5" />
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); startEditingProvider(apiKey); }} className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground" title="Edit Provider">
+                                                    <EditIcon className="w-4 h-4" />
                                                 </button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleDeleteKey(apiKey.id); }} className="p-2 rounded-full hover:bg-muted text-destructive hover:text-destructive/80" title="Delete Key">
                                                     <TrashIcon className="w-5 h-5" />

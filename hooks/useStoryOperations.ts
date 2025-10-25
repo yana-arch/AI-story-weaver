@@ -63,16 +63,33 @@ export const useStoryOperations = () => {
       }
     }
 
-    const selectedPromptIds = Array.isArray(activeStory.selectedPromptIds) ? activeStory.selectedPromptIds : [];
-    const selectedPromptsContent = activeStory.customPrompts
-        .filter(p => selectedPromptIds.includes(p.id))
-        .map(p => p.content);
-
     const rawAvailableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', keys: ['N/A'], activeIndexes: [0], isDefault: true }, ...apiKeys] : apiKeys;
     // Flatten active keys for cycling
     const availableKeys = rawAvailableKeys.flatMap(apiKey =>
         apiKey.activeIndexes.map(index => ({ apiKey, keyIndex: index, key: apiKey.keys[index] }))
     );
+
+    const selectedPromptIds = Array.isArray(activeStory.selectedPromptIds) ? activeStory.selectedPromptIds : [];
+
+    // Determine the primary provider for prompt filtering
+    let primaryProvider = '';
+    if (availableKeys.length > 0) {
+      const firstApiKey = availableKeys[0].apiKey;
+      if (firstApiKey.endpoint && firstApiKey.modelId) {
+        // Custom endpoint (likely OpenRouter or similar)
+        primaryProvider = 'openai'; // Assume OpenAI-compatible for custom endpoints
+      } else if (firstApiKey.id === 'default' || firstApiKey.name.toLowerCase().includes('gemini')) {
+        primaryProvider = 'google';
+      } else {
+        // Try to infer from key configuration
+        primaryProvider = 'google'; // Default fallback
+      }
+    }
+
+    const selectedPromptsContent = activeStory.customPrompts
+        .filter(p => selectedPromptIds.includes(p.id))
+        .filter(p => !p.provider || p.provider === primaryProvider) // Include prompts that match the provider or have no specific provider
+        .map(p => p.content);
 
     try {
       const startTime = startApiCall();
