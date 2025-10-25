@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import type { ApiKey } from '../types';
+import type { ApiKey, CustomPrompt } from '../types';
 import type { TTSOptions } from '../components/TTSSettings';
 
 interface SettingsContextType {
@@ -69,6 +69,10 @@ interface SettingsContextType {
   // Export
   isExportDialogOpen: boolean;
   setIsExportDialogOpen: (open: boolean) => void;
+
+  // Global Custom Prompts
+  globalPrompts: CustomPrompt[];
+  setGlobalPrompts: (prompts: CustomPrompt[]) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -84,6 +88,38 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // TTS
   const [ttsSettings, setTtsSettings] = useLocalStorage<TTSOptions>('ttsSettings', { rate: 1, pitch: 1 });
+
+  // Global Custom Prompts
+  const [globalPrompts, setGlobalPrompts] = useLocalStorage<CustomPrompt[]>('globalPrompts', []);
+
+  // Migration effect to merge prompts from stories to global
+  useEffect(() => {
+    const storiesJson = localStorage.getItem('stories');
+    if (storiesJson) {
+      try {
+        const stories = JSON.parse(storiesJson);
+        if (Array.isArray(stories)) {
+          // Collect all prompts from all stories
+          const allStoryPrompts: CustomPrompt[] = [];
+          stories.forEach((story: any) => {
+            if (story.customPrompts && Array.isArray(story.customPrompts)) {
+              allStoryPrompts.push(...story.customPrompts);
+            }
+          });
+
+          // Deduplicate based on content
+          const existingIds = new Set(globalPrompts.map(p => p.id));
+          const newPrompts = allStoryPrompts.filter(p => !existingIds.has(p.id) && p.content && p.title);
+
+          if (newPrompts.length > 0) {
+            setGlobalPrompts(prev => [...prev, ...newPrompts]);
+          }
+        }
+      } catch (error) {
+        console.error('Error migrating prompts:', error);
+      }
+    }
+  }, []); // Run once on mount
 
   // UI State
   const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
@@ -200,6 +236,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Export
     isExportDialogOpen,
     setIsExportDialogOpen,
+
+    // Global Custom Prompts
+    globalPrompts,
+    setGlobalPrompts,
   };
 
   return (

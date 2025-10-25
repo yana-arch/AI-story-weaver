@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ErrorNotificationContainer } from './components/ErrorNotification';
 import { PerformanceDashboard } from './components/PerformanceDashboard';
+import { AppProvider } from './contexts/AppProvider';
 import './index.css';
 // Fix: The error 'File 'file:///App.tsx' is not a module' is resolved by providing a valid App component in App.tsx.
 import App from './App';
@@ -23,7 +24,9 @@ root.render(
       }}
     >
       <React.Profiler id="App" onRender={onPerformanceRender}>
-        <App />
+        <AppProvider>
+          <App />
+        </AppProvider>
       </React.Profiler>
       <ErrorNotificationContainer />
       {process.env.NODE_ENV === 'development' && <PerformanceDashboard />}

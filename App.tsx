@@ -16,6 +16,7 @@ import { generateStorySegment, generateCharacterProfiles } from './services/gemi
 import { addHistoryEntry, deleteHistory } from './services/historyService';
 import { withRetry, RETRY_OPTIONS } from './utils/retryUtils';
 import chapterService from './services/chapterService';
+import { useSettings } from './contexts/SettingsContext';
 
 // Lazy-loaded components for better initial bundle size
 const ApiKeyManager = lazy(() => import('./components/ApiKeyManager').then(module => ({ default: module.ApiKeyManager })));
@@ -78,6 +79,9 @@ const App: React.FC = () => {
     const performanceMetrics = usePerformanceMonitor('App');
     const memoryLeakMetrics = useMemoryLeakDetector('App');
     const { startApiCall, endApiCall } = useApiPerformanceMonitor('AI Generation');
+
+    // Get global prompts from settings
+    const { globalPrompts, setGlobalPrompts } = useSettings();
 
     const [stories, setStories] = useState<Record<string, Story>>({});
     const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
@@ -364,7 +368,7 @@ const App: React.FC = () => {
         }
 
         const selectedPromptIds = Array.isArray(activeStory.selectedPromptIds) ? activeStory.selectedPromptIds : [];
-        const selectedPromptsContent = activeStory.customPrompts
+        const selectedPromptsContent = globalPrompts
             .filter(p => selectedPromptIds.includes(p.id))
             .map(p => p.content);
 
@@ -883,10 +887,7 @@ const App: React.FC = () => {
             {/* Modals and panels with lazy loading */}
             <Suspense fallback={null}>
                 {isApiKeyManagerOpen && <ApiKeyManager apiKeys={apiKeys} setApiKeys={setApiKeys} useDefaultKey={useDefaultKey} setUseDefaultKey={setUseDefaultKey} onClose={() => setIsApiKeyManagerOpen(false)} />}
-                {isPromptManagerOpen && activeStory && <CustomPromptsManager prompts={activeStory.customPrompts} setPrompts={(updater) => {
-                    const newPrompts = typeof updater === 'function' ? updater(activeStory.customPrompts) : updater;
-                    setActiveStory({ ...activeStory, customPrompts: newPrompts });
-                }} onClose={() => setIsPromptManagerOpen(false)} />}
+                {isPromptManagerOpen && <CustomPromptsManager prompts={globalPrompts} setPrompts={setGlobalPrompts} onClose={() => setIsPromptManagerOpen(false)} />}
                 {isKeywordPresetManagerOpen && activeStory && <KeywordPresetManager presets={activeStory.keywordPresets} setPresets={(updater) => {
                     const newPresets = typeof updater === 'function' ? updater(activeStory.keywordPresets || []) : updater;
                     setActiveStory({ ...activeStory, keywordPresets: newPresets });
@@ -1273,7 +1274,7 @@ const App: React.FC = () => {
                                 onGenerate={handleGenerate}
                                 isLoading={isLoading}
                                 isGenerateDisabled={isGenerateDisabled}
-                                customPrompts={activeStory.customPrompts}
+                                customPrompts={globalPrompts}
                                 selectedPromptIds={activeStory.selectedPromptIds || []}
                                 setSelectedPromptIds={(ids) => {
                                     setStories(prev => ({
