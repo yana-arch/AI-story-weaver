@@ -32,6 +32,8 @@ const defaultElementStyles: Record<ContentElementType, React.CSSProperties> = {
         textAlign: 'left',
         lineHeight: '1.6',
         letterSpacing: 'normal',
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
     },
     [ContentElementType.DIALOGUE]: {
         fontSize: '1rem',
@@ -46,6 +48,11 @@ const defaultElementStyles: Record<ContentElementType, React.CSSProperties> = {
         textAlign: 'left',
         lineHeight: '1.5',
         letterSpacing: 'normal',
+        wordBreak: 'break-all',
+        wordWrap: 'break-word',
+        hyphens: 'auto',
+        whiteSpace: 'pre-wrap',
+        overflow: 'visible',
     },
     [ContentElementType.MONOLOGUE]: {
         fontSize: '0.95rem',
@@ -60,6 +67,8 @@ const defaultElementStyles: Record<ContentElementType, React.CSSProperties> = {
         textAlign: 'left',
         lineHeight: '1.5',
         letterSpacing: 'normal',
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
     },
     [ContentElementType.INTRODUCTION]: {
         fontSize: '1.1rem',
@@ -73,6 +82,8 @@ const defaultElementStyles: Record<ContentElementType, React.CSSProperties> = {
         textAlign: 'center',
         lineHeight: '1.7',
         letterSpacing: '0.025em',
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
     },
     [ContentElementType.DESCRIPTION]: {
         fontSize: '0.95rem',
@@ -86,6 +97,8 @@ const defaultElementStyles: Record<ContentElementType, React.CSSProperties> = {
         textAlign: 'left',
         lineHeight: '1.6',
         letterSpacing: 'normal',
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
     },
     [ContentElementType.TRANSITION]: {
         fontSize: '0.9rem',
@@ -99,6 +112,8 @@ const defaultElementStyles: Record<ContentElementType, React.CSSProperties> = {
         textAlign: 'center',
         lineHeight: '1.4',
         letterSpacing: '0.05em',
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
     },
 };
 
@@ -137,6 +152,13 @@ interface ParsedElement {
 
 const parseContentElements = (content: string, autoDetect: boolean): ParsedElement[] => {
     if (!autoDetect) {
+        return [{ type: ContentElementType.NARRATIVE, content, originalContent: content }];
+    }
+
+    // For imported content, try inline detection across paragraphs, not just line-by-line
+    // Check if content contains dialogue patterns within text blocks
+    if (/"[^"]{3,}"/.test(content) || /\*[^^*]{3,}\*/.test(content)) {
+        // Content has inline dialogue or monologue, treat as special content that may need different formatting
         return [{ type: ContentElementType.NARRATIVE, content, originalContent: content }];
     }
 
@@ -225,7 +247,7 @@ export const StoryContentRenderer: React.FC<StoryContentRendererProps> = ({
     };
 
     return (
-        <div className="story-content">
+        <div className="story-content prose prose-sm max-w-none break-words overflow-wrap-anywhere">
             {parsedElements.map((element, index) => renderElement(element, index))}
         </div>
     );

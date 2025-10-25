@@ -6,38 +6,157 @@ import type {
   ImportOptions,
   ChapterPattern,
   ProcessingProgress,
+  ImportedStory,
 } from '../types/chapter';
 
 export class ImportService {
   private static instance: ImportService;
   private chapterPatterns: ChapterPattern[] = [
+    // TIỆNG VIỆT PATTERNS (Priority 1-5)
     {
-      name: 'Standard Chapter',
-      pattern: /^(?:Chương|Chapter|第)\s*(\d+)[:\s]*(.+?)$/im,
+      name: 'Vietnamese Standard Chapter',
+      pattern: /^(?:Chương|Chap)\s*(\d+)[:\.\s]*(.+?)$/im,
       titleGroup: 2,
       contentGroup: 1,
       priority: 1,
     },
     {
-      name: 'Vietnamese Chapter',
-      pattern: /^(?:Chương|Chap)\s*(\d+)[:\s]*\n([\s\S]*?)(?=(?:Chương|Chap)\s*\d+|$)/i,
-      titleGroup: 1,
-      contentGroup: 2,
+      name: 'Vietnamese Part/Volume',
+      pattern: /^(?:Phần|Quyển|Volume)\s*(\d+)[:\.\s]*(.+?)$/im,
+      titleGroup: 2,
+      contentGroup: 1,
       priority: 2,
     },
     {
-      name: 'Numbered Section',
-      pattern: /^(\d+)[\.\s]+(.+?)$/m,
+      name: 'Vietnamese Standalone Chapter',
+      pattern: /^Chương\s+(\d+)[:\.\s]*(.*?)$/im,
       titleGroup: 2,
       contentGroup: 1,
       priority: 3,
     },
+
+    // TIỆNG TRUNG PATTERNS (Priority 6-10)
     {
-      name: 'Header Pattern',
-      pattern: /^(#{1,6})\s*(.+?)$/m,
+      name: 'Chinese Standard Chapter',
+      pattern: /^第(\d+)章[：:]?\s*(.*)$/im,
       titleGroup: 2,
       contentGroup: 1,
-      priority: 4,
+      priority: 6,
+    },
+    {
+      name: 'Chinese Extended Numbers',
+      pattern: /^第([一二三四五六七八九十\d]+)章[：:]?\s*(.*)$/im,
+      titleGroup: 2,
+      contentGroup: 1,
+      priority: 7,
+    },
+    {
+      name: 'Chinese Part',
+      pattern: /^第[一二三四五六七八九十]+部[：:]?\s*(.*)$/im,
+      titleGroup: 1,
+      contentGroup: 1,
+      priority: 8,
+    },
+
+    // TIỆNG ANH PATTERNS (Priority 11-15)
+    {
+      name: 'English Standard Chapter',
+      pattern: /^(?:Chapter|Chap)\s+(\d+)[:\.\s]*(.*)$/im,
+      titleGroup: 2,
+      contentGroup: 1,
+      priority: 11,
+    },
+    {
+      name: 'English Part',
+      pattern: /^(?:Part|Volume|Book)\s+(\d+)[:\.\s]*(.*)$/im,
+      titleGroup: 2,
+      contentGroup: 1,
+      priority: 12,
+    },
+
+    // ORDERED PATTERNS (Priority 16-20)
+    {
+      name: 'Numbered Section',
+      pattern: /^(\d+)\.\s+(.+)$/m,
+      titleGroup: 2,
+      contentGroup: 1,
+      priority: 16,
+    },
+    {
+      name: 'Roman Numerals',
+      pattern: /^([IVXLCDM]+)\.\s+(.+)$/im,
+      titleGroup: 2,
+      contentGroup: 1,
+      priority: 17,
+    },
+
+    // MARKDOWN PATTERNS (Priority 21-25)
+    {
+      name: 'Markdown H1',
+      pattern: /^#\s+(.+)$/m,
+      titleGroup: 1,
+      contentGroup: 1,
+      priority: 21,
+    },
+    {
+      name: 'Markdown H2',
+      pattern: /^##\s+(.+)$/m,
+      titleGroup: 1,
+      contentGroup: 1,
+      priority: 22,
+    },
+    {
+      name: 'Markdown Mixed',
+      pattern: /^#{1,6}\s*(?:Chương|Chapter|Chap|第)?\s*(\d+)?[:\.\s]*(.+)$/im,
+      titleGroup: 3,
+      contentGroup: 1,
+      priority: 23,
+    },
+
+    // KEYWORD PATTERNS (Priority 26-30)
+    {
+      name: 'Vietnamese Keywords',
+      pattern: /^(?:Bắt\s+đầu|Hành\s+trình|Phát\s+triển|Kết\s+thúc|Cao\s+trào|Mở\s+đầu)\s+(.+)$/im,
+      titleGroup: 1,
+      contentGroup: 1,
+      priority: 26,
+    },
+    {
+      name: 'Chinese Keywords',
+      pattern: /^(?:开端|发展|高潮|结局|开始|终结|序曲|尾声)\s*(.+)$/im,
+      titleGroup: 1,
+      contentGroup: 1,
+      priority: 27,
+    },
+
+    // SPECIAL MARKERS (Priority 31-35)
+    {
+      name: 'Star Separators',
+      pattern: /^\*\s*\*\s*\*\s*(.+?)\s*\*\s*\*\s*\*$/im,
+      titleGroup: 1,
+      contentGroup: 1,
+      priority: 31,
+    },
+    {
+      name: 'Arrow Separators',
+      pattern: /^→\s*(.+?)$/im,
+      titleGroup: 1,
+      contentGroup: 1,
+      priority: 32,
+    },
+    {
+      name: 'Dash Separators',
+      pattern: /^[-─]{3,}\s*(.+?)\s*[-─]{3,}$/im,
+      titleGroup: 1,
+      contentGroup: 1,
+      priority: 33,
+    },
+    {
+      name: 'Number in Brackets',
+      pattern: /^\[?\s*(\d+)\s*\]?\s+(.+)$/im,
+      titleGroup: 2,
+      contentGroup: 1,
+      priority: 34,
     },
   ];
 
@@ -53,11 +172,19 @@ export class ImportService {
     const errors: ImportError[] = [];
 
     try {
-      // Read file content
-      const text = await this.readFileContent(file, options.encoding);
+      let rawContent: string;
+      let textEncoding = '';
 
-      // Parse content based on file format
-      const rawContent = await this.parseFileContent(text, options.fileFormat);
+      if (options.fileFormat === 'epub') {
+        // For EPUB, parse directly from file buffer
+        rawContent = await this.parseEpub(file);
+        textEncoding = 'utf-8'; // EPUB typically uses UTF-8
+      } else {
+        // Read file as text for other formats
+        const text = await this.readFileContent(file, options.encoding);
+        rawContent = await this.parseFileContent(text, options.fileFormat);
+        textEncoding = options.encoding || 'utf-8';
+      }
 
       // Split into chapters
       const chapters = options.autoSplit
@@ -72,9 +199,9 @@ export class ImportService {
       // Create metadata
       const metadata: ImportMetadata = {
         totalSize: file.size,
-        totalCharacters: text.length,
-        totalWords: text.split(/\s+/).length,
-        encoding: options.encoding || 'utf-8',
+        totalCharacters: rawContent.length,
+        totalWords: rawContent.split(/\s+/).length,
+        encoding: textEncoding,
         fileName: file.name,
         importDate: Date.now(),
         processingTime: Date.now() - startTime,
@@ -131,7 +258,7 @@ export class ImportService {
     });
   }
 
-  private async parseFileContent(content: string, format: string): Promise<string> {
+  private async parseFileContent(content: string, format: string, file?: File): Promise<string> {
     switch (format) {
       case 'txt':
         return this.parsePlainText(content);
@@ -139,6 +266,11 @@ export class ImportService {
         return this.parseMarkdown(content);
       case 'docx':
         return this.parseDocx(content);
+      case 'epub':
+        if (file) {
+          return this.parseEpub(file);
+        }
+        return content;
       default:
         return content;
     }
@@ -173,6 +305,10 @@ export class ImportService {
       .replace(/<[^>]*>/g, ' ') // Remove HTML tags
       .replace(/\s+/g, ' ') // Normalize whitespace
       .trim();
+  }
+
+  private async parseEpub(file: File): Promise<string> {
+    throw new Error('EPUB parsing is not yet supported in the browser environment. Please use .txt or .md files for now.');
   }
 
   private async splitIntoChapters(
@@ -332,6 +468,82 @@ export class ImportService {
     if (options.aiProcessing) baseTime *= 3;
 
     return Math.min(baseTime, 300); // Cap at 5 minutes
+  }
+
+  async importStoriesFromFiles(files: File[], options: ImportOptions): Promise<{
+    success: boolean;
+    stories: ImportedStory[];
+    errors: ImportError[];
+    summary: { totalFiles: number; successfulFiles: number; totalProcessingTime: number };
+  }> {
+    const startTime = Date.now();
+    const stories: ImportedStory[] = [];
+    const errors: ImportError[] = [];
+
+    const filePromises = files.map(async (file) => {
+      try {
+        const result = await this.importFromFile(file, options);
+        if (result.success && result.chapters.length > 0) {
+          const story: ImportedStory = {
+            id: `story_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            title: this.extractStoryTitle(file.name, result.chapters[0].content),
+            chapters: result.chapters,
+            metadata: result.metadata,
+            originalFile: file.name,
+          };
+          return { success: true, story };
+        } else {
+          return {
+            success: false,
+            error: new Error(`Failed to import ${file.name}: ${result.errors.map(e => e.message).join('; ')}`)
+          };
+        }
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error : new Error(`Unknown error importing ${file.name}`)
+        };
+      }
+    });
+
+    const results = await Promise.all(filePromises);
+
+    results.forEach(result => {
+      if (result.success) {
+        stories.push(result.story);
+      } else {
+        errors.push({
+          type: 'parse',
+          message: result.error.message,
+        });
+      }
+    });
+
+    return {
+      success: stories.length > 0,
+      stories,
+      errors,
+      summary: {
+        totalFiles: files.length,
+        successfulFiles: stories.length,
+        totalProcessingTime: Date.now() - startTime,
+      },
+    };
+  }
+
+  private extractStoryTitle(fileName: string, firstChapterContent: string): string {
+    // Try to extract title from the first few lines of content
+    const lines = firstChapterContent.split('\n').filter(line => line.trim());
+    for (const line of lines.slice(0, 5)) {
+      const trimmed = line.trim();
+      if (trimmed.length > 10 && trimmed.length < 100 && !trimmed.includes('\n')) {
+        // Use this as title if it looks reasonable
+        return trimmed;
+      }
+    }
+
+    // Fallback to filename without extension
+    return fileName.replace(/\.[^/.]+$/, '').replace(/_/g, ' ').replace(/-/g, ' ');
   }
 }
 

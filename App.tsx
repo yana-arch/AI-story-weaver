@@ -59,6 +59,7 @@ import {
     type CharacterProfile,
     type Story
 } from './types';
+import type { ImportedStory } from './types/chapter';
 import { KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon, CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon, DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon, PanelRightIcon, PaintBrushIcon, SpeakerIcon, CogIcon } from './components/icons';
 
 const initialConfig: GenerationConfig = {
@@ -132,14 +133,44 @@ const App: React.FC = () => {
     // Import Manager
     const {
         isImportDialogOpen,
-        isPreviewDialogOpen,
-        importResult,
         openImportDialog,
         closeImportDialog,
-        closePreviewDialog,
         handleImportComplete,
-        handlePreviewConfirm,
     } = useImportManager();
+
+    // Import completion handler
+    const onImportComplete = handleImportComplete((importedStories) => {
+        // Create new stories from imported stories
+        const newStories: Record<string, Story> = { ...stories };
+        importedStories.forEach(story => {
+            // Convert chapters to story segments
+            const storySegments: StorySegment[] = story.chapters.map(chapter => ({
+                id: chapter.id,
+                type: 'ai',
+                content: chapter.content,
+            }));
+
+            newStories[story.id] = {
+                id: story.id,
+                name: story.title,
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                storySegments,
+                generationConfig: initialConfig,
+                customPrompts: [],
+                keywordPresets: [],
+                selectedPromptIds: [],
+                characterProfiles: [],
+                lastReadSegmentId: null,
+            };
+        });
+        setStories(newStories);
+
+        // Set the first imported story as active if no active story
+        if (!activeStoryId && importedStories.length > 0) {
+            setActiveStoryId(importedStories[0].id);
+        }
+    });
 
 
     // Autosave status state
@@ -995,45 +1026,7 @@ const App: React.FC = () => {
                     <ImportDialog
                         isOpen={isImportDialogOpen}
                         onClose={closeImportDialog}
-                        onImportComplete={handleImportComplete}
-                    />
-                )}
-                {isPreviewDialogOpen && (
-                    <ChapterPreviewDialog
-                        isOpen={isPreviewDialogOpen}
-                        onClose={closePreviewDialog}
-                        importResult={importResult}
-                        onConfirmImport={(selectedChapters) => handlePreviewConfirm(selectedChapters, (chapters) => {
-                            // Add imported chapters to the current story
-                            if (activeStory && chapters.length > 0) {
-                                const newSegments = chapters.map(chapter => ({
-                                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                                    type: 'chapter' as const,
-                                    content: chapter.title
-                                }));
-
-                                // Add chapter title segments
-                                newSegments.forEach(segment => {
-                                    setActiveStory({
-                                        ...activeStory,
-                                        storySegments: [...activeStory.storySegments, segment]
-                                    });
-                                });
-
-                                // Add chapter content segments
-                                chapters.forEach((chapter, index) => {
-                                    const contentSegment = {
-                                        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                                        type: 'ai' as const,
-                                        content: chapter.content
-                                    };
-                                    setActiveStory({
-                                        ...activeStory,
-                                        storySegments: [...activeStory.storySegments, contentSegment]
-                                    });
-                                });
-                            }
-                        })}
+                        onImportComplete={onImportComplete}
                     />
                 )}
             </Suspense>

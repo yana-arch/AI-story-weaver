@@ -211,11 +211,29 @@ export interface ImportMetadata {
   processingTime: number;
 }
 
+export interface ImportedStory {
+  id: string;
+  title: string;
+  chapters: ImportedChapter[];
+  metadata: ImportMetadata;
+  originalFile: string;
+}
+
+export interface ImportSplitOptions {
+  method: 'pattern' | 'word_count' | 'manual' | 'ai';
+  pattern?: string;
+  wordCount?: number;
+  minChapterSize?: number;
+  maxChapterSize?: number;
+  preserveTitles: boolean;
+  generateTitles: boolean;
+}
+
 export interface ImportOptions {
-  fileFormat: 'txt' | 'md' | 'docx';
+  fileFormat: 'txt' | 'md' | 'docx' | 'epub';
   encoding?: string;
   autoSplit: boolean;
-  splitOptions: ChapterSplitOptions;
+  splitOptions: ImportSplitOptions;
   aiProcessing: boolean;
   aiProcessingOptions: AIProcessingOptions;
   preserveFormatting: boolean;
