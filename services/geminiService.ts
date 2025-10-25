@@ -9,15 +9,18 @@ interface GenerationResult {
 }
 
 export async function testApiKey(apiKey: ApiKey): Promise<void> {
+    if (apiKey.activeIndexes.length === 0) throw new Error("No active keys to test.");
+    const firstKey = apiKey.keys[apiKey.activeIndexes[0]];
+
     if (apiKey.endpoint && apiKey.modelId) {
         // Test custom OpenAI-compatible endpoint
-        if (!apiKey.key) throw new Error("API key value is missing.");
-        
+        if (!firstKey) throw new Error("API key value is missing.");
+
         const response = await fetch(`${apiKey.endpoint}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey.key}`
+                'Authorization': `Bearer ${firstKey}`
             },
             body: JSON.stringify({
                 model: apiKey.modelId,
@@ -36,9 +39,9 @@ export async function testApiKey(apiKey: ApiKey): Promise<void> {
         }
     } else {
         // Test Google Gemini API
-        const effectiveApiKey = apiKey.id === 'default' 
+        const effectiveApiKey = apiKey.id === 'default'
             ? (process.env.API_KEY || '')
-            : apiKey.key;
+            : firstKey;
 
         if (!effectiveApiKey) {
             throw new Error("API key value is missing.");
@@ -59,7 +62,7 @@ export async function testApiKey(apiKey: ApiKey): Promise<void> {
 
 export async function generateCharacterProfiles(
     storyContent: string,
-    apiKeys: ApiKey[],
+    apiKeys: Array<{apiKey: ApiKey, keyIndex: number, key: string}>,
     currentKeyIndex: number
 ): Promise<{ profiles: CharacterProfile[], newKeyIndex: number }> {
      if (!apiKeys || apiKeys.length === 0) {
@@ -94,22 +97,22 @@ export async function generateCharacterProfiles(
             required: ["id", "name", "appearance", "personality", "background", "goals"]
         }
     };
-    
+
     let keyIndex = currentKeyIndex;
     for (let i = 0; i < apiKeys.length; i++) {
-        const apiKey = apiKeys[keyIndex];
+        const item = apiKeys[keyIndex];
         try {
             let generatedText: string;
 
-            if (apiKey.endpoint && apiKey.modelId) {
-                const response = await fetch(`${apiKey.endpoint}/chat/completions`, {
+            if (item.apiKey.endpoint && item.apiKey.modelId) {
+                const response = await fetch(`${item.apiKey.endpoint}/chat/completions`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey.key}`
+                        'Authorization': `Bearer ${item.key}`
                     },
                     body: JSON.stringify({
-                        model: apiKey.modelId,
+                        model: item.apiKey.modelId,
                         messages: [
                             { role: 'system', content: systemInstruction },
                             { role: 'user', content: userMessage }
@@ -131,11 +134,11 @@ export async function generateCharacterProfiles(
                 return { profiles, newKeyIndex: keyIndex };
 
             } else {
-                const effectiveApiKey = apiKey.id === 'default' 
+                const effectiveApiKey = item.apiKey.id === 'default'
                     ? (process.env.API_KEY || '')
-                    : apiKey.key;
+                    : item.key;
                 if (!effectiveApiKey) {
-                    console.warn(`API key for "${apiKey.name}" is missing. Skipping.`);
+                    console.warn(`API key for "${item.apiKey.name}" is missing. Skipping.`);
                     keyIndex = (keyIndex + 1) % apiKeys.length;
                     continue;
                 }
@@ -160,7 +163,7 @@ export async function generateCharacterProfiles(
             return { profiles, newKeyIndex: keyIndex };
 
         } catch (error) {
-            console.error(`API call for character profiles with key "${apiKey.name}" failed.`, error);
+            console.error(`API call for character profiles with key "${item.apiKey.name}" failed.`, error);
             keyIndex = (keyIndex + 1) % apiKeys.length;
         }
     }
@@ -173,7 +176,7 @@ export async function generateStorySegment(
     config: GenerationConfig,
     customPromptsContent: string[],
     characterProfiles: CharacterProfile[],
-    apiKeys: ApiKey[],
+    apiKeys: Array<{apiKey: ApiKey, keyIndex: number, key: string}>,
     currentKeyIndex: number,
     chatSession: Chat | { messages: any[] } | null
 ): Promise<GenerationResult> {
@@ -265,12 +268,12 @@ ${characterProfilesSection}`;
 
     let keyIndex = currentKeyIndex;
     for (let i = 0; i < apiKeys.length; i++) {
-        const apiKey = apiKeys[keyIndex];
+        const item = apiKeys[keyIndex];
         try {
             let generatedText: string;
             let newChatSession: Chat | { messages: any[] };
 
-            if (apiKey.endpoint && apiKey.modelId) {
+            if (item.apiKey.endpoint && item.apiKey.modelId) {
                  const currentMessages = isNewChat ? [] : (chatSession as { messages: any[] }).messages;
                  const messages = [...currentMessages];
                  if (messages.length === 0) {
@@ -278,14 +281,14 @@ ${characterProfilesSection}`;
                  }
                  messages.push({ role: 'user', content: finalUserMessage });
 
-                const response = await fetch(`${apiKey.endpoint}/chat/completions`, {
+                const response = await fetch(`${item.apiKey.endpoint}/chat/completions`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey.key}`
+                        'Authorization': `Bearer ${item.key}`
                     },
                     body: JSON.stringify({
-                        model: apiKey.modelId,
+                        model: item.apiKey.modelId,
                         messages,
                         temperature: 0.95,
                         top_p: 0.95,
@@ -302,12 +305,12 @@ ${characterProfilesSection}`;
                 newChatSession = { messages };
 
             } else {
-                const effectiveApiKey = apiKey.id === 'default' 
+                const effectiveApiKey = item.apiKey.id === 'default'
                     ? (process.env.API_KEY || '')
-                    : apiKey.key;
+                    : item.key;
 
                 if (!effectiveApiKey) {
-                    console.warn(`API key for "${apiKey.name}" is missing. Skipping.`);
+                    console.warn(`API key for "${item.apiKey.name}" is missing. Skipping.`);
                     keyIndex = (keyIndex + 1) % apiKeys.length;
                     continue;
                 }
@@ -326,7 +329,7 @@ ${characterProfilesSection}`;
                 } else {
                     chat = chatSession as Chat;
                 }
-                
+
                 const response = await chat.sendMessage({ message: finalUserMessage });
                 generatedText = response.text;
                 newChatSession = chat;
@@ -337,7 +340,7 @@ ${characterProfilesSection}`;
             }
             return { content: generatedText, newKeyIndex: keyIndex, newChatSession };
         } catch (error) {
-            console.warn(`API call with key "${apiKey.name}" failed.`, error);
+            console.warn(`API call with key "${item.apiKey.name}" failed.`, error);
             keyIndex = (keyIndex + 1) % apiKeys.length;
         }
     }

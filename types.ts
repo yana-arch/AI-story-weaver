@@ -59,7 +59,8 @@ export interface GenerationConfig {
 export interface ApiKey {
   id: string;
   name: string;
-  key: string;
+  keys: string[];
+  activeIndexes: number[];
   isDefault?: boolean;
   endpoint?: string;
   modelId?: string;

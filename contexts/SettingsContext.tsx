@@ -121,6 +121,37 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []); // Run once on mount
 
+  // Migration effect to update ApiKey structure to support multiple keys
+  useEffect(() => {
+    const key = 'apiKeys';
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          const needsUpdate = parsed.some((apiKey: any) => 'key' in apiKey && !('keys' in apiKey));
+          if (needsUpdate) {
+            const updated = parsed.map((apiKey: any) => {
+              if ('key' in apiKey && !('keys' in apiKey)) {
+                // Migrate old format to new
+                return {
+                  ...apiKey,
+                  keys: [apiKey.key],
+                  activeIndexes: [0], // First key active by default
+                };
+              }
+              return apiKey;
+            });
+            localStorage.setItem(key, JSON.stringify(updated));
+            setApiKeys(updated as ApiKey[]);
+          }
+        }
+      } catch (error) {
+        console.error('Error migrating API keys:', error);
+      }
+    }
+  }, []); // Run once on mount
+
   // UI State
   const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
   const [isPromptManagerOpen, setIsPromptManagerOpen] = useState(false);

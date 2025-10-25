@@ -405,7 +405,11 @@ const App: React.FC = () => {
 
 
 
-        const availableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', key: 'N/A', isDefault: true }, ...apiKeys] : apiKeys;
+        const rawAvailableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', keys: ['N/A'], activeIndexes: [0], isDefault: true }, ...apiKeys] : apiKeys;
+        // Flatten active keys for cycling
+        const availableKeys = rawAvailableKeys.flatMap(apiKey =>
+            apiKey.activeIndexes.map(index => ({ apiKey, keyIndex: index, key: apiKey.keys[index] }))
+        );
 
         // Use retry mechanism for API calls with performance monitoring
         try {
@@ -575,8 +579,12 @@ const App: React.FC = () => {
             return;
         }
 
-        const availableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', key: 'N/A', isDefault: true }, ...apiKeys] : apiKeys;
-        
+        const rawAvailableKeys = useDefaultKey ? [{ id: 'default', name: 'Default', keys: ['N/A'], activeIndexes: [0], isDefault: true }, ...apiKeys] : apiKeys;
+        // Flatten active keys for cycling
+        const availableKeys = rawAvailableKeys.flatMap(apiKey =>
+            apiKey.activeIndexes.map(index => ({ apiKey, keyIndex: index, key: apiKey.keys[index] }))
+        );
+
         try {
             const { profiles, newKeyIndex } = await generateCharacterProfiles(storyContent, availableKeys, currentKeyIndex);
             
