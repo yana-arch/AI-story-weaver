@@ -122,6 +122,8 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                 addError(error, options);
                 return typeof error === 'string' ? error : error.message;
             });
+
+            // Run settings auto-fill
             const autoFilledSettings = await aiService.generateAutoFillSettings(
                 config.additionalInstructions,
                 'gemini-flash' // Default model, could be made configurable
@@ -138,8 +140,23 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                 return newConfig;
             });
 
+            // Generate prompts if enabled
+            if (config.autoGeneratePrompts && onAddPrompt) {
+                const generatedPrompts = await aiService.generateAutoPrompts(
+                    config.additionalInstructions,
+                    'gemini-flash' // Default model, could be made configurable
+                );
+                console.log('Generated prompts from AI:', generatedPrompts);
+                const promptsToAdd = generatedPrompts.map(prompt => ({
+                    title: prompt.title,
+                    content: prompt.content,
+                }));
+                onAddPrompt(promptsToAdd);
+                console.log('Prompts added successfully');
+            }
+
             // Show success message
-            console.log('Settings auto-filled successfully:', autoFilledSettings);
+            console.log('Auto-fill completed successfully');
         } catch (error) {
             console.error('Auto-fill failed:', error);
             addError('Không thể tự động điền cài đặt. Vui lòng thử lại hoặc điền thủ công.', {
@@ -292,6 +309,18 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                             value={config.additionalInstructions || ''}
                             onChange={e => handleChange('additionalInstructions', e.target.value)}
                         />
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                id="auto-generate-prompts"
+                                checked={config.autoGeneratePrompts || false}
+                                onChange={e => handleChange('autoGeneratePrompts', e.target.checked)}
+                                className="h-4 w-4 rounded bg-background border-border text-primary focus:ring-ring"
+                            />
+                            <label htmlFor="auto-generate-prompts" className="text-sm text-muted-foreground select-none">
+                                Tự động tạo yêu cầu tùy chỉnh
+                            </label>
+                        </div>
                         <div className="flex gap-2">
                             <button
                                 onClick={handleAutoFillSettings}
@@ -304,7 +333,7 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
-                                    Đang phân tích...
+                                    Đang xử lý...
                                 </>
                             ) : (
                                 <>
@@ -315,7 +344,7 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                             </button>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            Nhập hướng dẫn và nhấn "Tự động điền cài đặt" để AI phân tích và điền các trường phù hợp.
+                            Nhập hướng dẫn và nhấn "Tự động điền cài đặt" để AI phân tích và điền các trường phù hợp. Nếu tích "Tự động tạo yêu cầu", AI cũng sẽ tạo các prompts tùy chỉnh.
                         </p>
                     </div>
                 </Section>
@@ -348,33 +377,13 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                 </Section>
                  <Section title="Yêu cầu tùy chỉnh">
                     <div className="flex gap-2">
-                        <button onClick={onManagePrompts} className="flex-1 flex justify-center items-center px-3 py-2 text-sm bg-secondary font-semibold rounded-md hover:bg-secondary/80 transition-colors">
+                        <button onClick={onManagePrompts} className="w-full flex justify-center items-center px-3 py-2 text-sm bg-secondary font-semibold rounded-md hover:bg-secondary/80 transition-colors">
                             <BookmarkIcon className="w-4 h-4 mr-2" />
                             Quản lý yêu cầu
                         </button>
-                        <button
-                            onClick={handleAutoGeneratePrompts}
-                            disabled={isGeneratingPrompts || !config.additionalInstructions?.trim() || !onAddPrompt}
-                            className="flex-1 flex justify-center items-center px-3 py-2 text-sm bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
-                        >
-                            {isGeneratingPrompts ? (
-                                <>
-                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Đang tạo...
-                                </>
-                            ) : (
-                                <>
-                                    <WandIcon className="w-4 h-4 mr-2" />
-                                    Tự động tạo yêu cầu
-                                </>
-                            )}
-                        </button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                        Nhập hướng dẫn và nhấn "Tự động tạo yêu cầu" để AI tạo các yêu cầu tùy chỉnh phù hợp.
+                        Quản lý các yêu cầu tùy chỉnh để sử dụng trong việc sáng tạo nội dung.
                     </p>
                     <div className="max-h-36 overflow-y-auto space-y-2 border-t border-border pt-3 mt-3">
                         {customPrompts.length > 0 ? customPrompts.map(prompt => (

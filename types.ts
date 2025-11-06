@@ -55,6 +55,7 @@ export interface GenerationConfig {
   rewriteTarget?: RewriteTarget;
   selectedChapterId?: string;
   additionalInstructions?: string;
+  autoGeneratePrompts?: boolean;
 }
 
 export interface ApiKey {
