@@ -320,6 +320,12 @@ ${characterProfiles.map(p =>
         : '';
 
     
+    const additionalInstructionsSection = config.additionalInstructions?.trim()
+        ? `
+--- HƯỚNG DẪN BỔ SUNG ---
+${config.additionalInstructions}`
+        : '';
+
     const creativeDirection = `
 --- ĐỊNH HƯỚNG SÁNG TẠO ---
 - Kịch bản: ${config.scenario}
@@ -330,6 +336,7 @@ ${characterProfiles.map(p =>
 - Từ khóa cần tránh: "${config.avoidKeywords}"
 ${adultContentSection}
 ${customPromptsSection}
+${additionalInstructionsSection}
 ${characterProfilesSection}`;
 
     let systemInstruction: string;

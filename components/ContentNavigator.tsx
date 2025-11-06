@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import type { GenerationConfig, CustomPrompt, KeywordPreset, StorySegment } from '../types';
 import { Scenario, CharacterDynamics, Pacing, AdultContentOptions, GenerationMode, NarrativeStructure, RewriteTarget } from '../types';
-import { WandIcon, BookmarkIcon, ChevronDownIcon, SaveIcon } from './icons';
+import { WandIcon, BookmarkIcon, ChevronDownIcon, SaveIcon, CheckCircleIcon } from './icons';
+import { getAIService } from '../services/aiService';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 interface ContentNavigatorProps {
     config: GenerationConfig;
@@ -13,6 +15,7 @@ interface ContentNavigatorProps {
     selectedPromptIds: string[];
     setSelectedPromptIds: (ids: string[]) => void;
     onManagePrompts: () => void;
+    onAddPrompt?: (prompt: Omit<CustomPrompt, 'id'> | Omit<CustomPrompt, 'id'>[]) => void;
     keywordPresets: KeywordPreset[];
     onManageKeywordPresets: () => void;
     onSaveKeywordPreset: () => void;
@@ -91,13 +94,109 @@ const TextArea: React.FC<{ label: string; placeholder: string; value: string; on
 );
 
 
-export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled, customPrompts, selectedPromptIds, setSelectedPromptIds, onManagePrompts, keywordPresets, onManageKeywordPresets, onSaveKeywordPreset, storySegments }) => {
-    
+export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setConfig, onGenerate, isLoading, isGenerateDisabled, customPrompts, selectedPromptIds, setSelectedPromptIds, onManagePrompts, onAddPrompt, keywordPresets, onManageKeywordPresets, onSaveKeywordPreset, storySegments }) => {
+
+    const [isAutoFilling, setIsAutoFilling] = useState(false);
+    const [isGeneratingPrompts, setIsGeneratingPrompts] = useState(false);
+    const { addError } = useErrorHandler();
+
     const handleChange = <K extends keyof GenerationConfig,>(
         field: K,
         value: GenerationConfig[K]
     ) => {
         setConfig(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleAutoFillSettings = async () => {
+        if (!config.additionalInstructions?.trim()) {
+            addError('Vui lòng nhập hướng dẫn để tự động điền cài đặt', {
+                context: 'Auto-fill Settings',
+                recoverable: true,
+            });
+            return;
+        }
+
+        setIsAutoFilling(true);
+        try {
+            const aiService = getAIService((error, options) => {
+                addError(error, options);
+                return typeof error === 'string' ? error : error.message;
+            });
+            const autoFilledSettings = await aiService.generateAutoFillSettings(
+                config.additionalInstructions,
+                'gemini-flash' // Default model, could be made configurable
+            );
+
+            // Apply the auto-filled settings
+            console.log('Auto-filled settings from AI:', autoFilledSettings);
+            setConfig(prev => {
+                const newConfig = {
+                    ...prev,
+                    ...autoFilledSettings,
+                };
+                console.log('New config after auto-fill:', newConfig);
+                return newConfig;
+            });
+
+            // Show success message
+            console.log('Settings auto-filled successfully:', autoFilledSettings);
+        } catch (error) {
+            console.error('Auto-fill failed:', error);
+            addError('Không thể tự động điền cài đặt. Vui lòng thử lại hoặc điền thủ công.', {
+                context: 'Auto-fill Settings',
+                recoverable: true,
+            });
+        } finally {
+            setIsAutoFilling(false);
+        }
+    };
+
+    const handleAutoGeneratePrompts = async () => {
+        if (!config.additionalInstructions?.trim()) {
+            addError('Vui lòng nhập hướng dẫn để tự động tạo yêu cầu', {
+                context: 'Auto-generate Prompts',
+                recoverable: true,
+            });
+            return;
+        }
+
+        if (!onAddPrompt) {
+            addError('Không thể thêm yêu cầu. Vui lòng thử lại.', {
+                context: 'Auto-generate Prompts',
+                recoverable: true,
+            });
+            return;
+        }
+
+        setIsGeneratingPrompts(true);
+        try {
+            const aiService = getAIService((error, options) => {
+                addError(error, options);
+                return typeof error === 'string' ? error : error.message;
+            });
+            const generatedPrompts = await aiService.generateAutoPrompts(
+                config.additionalInstructions,
+                'gemini-flash' // Default model, could be made configurable
+            );
+
+            // Add the generated prompts
+            console.log('Generated prompts from AI:', generatedPrompts);
+            const promptsToAdd = generatedPrompts.map(prompt => ({
+                title: prompt.title,
+                content: prompt.content,
+            }));
+            onAddPrompt!(promptsToAdd);
+
+            console.log('Prompts added successfully');
+        } catch (error) {
+            console.error('Auto-generate prompts failed:', error);
+            addError('Không thể tự động tạo yêu cầu. Vui lòng thử lại hoặc tạo thủ công.', {
+                context: 'Auto-generate Prompts',
+                recoverable: true,
+            });
+        } finally {
+            setIsGeneratingPrompts(false);
+        }
     };
 
     const handlePromptSelection = (id: string, isChecked: boolean) => {
@@ -180,6 +279,46 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                         </div>
                     )}
                  </Section>
+                <Section title="Hướng dẫn bổ sung cho AI" initialOpen={true}>
+                    <div className="space-y-2">
+                        <TextArea
+                            label="Hướng dẫn tùy chỉnh (tùy chọn)"
+                            placeholder={`Ví dụ:
+• Tập trung vào cảm xúc nội tâm của nhân vật chính
+• Sử dụng ngôn ngữ thơ mộng, lãng mạn hơn
+• Thêm yếu tố bất ngờ và twist plot
+• Viết theo phong cách văn học Việt Nam hiện đại
+• Tăng cường tương tác giữa các nhân vật`}
+                            value={config.additionalInstructions || ''}
+                            onChange={e => handleChange('additionalInstructions', e.target.value)}
+                        />
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleAutoFillSettings}
+                                disabled={isAutoFilling || !config.additionalInstructions?.trim()}
+                                className="flex-1 flex justify-center items-center px-3 py-2 text-sm bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
+                            >
+                            {isAutoFilling ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Đang phân tích...
+                                </>
+                            ) : (
+                                <>
+                                    <WandIcon className="w-4 h-4 mr-2" />
+                                    Tự động điền cài đặt
+                                </>
+                            )}
+                            </button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Nhập hướng dẫn và nhấn "Tự động điền cài đặt" để AI phân tích và điền các trường phù hợp.
+                        </p>
+                    </div>
+                </Section>
                 <Section title="Kịch bản / Bối cảnh" initialOpen={true}>
                     <ComboboxInput 
                         label="Chọn kịch bản hoặc nhập tùy chỉnh"
@@ -208,10 +347,35 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                     />
                 </Section>
                  <Section title="Yêu cầu tùy chỉnh">
-                    <button onClick={onManagePrompts} className="w-full flex justify-center items-center px-4 py-2 text-sm bg-secondary font-semibold rounded-md hover:bg-secondary/80 transition-colors">
-                        <BookmarkIcon className="w-4 h-4 mr-2" />
-                        Quản lý yêu cầu
-                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={onManagePrompts} className="flex-1 flex justify-center items-center px-3 py-2 text-sm bg-secondary font-semibold rounded-md hover:bg-secondary/80 transition-colors">
+                            <BookmarkIcon className="w-4 h-4 mr-2" />
+                            Quản lý yêu cầu
+                        </button>
+                        <button
+                            onClick={handleAutoGeneratePrompts}
+                            disabled={isGeneratingPrompts || !config.additionalInstructions?.trim() || !onAddPrompt}
+                            className="flex-1 flex justify-center items-center px-3 py-2 text-sm bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
+                        >
+                            {isGeneratingPrompts ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Đang tạo...
+                                </>
+                            ) : (
+                                <>
+                                    <WandIcon className="w-4 h-4 mr-2" />
+                                    Tự động tạo yêu cầu
+                                </>
+                            )}
+                        </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                        Nhập hướng dẫn và nhấn "Tự động tạo yêu cầu" để AI tạo các yêu cầu tùy chỉnh phù hợp.
+                    </p>
                     <div className="max-h-36 overflow-y-auto space-y-2 border-t border-border pt-3 mt-3">
                         {customPrompts.length > 0 ? customPrompts.map(prompt => (
                              <label key={prompt.id} htmlFor={`prompt-${prompt.id}`} className="flex items-center p-2 rounded-md hover:bg-muted/50 cursor-pointer">
@@ -259,7 +423,7 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({ config, setC
                     </div>
                 </Section>
                 <Section title="Thiết lập nhịp độ">
-                    <ComboboxInput 
+                    <ComboboxInput
                         label="Đặt nhịp độ hoặc nhập tùy chỉnh"
                         value={config.pacing}
                         onChange={e => handleChange('pacing', e.target.value)}

@@ -25,3 +25,4 @@ dist-ssr
 GEMINI.md
 .gitignore
 samples/
+.env

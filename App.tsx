@@ -1287,6 +1287,14 @@ const App: React.FC = () => {
                                     }));
                                 }}
                                 onManagePrompts={() => setIsPromptManagerOpen(true)}
+                                onAddPrompt={(prompts) => {
+                                    const newPrompts = Array.isArray(prompts) ? prompts : [prompts];
+                                    const promptsWithIds = newPrompts.map(prompt => ({
+                                        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                                        ...prompt,
+                                    }));
+                                    setGlobalPrompts([...globalPrompts, ...promptsWithIds]);
+                                }}
                                 keywordPresets={activeStory.keywordPresets || []}
                                 onManageKeywordPresets={() => setIsKeywordPresetManagerOpen(true)}
                                 onSaveKeywordPreset={handleSaveKeywordPreset}
@@ -1309,7 +1317,7 @@ const App: React.FC = () => {
                                     onGenerate={handleGenerate}
                                     isLoading={isLoading}
                                     isGenerateDisabled={isGenerateDisabled}
-                                    customPrompts={activeStory.customPrompts}
+                                    customPrompts={globalPrompts}
                                     selectedPromptIds={activeStory.selectedPromptIds || []}
                                     setSelectedPromptIds={(ids) => {
                                         setStories(prev => ({
@@ -1321,6 +1329,14 @@ const App: React.FC = () => {
                                         }));
                                     }}
                                     onManagePrompts={() => setIsPromptManagerOpen(true)}
+                                    onAddPrompt={(prompts) => {
+                                        const newPrompts = Array.isArray(prompts) ? prompts : [prompts];
+                                        const promptsWithIds = newPrompts.map(prompt => ({
+                                            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                                            ...prompt,
+                                        }));
+                                        setGlobalPrompts([...globalPrompts, ...promptsWithIds]);
+                                    }}
                                     keywordPresets={activeStory.keywordPresets || []}
                                     onManageKeywordPresets={() => setIsKeywordPresetManagerOpen(true)}
                                     onSaveKeywordPreset={handleSaveKeywordPreset}
