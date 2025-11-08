@@ -26,9 +26,9 @@ export const ChapterPreviewDialog: React.FC<ChapterPreviewDialogProps> = ({
     }
 
     const query = searchQuery.toLowerCase();
-    return importResult.chapters.filter(chapter =>
-      chapter.title.toLowerCase().includes(query) ||
-      chapter.content.toLowerCase().includes(query)
+    return importResult.chapters.filter(
+      (chapter) =>
+        chapter.title.toLowerCase().includes(query) || chapter.content.toLowerCase().includes(query)
     );
   }, [importResult, searchQuery]);
 
@@ -46,7 +46,7 @@ export const ChapterPreviewDialog: React.FC<ChapterPreviewDialogProps> = ({
     if (selectedChapters.size === filteredChapters.length) {
       setSelectedChapters(new Set());
     } else {
-      setSelectedChapters(new Set(filteredChapters.map(c => c.id)));
+      setSelectedChapters(new Set(filteredChapters.map((c) => c.id)));
     }
   };
 
@@ -60,7 +60,7 @@ export const ChapterPreviewDialog: React.FC<ChapterPreviewDialogProps> = ({
   };
 
   const handleConfirmImport = () => {
-    const chaptersToImport = importResult?.chapters.filter(c => selectedChapters.has(c.id)) || [];
+    const chaptersToImport = importResult?.chapters.filter((c) => selectedChapters.has(c.id)) || [];
     onConfirmImport(chaptersToImport);
   };
 
@@ -74,13 +74,11 @@ export const ChapterPreviewDialog: React.FC<ChapterPreviewDialogProps> = ({
           <div>
             <h2 className="text-2xl font-bold text-gray-800">Preview Chương Import</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Đã import {importResult.chapters.length} chương từ file "{importResult.metadata.fileName}"
+              Đã import {importResult.chapters.length} chương từ file &quot;
+              {importResult.metadata.fileName}&quot;
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
-          >
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
             ×
           </button>
         </div>
@@ -170,9 +168,7 @@ export const ChapterPreviewDialog: React.FC<ChapterPreviewDialogProps> = ({
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-medium text-gray-900 truncate">
-                        {chapter.title}
-                      </h3>
+                      <h3 className="font-medium text-gray-900 truncate">{chapter.title}</h3>
                       <button
                         onClick={() => handleEditChapter(chapter)}
                         className="text-blue-500 hover:text-blue-600 text-sm"
@@ -182,9 +178,8 @@ export const ChapterPreviewDialog: React.FC<ChapterPreviewDialogProps> = ({
                     </div>
 
                     <div className="text-sm text-gray-500 mb-2">
-                      {chapter.wordCount.toLocaleString()} từ •
-                      {chapter.estimatedReadingTime} phút đọc •
-                      {chapter.characterCount.toLocaleString()} ký tự
+                      {chapter.wordCount.toLocaleString()} từ •{chapter.estimatedReadingTime} phút
+                      đọc •{chapter.characterCount.toLocaleString()} ký tự
                     </div>
 
                     <div className="text-sm text-gray-700 line-clamp-3">
@@ -204,10 +199,7 @@ export const ChapterPreviewDialog: React.FC<ChapterPreviewDialogProps> = ({
             Đã chọn {selectedChapters.size} / {filteredChapters.length} chương
           </div>
           <div className="space-x-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
-            >
+            <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:text-gray-800">
               Hủy
             </button>
             <button
@@ -241,9 +233,9 @@ export const ChapterPreviewDialog: React.FC<ChapterPreviewDialogProps> = ({
                 <input
                   type="text"
                   value={editingChapter.title}
-                  onChange={(e) => setEditingChapter(prev =>
-                    prev ? { ...prev, title: e.target.value } : null
-                  )}
+                  onChange={(e) =>
+                    setEditingChapter((prev) => (prev ? { ...prev, title: e.target.value } : null))
+                  }
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
               </div>
@@ -252,9 +244,11 @@ export const ChapterPreviewDialog: React.FC<ChapterPreviewDialogProps> = ({
                 <label className="block text-sm font-medium mb-2">Nội dung chương</label>
                 <textarea
                   value={editingChapter.content}
-                  onChange={(e) => setEditingChapter(prev =>
-                    prev ? { ...prev, content: e.target.value } : null
-                  )}
+                  onChange={(e) =>
+                    setEditingChapter((prev) =>
+                      prev ? { ...prev, content: e.target.value } : null
+                    )
+                  }
                   rows={20}
                   className="w-full p-2 border border-gray-300 rounded-md font-mono text-sm"
                 />

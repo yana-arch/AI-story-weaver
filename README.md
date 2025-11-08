@@ -64,19 +64,16 @@ AI Story Weaver là một công cụ viết truyện sáng tạo được hỗ t
 ## Cách sử dụng
 
 1. **Bắt đầu truyện mới:**
-
    - Nhấp vào nút "New Story" để tạo dự án truyện mới
    - Nhập đoạn mở đầu của truyện
 
 2. **Sử dụng AI để sáng tạo:**
-
    - Mở bảng điều khiển AI ở bên phải
    - Thiết lập kịch bản, cấu trúc truyện, động lực nhân vật
    - Sử dụng prompt tùy chỉnh để hướng dẫn AI
    - Nhấp "Sáng tạo với AI" để tạo nội dung
 
 3. **Quản lý nhân vật:**
-
    - Sử dụng công cụ phân tích để trích xuất nhân vật tự động
    - Chỉnh sửa hồ sơ nhân vật chi tiết
 

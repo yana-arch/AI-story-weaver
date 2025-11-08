@@ -73,129 +73,133 @@ export const ChapterProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setChapterTemplates(defaultTemplates);
   }, []);
 
-  const createChapter = useCallback((
-    title: string,
-    parentId?: string,
-    templateId?: string
-  ): string => {
-    const chapterId = chapterService.generateChapterId();
-    const template = templateId ? chapterTemplates.find(t => t.id === templateId) : undefined;
+  const createChapter = useCallback(
+    (title: string, parentId?: string, templateId?: string): string => {
+      const chapterId = chapterService.generateChapterId();
+      const template = templateId ? chapterTemplates.find((t) => t.id === templateId) : undefined;
 
-    const metadata: ChapterMetadata = {
-      tags: template?.genre || [],
-      estimatedReadingTime: template?.structure.suggestedWordCount ? Math.ceil(template.structure.suggestedWordCount / 200) : 5,
-      wordCount: 0,
-      characterCount: 0,
-      lastModifiedAt: Date.now(),
-      createdAt: Date.now(),
-      status: ChapterStatus.DRAFT,
-      type: ChapterType.MAIN,
-      description: template?.description || '',
-      notes: '',
-    };
+      const metadata: ChapterMetadata = {
+        tags: template?.genre || [],
+        estimatedReadingTime: template?.structure.suggestedWordCount
+          ? Math.ceil(template.structure.suggestedWordCount / 200)
+          : 5,
+        wordCount: 0,
+        characterCount: 0,
+        lastModifiedAt: Date.now(),
+        createdAt: Date.now(),
+        status: ChapterStatus.DRAFT,
+        type: ChapterType.MAIN,
+        description: template?.description || '',
+        notes: '',
+      };
 
-    const analytics: ChapterAnalytics = {
-      wordsAdded: 0,
-      wordsEdited: 0,
-      writingTime: 0,
-      revisionsCount: 0,
-      readerEngagement: 0,
-      popularityScore: 0,
-    };
+      const analytics: ChapterAnalytics = {
+        wordsAdded: 0,
+        wordsEdited: 0,
+        writingTime: 0,
+        revisionsCount: 0,
+        readerEngagement: 0,
+        popularityScore: 0,
+      };
 
-    const hierarchy: ChapterHierarchy = {
-      id: chapterId,
-      parentId,
-      children: [],
-      level: parentId ? chapterHierarchy.find(h => h.id === parentId)?.level ?? 0 + 1 : 0,
-    };
+      const hierarchy: ChapterHierarchy = {
+        id: chapterId,
+        parentId,
+        children: [],
+        level: parentId ? (chapterHierarchy.find((h) => h.id === parentId)?.level ?? 0 + 1) : 0,
+      };
 
-    const chapter: EnhancedStorySegment = {
-      id: chapterId,
-      type: 'chapter',
-      content: title,
-      chapterData: {
-        hierarchy,
-        metadata,
-        analytics,
-        dependencies: [],
-      },
-    };
+      const chapter: EnhancedStorySegment = {
+        id: chapterId,
+        type: 'chapter',
+        content: title,
+        chapterData: {
+          hierarchy,
+          metadata,
+          analytics,
+          dependencies: [],
+        },
+      };
 
-    // Apply template content if provided
-    if (template?.defaultContent) {
-      chapter.content = template.defaultContent;
-    }
-
-    // Update hierarchy
-    setChapterHierarchy(prev => {
-      const newHierarchy = [...prev, hierarchy];
-
-      // Update parent's children
-      if (parentId) {
-        newHierarchy.forEach(h => {
-          if (h.id === parentId) {
-            h.children.push(chapterId);
-          }
-        });
+      // Apply template content if provided
+      if (template?.defaultContent) {
+        chapter.content = template.defaultContent;
       }
 
-      return newHierarchy;
-    });
+      // Update hierarchy
+      setChapterHierarchy((prev) => {
+        const newHierarchy = [...prev, hierarchy];
 
-    // Add to chapters
-    setChapters(prev => ({ ...prev, [chapterId]: chapter }));
+        // Update parent's children
+        if (parentId) {
+          newHierarchy.forEach((h) => {
+            if (h.id === parentId) {
+              h.children.push(chapterId);
+            }
+          });
+        }
 
-    // Record operation
-    const operation: ChapterOperation = {
-      id: chapterService.generateOperationId(),
-      type: 'create',
-      timestamp: Date.now(),
-      data: { chapterId, title, parentId, templateId },
-      affectedChapters: [chapterId],
-    };
-    setOperations(prev => [...prev, operation]);
+        return newHierarchy;
+      });
 
-    return chapterId;
-  }, [chapterTemplates, chapterHierarchy]);
+      // Add to chapters
+      setChapters((prev) => ({ ...prev, [chapterId]: chapter }));
 
-  const deleteChapter = useCallback((chapterId: string) => {
-    const chapter = chapters[chapterId];
-    if (!chapter) return;
+      // Record operation
+      const operation: ChapterOperation = {
+        id: chapterService.generateOperationId(),
+        type: 'create',
+        timestamp: Date.now(),
+        data: { chapterId, title, parentId, templateId },
+        affectedChapters: [chapterId],
+      };
+      setOperations((prev) => [...prev, operation]);
 
-    // Get all child chapters recursively
-    const getAllChildren = (id: string): string[] => {
-      const children = chapterHierarchy.find(h => h.id === id)?.children || [];
-      return [id, ...children.flatMap(getAllChildren)];
-    };
+      return chapterId;
+    },
+    [chapterTemplates, chapterHierarchy]
+  );
 
-    const chaptersToDelete = getAllChildren(chapterId);
+  const deleteChapter = useCallback(
+    (chapterId: string) => {
+      const chapter = chapters[chapterId];
+      if (!chapter) return;
 
-    // Remove from hierarchy
-    setChapterHierarchy(prev => {
-      return prev.filter(h => !chaptersToDelete.includes(h.id));
-    });
+      // Get all child chapters recursively
+      const getAllChildren = (id: string): string[] => {
+        const children = chapterHierarchy.find((h) => h.id === id)?.children || [];
+        return [id, ...children.flatMap(getAllChildren)];
+      };
 
-    // Remove from parent children
-    setChapters(prev => {
-      const newChapters = { ...prev };
-      chaptersToDelete.forEach(id => delete newChapters[id]);
-      return newChapters;
-    });
+      const chaptersToDelete = getAllChildren(chapterId);
 
-    // Record operation
-    const operation: ChapterOperation = {
-      id: chapterService.generateOperationId(),
-      type: 'delete',
-      timestamp: Date.now(),
-      data: { chapterId },
-      affectedChapters: chaptersToDelete,
-    };
-    setOperations(prev => [...prev, operation]);
-  }, [chapters, chapterHierarchy]);
+      // Remove from hierarchy
+      setChapterHierarchy((prev) => {
+        return prev.filter((h) => !chaptersToDelete.includes(h.id));
+      });
+
+      // Remove from parent children
+      setChapters((prev) => {
+        const newChapters = { ...prev };
+        chaptersToDelete.forEach((id) => delete newChapters[id]);
+        return newChapters;
+      });
+
+      // Record operation
+      const operation: ChapterOperation = {
+        id: chapterService.generateOperationId(),
+        type: 'delete',
+        timestamp: Date.now(),
+        data: { chapterId },
+        affectedChapters: chaptersToDelete,
+      };
+      setOperations((prev) => [...prev, operation]);
+    },
+    [chapters, chapterHierarchy]
+  );
 
   const updateChapter = useCallback((chapterId: string, updates: Partial<EnhancedStorySegment>) => {
-    setChapters(prev => {
+    setChapters((prev) => {
       if (!prev[chapterId]) return prev;
 
       const updatedChapter = {
@@ -220,7 +224,7 @@ export const ChapterProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const wordCount = updates.content.split(/\s+/).length;
       const characterCount = updates.content.length;
 
-      setChapters(prev => {
+      setChapters((prev) => {
         if (!prev[chapterId]?.chapterData) return prev;
 
         return {
@@ -249,179 +253,207 @@ export const ChapterProvider: React.FC<{ children: React.ReactNode }> = ({ child
       data: { chapterId, updates },
       affectedChapters: [chapterId],
     };
-    setOperations(prev => [...prev, operation]);
+    setOperations((prev) => [...prev, operation]);
   }, []);
 
-  const moveChapter = useCallback((chapterId: string, newParentId?: string, newPosition?: number) => {
-    setChapterHierarchy(prev => {
-      const newHierarchy = [...prev];
+  const moveChapter = useCallback(
+    (chapterId: string, newParentId?: string, newPosition?: number) => {
+      setChapterHierarchy((prev) => {
+        const newHierarchy = [...prev];
 
-      // Find current hierarchy entry
-      const chapterIndex = newHierarchy.findIndex(h => h.id === chapterId);
-      if (chapterIndex === -1) return prev;
+        // Find current hierarchy entry
+        const chapterIndex = newHierarchy.findIndex((h) => h.id === chapterId);
+        if (chapterIndex === -1) return prev;
 
-      // Remove from old parent
-      const oldParentId = newHierarchy[chapterIndex].parentId;
-      if (oldParentId) {
-        const oldParentIndex = newHierarchy.findIndex(h => h.id === oldParentId);
-        if (oldParentIndex !== -1) {
-          newHierarchy[oldParentIndex].children = newHierarchy[oldParentIndex].children.filter(id => id !== chapterId);
-        }
-      }
-
-      // Update hierarchy entry
-      newHierarchy[chapterIndex].parentId = newParentId;
-      newHierarchy[chapterIndex].level = newParentId ? newHierarchy.find(h => h.id === newParentId)?.level ?? 0 + 1 : 0;
-
-      // Add to new parent
-      if (newParentId) {
-        const newParentIndex = newHierarchy.findIndex(h => h.id === newParentId);
-        if (newParentIndex !== -1) {
-          if (newPosition !== undefined) {
-            newHierarchy[newParentIndex].children.splice(newPosition, 0, chapterId);
-          } else {
-            newHierarchy[newParentIndex].children.push(chapterId);
+        // Remove from old parent
+        const oldParentId = newHierarchy[chapterIndex].parentId;
+        if (oldParentId) {
+          const oldParentIndex = newHierarchy.findIndex((h) => h.id === oldParentId);
+          if (oldParentIndex !== -1) {
+            newHierarchy[oldParentIndex].children = newHierarchy[oldParentIndex].children.filter(
+              (id) => id !== chapterId
+            );
           }
         }
+
+        // Update hierarchy entry
+        newHierarchy[chapterIndex].parentId = newParentId;
+        newHierarchy[chapterIndex].level = newParentId
+          ? (newHierarchy.find((h) => h.id === newParentId)?.level ?? 0 + 1)
+          : 0;
+
+        // Add to new parent
+        if (newParentId) {
+          const newParentIndex = newHierarchy.findIndex((h) => h.id === newParentId);
+          if (newParentIndex !== -1) {
+            if (newPosition !== undefined) {
+              newHierarchy[newParentIndex].children.splice(newPosition, 0, chapterId);
+            } else {
+              newHierarchy[newParentIndex].children.push(chapterId);
+            }
+          }
+        }
+
+        return newHierarchy;
+      });
+    },
+    []
+  );
+
+  const mergeChapters = useCallback(
+    (chapterIds: string[], mergedTitle: string): string => {
+      const validChapters = chapterIds.filter((id) => chapters[id]);
+      if (validChapters.length < 2) return '';
+
+      const content = validChapters.map((id) => chapters[id].content).join('\n\n');
+
+      const newChapterId = createChapter(mergedTitle);
+      updateChapter(newChapterId, { content });
+
+      // Delete original chapters
+      validChapters.forEach((id) => deleteChapter(id));
+
+      return newChapterId;
+    },
+    [chapters, createChapter, updateChapter, deleteChapter]
+  );
+
+  const splitChapter = useCallback(
+    (chapterId: string, splitPoints: number[]): string[] => {
+      const chapter = chapters[chapterId];
+      if (!chapter || splitPoints.length === 0) return [];
+
+      const contentLines = chapter.content.split('\n');
+      const newChapterIds: string[] = [];
+
+      let currentLines: string[] = [];
+      let currentIndex = 0;
+
+      for (let i = 0; i < contentLines.length; i++) {
+        currentLines.push(contentLines[i]);
+
+        if (splitPoints.includes(i + 1) || i === contentLines.length - 1) {
+          const sectionTitle = `Chapter ${currentIndex + 1} (Split from ${chapter.content})`;
+          const newChapterId = createChapter(sectionTitle, undefined, undefined);
+          updateChapter(newChapterId, { content: currentLines.join('\n') });
+          newChapterIds.push(newChapterId);
+
+          currentLines = [];
+          currentIndex++;
+        }
       }
 
-      return newHierarchy;
-    });
-  }, []);
+      deleteChapter(chapterId);
 
-  const mergeChapters = useCallback((chapterIds: string[], mergedTitle: string): string => {
-    const validChapters = chapterIds.filter(id => chapters[id]);
-    if (validChapters.length < 2) return '';
+      return newChapterIds;
+    },
+    [chapters, createChapter, updateChapter, deleteChapter]
+  );
 
-    const content = validChapters
-      .map(id => chapters[id].content)
-      .join('\n\n');
+  const getChapterAnalytics = useCallback(
+    (chapterId: string): ChapterAnalytics => {
+      return (
+        chapters[chapterId]?.chapterData?.analytics || {
+          wordsAdded: 0,
+          wordsEdited: 0,
+          writingTime: 0,
+          revisionsCount: 0,
+          readerEngagement: 0,
+          popularityScore: 0,
+        }
+      );
+    },
+    [chapters]
+  );
 
-    const newChapterId = createChapter(mergedTitle);
-    updateChapter(newChapterId, { content });
+  const updateChapterAnalytics = useCallback(
+    (chapterId: string, analytics: Partial<ChapterAnalytics>) => {
+      setChapters((prev) => {
+        if (!prev[chapterId]?.chapterData) return prev;
 
-    // Delete original chapters
-    validChapters.forEach(id => deleteChapter(id));
-
-    return newChapterId;
-  }, [chapters, createChapter, updateChapter, deleteChapter]);
-
-  const splitChapter = useCallback((chapterId: string, splitPoints: number[]): string[] => {
-    const chapter = chapters[chapterId];
-    if (!chapter || splitPoints.length === 0) return [];
-
-    const contentLines = chapter.content.split('\n');
-    const newChapterIds: string[] = [];
-
-    let currentLines: string[] = [];
-    let currentIndex = 0;
-
-    for (let i = 0; i < contentLines.length; i++) {
-      currentLines.push(contentLines[i]);
-
-      if (splitPoints.includes(i + 1) || i === contentLines.length - 1) {
-        const sectionTitle = `Chapter ${currentIndex + 1} (Split from ${chapter.content})`;
-        const newChapterId = createChapter(sectionTitle, undefined, undefined);
-        updateChapter(newChapterId, { content: currentLines.join('\n') });
-        newChapterIds.push(newChapterId);
-
-        currentLines = [];
-        currentIndex++;
-      }
-    }
-
-    deleteChapter(chapterId);
-
-    return newChapterIds;
-  }, [chapters, createChapter, updateChapter, deleteChapter]);
-
-  const getChapterAnalytics = useCallback((chapterId: string): ChapterAnalytics => {
-    return chapters[chapterId]?.chapterData?.analytics || {
-      wordsAdded: 0,
-      wordsEdited: 0,
-      writingTime: 0,
-      revisionsCount: 0,
-      readerEngagement: 0,
-      popularityScore: 0,
-    };
-  }, [chapters]);
-
-  const updateChapterAnalytics = useCallback((chapterId: string, analytics: Partial<ChapterAnalytics>) => {
-    setChapters(prev => {
-      if (!prev[chapterId]?.chapterData) return prev;
-
-      return {
-        ...prev,
-        [chapterId]: {
-          ...prev[chapterId],
-          chapterData: {
-            ...prev[chapterId].chapterData!,
-            analytics: {
-              ...prev[chapterId].chapterData!.analytics,
-              ...analytics,
+        return {
+          ...prev,
+          [chapterId]: {
+            ...prev[chapterId],
+            chapterData: {
+              ...prev[chapterId].chapterData!,
+              analytics: {
+                ...prev[chapterId].chapterData!.analytics,
+                ...analytics,
+              },
             },
           },
-        },
-      };
-    });
-  }, []);
+        };
+      });
+    },
+    []
+  );
 
-  const updateChapterStatus = useCallback((chapterId: string, status: ChapterStatus) => {
-    updateChapter(chapterId, {
-      chapterData: {
-        ...chapters[chapterId]?.chapterData,
-        metadata: {
-          ...chapters[chapterId]?.chapterData?.metadata,
-          status,
+  const updateChapterStatus = useCallback(
+    (chapterId: string, status: ChapterStatus) => {
+      updateChapter(chapterId, {
+        chapterData: {
+          ...chapters[chapterId]?.chapterData,
+          metadata: {
+            ...chapters[chapterId]?.chapterData?.metadata,
+            status,
+          },
         },
-      },
-    });
-  }, [chapters, updateChapter]);
+      });
+    },
+    [chapters, updateChapter]
+  );
 
-  const updateChapterMetadata = useCallback((chapterId: string, metadata: Partial<ChapterMetadata>) => {
-    updateChapter(chapterId, {
-      chapterData: {
-        ...chapters[chapterId]?.chapterData,
-        metadata: {
-          ...chapters[chapterId]?.chapterData?.metadata,
-          ...metadata,
+  const updateChapterMetadata = useCallback(
+    (chapterId: string, metadata: Partial<ChapterMetadata>) => {
+      updateChapter(chapterId, {
+        chapterData: {
+          ...chapters[chapterId]?.chapterData,
+          metadata: {
+            ...chapters[chapterId]?.chapterData?.metadata,
+            ...metadata,
+          },
         },
-      },
-    });
-  }, [chapters, updateChapter]);
+      });
+    },
+    [chapters, updateChapter]
+  );
 
   const createChapterTemplate = useCallback((template: Omit<ChapterTemplate, 'id'>): string => {
     const templateId = chapterService.generateTemplateId();
     const newTemplate: ChapterTemplate = { ...template, id: templateId };
-    setChapterTemplates(prev => [...prev, newTemplate]);
+    setChapterTemplates((prev) => [...prev, newTemplate]);
     return templateId;
   }, []);
 
   const deleteChapterTemplate = useCallback((templateId: string) => {
-    setChapterTemplates(prev => prev.filter(t => t.id !== templateId));
+    setChapterTemplates((prev) => prev.filter((t) => t.id !== templateId));
   }, []);
 
-  const applyChapterTemplate = useCallback((chapterId: string, templateId: string) => {
-    const template = chapterTemplates.find(t => t.id === templateId);
-    if (!template) return;
+  const applyChapterTemplate = useCallback(
+    (chapterId: string, templateId: string) => {
+      const template = chapterTemplates.find((t) => t.id === templateId);
+      if (!template) return;
 
-    updateChapter(chapterId, {
-      content: template.defaultContent || template.structure.sections.join('\n\n'),
-      chapterData: {
-        ...chapters[chapterId]?.chapterData,
-        metadata: {
-          ...chapters[chapterId]?.chapterData?.metadata,
-          tags: template.genre,
-          description: template.description,
+      updateChapter(chapterId, {
+        content: template.defaultContent || template.structure.sections.join('\n\n'),
+        chapterData: {
+          ...chapters[chapterId]?.chapterData,
+          metadata: {
+            ...chapters[chapterId]?.chapterData?.metadata,
+            tags: template.genre,
+            description: template.description,
+          },
         },
-      },
-    });
-  }, [chapterTemplates, chapters, updateChapter]);
+      });
+    },
+    [chapterTemplates, chapters, updateChapter]
+  );
 
   const addChapterDependency = useCallback((dependency: Omit<ChapterDependency, 'id'>): string => {
     const dependencyId = chapterService.generateDependencyId();
 
-    setChapters(prev => {
+    setChapters((prev) => {
       if (!prev[dependency.sourceChapterId]?.chapterData) return prev;
 
       const sourceChapter = prev[dependency.sourceChapterId];
@@ -443,13 +475,15 @@ export const ChapterProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const removeChapterDependency = useCallback((dependencyId: string) => {
-    setChapters(prev => {
+    setChapters((prev) => {
       const newChapters = { ...prev };
 
-      Object.keys(newChapters).forEach(chapterId => {
+      Object.keys(newChapters).forEach((chapterId) => {
         const chapter = newChapters[chapterId];
         if (chapter.chapterData?.dependencies) {
-          chapter.chapterData.dependencies = chapter.chapterData.dependencies.filter(d => d.id !== dependencyId);
+          chapter.chapterData.dependencies = chapter.chapterData.dependencies.filter(
+            (d) => d.id !== dependencyId
+          );
         }
       });
 
@@ -457,66 +491,90 @@ export const ChapterProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   }, []);
 
-  const getChapterPath = useCallback((chapterId: string): EnhancedStorySegment[] => {
-    const path: EnhancedStorySegment[] = [];
-    let currentId: string | undefined = chapterId;
+  const getChapterPath = useCallback(
+    (chapterId: string): EnhancedStorySegment[] => {
+      const path: EnhancedStorySegment[] = [];
+      let currentId: string | undefined = chapterId;
 
-    while (currentId) {
-      const chapter = chapters[currentId];
-      if (chapter) {
-        path.unshift(chapter);
-        currentId = chapterHierarchy.find(h => h.id === currentId)?.parentId;
-      } else {
-        break;
+      while (currentId) {
+        const chapter = chapters[currentId];
+        if (chapter) {
+          path.unshift(chapter);
+          currentId = chapterHierarchy.find((h) => h.id === currentId)?.parentId;
+        } else {
+          break;
+        }
       }
-    }
 
-    return path;
-  }, [chapters, chapterHierarchy]);
+      return path;
+    },
+    [chapters, chapterHierarchy]
+  );
 
-  const getChildChapters = useCallback((chapterId?: string): EnhancedStorySegment[] => {
-    const children = chapterId
-      ? chapterHierarchy.find(h => h.id === chapterId)?.children || []
-      : chapterHierarchy.filter(h => !h.parentId).map(h => h.id);
+  const getChildChapters = useCallback(
+    (chapterId?: string): EnhancedStorySegment[] => {
+      const children = chapterId
+        ? chapterHierarchy.find((h) => h.id === chapterId)?.children || []
+        : chapterHierarchy.filter((h) => !h.parentId).map((h) => h.id);
 
-    return children.map(id => chapters[id]).filter((chapter): chapter is EnhancedStorySegment => !!chapter);
-  }, [chapters, chapterHierarchy]);
+      return children
+        .map((id) => chapters[id])
+        .filter((chapter): chapter is EnhancedStorySegment => !!chapter);
+    },
+    [chapters, chapterHierarchy]
+  );
 
-  const getChapterLevel = useCallback((chapterId: string): number => {
-    return chapterHierarchy.find(h => h.id === chapterId)?.level || 0;
-  }, [chapterHierarchy]);
+  const getChapterLevel = useCallback(
+    (chapterId: string): number => {
+      return chapterHierarchy.find((h) => h.id === chapterId)?.level || 0;
+    },
+    [chapterHierarchy]
+  );
 
-  const searchChapters = useCallback((query: string): EnhancedStorySegment[] => {
-    const lowerQuery = query.toLowerCase();
-    return Object.values(chapters).filter(chapter => {
-      const chapterObj = chapter as EnhancedStorySegment;
-      return chapterObj.content.toLowerCase().includes(lowerQuery) ||
-        chapterObj.chapterData?.metadata.tags.some(tag => tag.toLowerCase().includes(lowerQuery)) ||
-        chapterObj.chapterData?.metadata.description?.toLowerCase().includes(lowerQuery);
-    }) as EnhancedStorySegment[];
-  }, [chapters]);
+  const searchChapters = useCallback(
+    (query: string): EnhancedStorySegment[] => {
+      const lowerQuery = query.toLowerCase();
+      return Object.values(chapters).filter((chapter) => {
+        const chapterObj = chapter as EnhancedStorySegment;
+        return (
+          chapterObj.content.toLowerCase().includes(lowerQuery) ||
+          chapterObj.chapterData?.metadata.tags.some((tag) =>
+            tag.toLowerCase().includes(lowerQuery)
+          ) ||
+          chapterObj.chapterData?.metadata.description?.toLowerCase().includes(lowerQuery)
+        );
+      }) as EnhancedStorySegment[];
+    },
+    [chapters]
+  );
 
-  const filterChaptersByStatus = useCallback((status: ChapterStatus): EnhancedStorySegment[] => {
-    return Object.values(chapters).filter(chapter => {
-      const chapterObj = chapter as EnhancedStorySegment;
-      return chapterObj.chapterData?.metadata.status === status;
-    }) as EnhancedStorySegment[];
-  }, [chapters]);
+  const filterChaptersByStatus = useCallback(
+    (status: ChapterStatus): EnhancedStorySegment[] => {
+      return Object.values(chapters).filter((chapter) => {
+        const chapterObj = chapter as EnhancedStorySegment;
+        return chapterObj.chapterData?.metadata.status === status;
+      }) as EnhancedStorySegment[];
+    },
+    [chapters]
+  );
 
-  const filterChaptersByType = useCallback((type: ChapterType): EnhancedStorySegment[] => {
-    return Object.values(chapters).filter(chapter => {
-      const chapterObj = chapter as EnhancedStorySegment;
-      return chapterObj.chapterData?.metadata.type === type;
-    }) as EnhancedStorySegment[];
-  }, [chapters]);
+  const filterChaptersByType = useCallback(
+    (type: ChapterType): EnhancedStorySegment[] => {
+      return Object.values(chapters).filter((chapter) => {
+        const chapterObj = chapter as EnhancedStorySegment;
+        return chapterObj.chapterData?.metadata.type === type;
+      }) as EnhancedStorySegment[];
+    },
+    [chapters]
+  );
 
   const loadChaptersFromStory = useCallback((story: Story) => {
-    const chapterSegments = story.storySegments.filter(s => s.type === 'chapter');
+    const chapterSegments = story.storySegments.filter((s) => s.type === 'chapter');
     const newChapters: Record<string, EnhancedStorySegment> = {};
     const newHierarchy: ChapterHierarchy[] = [];
 
     // Convert each chapter segment to enhanced format
-    chapterSegments.forEach(segment => {
+    chapterSegments.forEach((segment) => {
       const enhanced: EnhancedStorySegment = {
         ...segment,
         chapterData: {
@@ -558,7 +616,7 @@ export const ChapterProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const convertToStorySegments = useCallback((): StorySegment[] => {
-    return Object.values(chapters).map(chapter => {
+    return Object.values(chapters).map((chapter) => {
       const chapterObj = chapter as EnhancedStorySegment;
       return {
         id: chapterObj.id,
@@ -570,67 +628,66 @@ export const ChapterProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   }, [chapters]);
 
-  const contextValue = useMemo(() => ({
-    chapters,
-    chapterHierarchy,
-    chapterTemplates,
-    createChapter,
-    deleteChapter,
-    updateChapter,
-    moveChapter,
-    mergeChapters,
-    splitChapter,
-    getChapterAnalytics,
-    updateChapterAnalytics,
-    updateChapterStatus,
-    updateChapterMetadata,
-    createChapterTemplate,
-    deleteChapterTemplate,
-    applyChapterTemplate,
-    addChapterDependency,
-    removeChapterDependency,
-    getChapterPath,
-    getChildChapters,
-    getChapterLevel,
-    searchChapters,
-    filterChaptersByStatus,
-    filterChaptersByType,
-    loadChaptersFromStory,
-    convertToStorySegments,
-  }), [
-    chapters,
-    chapterHierarchy,
-    chapterTemplates,
-    createChapter,
-    deleteChapter,
-    updateChapter,
-    moveChapter,
-    mergeChapters,
-    splitChapter,
-    getChapterAnalytics,
-    updateChapterAnalytics,
-    updateChapterStatus,
-    updateChapterMetadata,
-    createChapterTemplate,
-    deleteChapterTemplate,
-    applyChapterTemplate,
-    addChapterDependency,
-    removeChapterDependency,
-    getChapterPath,
-    getChildChapters,
-    getChapterLevel,
-    searchChapters,
-    filterChaptersByStatus,
-    filterChaptersByType,
-    loadChaptersFromStory,
-    convertToStorySegments,
-  ]);
-
-  return (
-    <ChapterContext.Provider value={contextValue}>
-      {children}
-    </ChapterContext.Provider>
+  const contextValue = useMemo(
+    () => ({
+      chapters,
+      chapterHierarchy,
+      chapterTemplates,
+      createChapter,
+      deleteChapter,
+      updateChapter,
+      moveChapter,
+      mergeChapters,
+      splitChapter,
+      getChapterAnalytics,
+      updateChapterAnalytics,
+      updateChapterStatus,
+      updateChapterMetadata,
+      createChapterTemplate,
+      deleteChapterTemplate,
+      applyChapterTemplate,
+      addChapterDependency,
+      removeChapterDependency,
+      getChapterPath,
+      getChildChapters,
+      getChapterLevel,
+      searchChapters,
+      filterChaptersByStatus,
+      filterChaptersByType,
+      loadChaptersFromStory,
+      convertToStorySegments,
+    }),
+    [
+      chapters,
+      chapterHierarchy,
+      chapterTemplates,
+      createChapter,
+      deleteChapter,
+      updateChapter,
+      moveChapter,
+      mergeChapters,
+      splitChapter,
+      getChapterAnalytics,
+      updateChapterAnalytics,
+      updateChapterStatus,
+      updateChapterMetadata,
+      createChapterTemplate,
+      deleteChapterTemplate,
+      applyChapterTemplate,
+      addChapterDependency,
+      removeChapterDependency,
+      getChapterPath,
+      getChildChapters,
+      getChapterLevel,
+      searchChapters,
+      filterChaptersByStatus,
+      filterChaptersByType,
+      loadChaptersFromStory,
+      convertToStorySegments,
+    ]
   );
+
+  return <ChapterContext.Provider value={contextValue}>{children}</ChapterContext.Provider>;
 };
 
 export const useChapter = () => {

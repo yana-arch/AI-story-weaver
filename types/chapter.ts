@@ -1,5 +1,3 @@
-
-
 // Base Story Segment Interface
 export interface StorySegment {
   id: string;

@@ -17,6 +17,9 @@ export enum AIModelCapability {
   CHARACTER_ANALYSIS = 'character_analysis',
   CODE_EXECUTION = 'code_execution',
   IMAGE_GENERATION = 'image_generation',
+  STORY_STRUCTURE_ANALYSIS = 'story_structure_analysis',
+  PLOT_HOLE_DETECTION = 'plot_hole_detection',
+  CUSTOM_SCRIPTING = 'custom_scripting',
 }
 
 export interface AIModelConfig {
@@ -73,6 +76,7 @@ export interface AIResponse {
   };
   finishReason: string;
   metadata?: Record<string, any>;
+  imageUrls?: string[]; // New field for image generation
 }
 
 export class AIError extends Error {
@@ -106,7 +110,13 @@ export const AI_MODEL_CONFIGS: Record<AIProvider, AIModelConfig[]> = {
       provider: AIProvider.GOOGLE,
       modelId: 'gemini-pro',
       name: 'Gemini Pro',
-      capabilities: [AIModelCapability.TEXT_GENERATION, AIModelCapability.STORY_CONTINUATION, AIModelCapability.CHARACTER_ANALYSIS],
+      capabilities: [
+        AIModelCapability.TEXT_GENERATION,
+        AIModelCapability.STORY_CONTINUATION,
+        AIModelCapability.CHARACTER_ANALYSIS,
+        AIModelCapability.STORY_STRUCTURE_ANALYSIS,
+        AIModelCapability.PLOT_HOLE_DETECTION,
+      ],
       contextWindow: 32768,
       costPerToken: 0.00025,
       maxRequestsPerMinute: 60,
@@ -118,7 +128,11 @@ export const AI_MODEL_CONFIGS: Record<AIProvider, AIModelConfig[]> = {
       provider: AIProvider.GOOGLE,
       modelId: 'gemini-flash',
       name: 'Gemini Flash',
-      capabilities: [AIModelCapability.TEXT_GENERATION, AIModelCapability.STORY_CONTINUATION, AIModelCapability.CHARACTER_ANALYSIS],
+      capabilities: [
+        AIModelCapability.TEXT_GENERATION,
+        AIModelCapability.STORY_CONTINUATION,
+        AIModelCapability.CHARACTER_ANALYSIS,
+      ],
       contextWindow: 32768,
       costPerToken: 0.000075,
       maxRequestsPerMinute: 60,
@@ -132,7 +146,11 @@ export const AI_MODEL_CONFIGS: Record<AIProvider, AIModelConfig[]> = {
       provider: AIProvider.OPENAI,
       modelId: 'gpt-4',
       name: 'GPT-4',
-      capabilities: [AIModelCapability.TEXT_GENERATION, AIModelCapability.STORY_CONTINUATION, AIModelCapability.CHARACTER_ANALYSIS],
+      capabilities: [
+        AIModelCapability.TEXT_GENERATION,
+        AIModelCapability.STORY_CONTINUATION,
+        AIModelCapability.CHARACTER_ANALYSIS,
+      ],
       contextWindow: 8192,
       costPerToken: 0.03,
       maxRequestsPerMinute: 5000,
@@ -144,7 +162,11 @@ export const AI_MODEL_CONFIGS: Record<AIProvider, AIModelConfig[]> = {
       provider: AIProvider.OPENAI,
       modelId: 'gpt-3.5-turbo',
       name: 'GPT-3.5 Turbo',
-      capabilities: [AIModelCapability.TEXT_GENERATION, AIModelCapability.STORY_CONTINUATION, AIModelCapability.CHARACTER_ANALYSIS],
+      capabilities: [
+        AIModelCapability.TEXT_GENERATION,
+        AIModelCapability.STORY_CONTINUATION,
+        AIModelCapability.CHARACTER_ANALYSIS,
+      ],
       contextWindow: 4096,
       costPerToken: 0.002,
       maxRequestsPerMinute: 200,
@@ -152,13 +174,28 @@ export const AI_MODEL_CONFIGS: Record<AIProvider, AIModelConfig[]> = {
       supportsStreaming: true,
       supportsFunctionCalling: true,
     },
+    {
+      provider: AIProvider.OPENAI,
+      modelId: 'dall-e-3',
+      name: 'DALL-E 3',
+      capabilities: [AIModelCapability.IMAGE_GENERATION],
+      contextWindow: 0, // Not applicable for image generation
+      costPerToken: 0.04, // Example cost for 1024x1024 standard quality
+      requiresApiKey: true,
+      supportsStreaming: false,
+      supportsFunctionCalling: false,
+    },
   ],
   [AIProvider.ANTHROPIC]: [
     {
       provider: AIProvider.ANTHROPIC,
       modelId: 'claude-3-opus-20240229',
       name: 'Claude 3 Opus',
-      capabilities: [AIModelCapability.TEXT_GENERATION, AIModelCapability.STORY_CONTINUATION, AIModelCapability.CHARACTER_ANALYSIS],
+      capabilities: [
+        AIModelCapability.TEXT_GENERATION,
+        AIModelCapability.STORY_CONTINUATION,
+        AIModelCapability.CHARACTER_ANALYSIS,
+      ],
       contextWindow: 200000,
       costPerToken: 0.015,
       maxRequestsPerMinute: 50,
@@ -170,7 +207,11 @@ export const AI_MODEL_CONFIGS: Record<AIProvider, AIModelConfig[]> = {
       provider: AIProvider.ANTHROPIC,
       modelId: 'claude-3-sonnet-20240229',
       name: 'Claude 3 Sonnet',
-      capabilities: [AIModelCapability.TEXT_GENERATION, AIModelCapability.STORY_CONTINUATION, AIModelCapability.CHARACTER_ANALYSIS],
+      capabilities: [
+        AIModelCapability.TEXT_GENERATION,
+        AIModelCapability.STORY_CONTINUATION,
+        AIModelCapability.CHARACTER_ANALYSIS,
+      ],
       contextWindow: 200000,
       costPerToken: 0.003,
       maxRequestsPerMinute: 50,
@@ -182,7 +223,11 @@ export const AI_MODEL_CONFIGS: Record<AIProvider, AIModelConfig[]> = {
       provider: AIProvider.ANTHROPIC,
       modelId: 'claude-3-haiku-20240307',
       name: 'Claude 3 Haiku',
-      capabilities: [AIModelCapability.TEXT_GENERATION, AIModelCapability.STORY_CONTINUATION, AIModelCapability.CHARACTER_ANALYSIS],
+      capabilities: [
+        AIModelCapability.TEXT_GENERATION,
+        AIModelCapability.STORY_CONTINUATION,
+        AIModelCapability.CHARACTER_ANALYSIS,
+      ],
       contextWindow: 200000,
       costPerToken: 0.00025,
       maxRequestsPerMinute: 50,
@@ -203,7 +248,7 @@ export const AI_MODEL_CONFIGS: Record<AIProvider, AIModelConfig[]> = {
 
 export function getModelConfig(modelId: string): AIModelConfig | null {
   for (const configs of Object.values(AI_MODEL_CONFIGS)) {
-    const config = configs.find(c => c.modelId === modelId);
+    const config = configs.find((c) => c.modelId === modelId);
     if (config) return config;
   }
   return null;
@@ -211,25 +256,31 @@ export function getModelConfig(modelId: string): AIModelConfig | null {
 
 export function getAvailableModelsByCapability(capability: AIModelCapability): AIModelConfig[] {
   const allModels: AIModelConfig[] = [];
-  Object.values(AI_MODEL_CONFIGS).forEach(configs => {
-    allModels.push(...configs.filter(config => config.capabilities.includes(capability)));
+  Object.values(AI_MODEL_CONFIGS).forEach((configs) => {
+    allModels.push(...configs.filter((config) => config.capabilities.includes(capability)));
   });
   return allModels;
 }
 
-export function isModelCompatibleWithCapability(modelId: string, capability: AIModelCapability): boolean {
+export function isModelCompatibleWithCapability(
+  modelId: string,
+  capability: AIModelCapability
+): boolean {
   const config = getModelConfig(modelId);
   return config ? config.capabilities.includes(capability) : false;
 }
 
-export function calculateEstimatedCost(modelId: string, inputTokens: number, outputTokens: number): number {
+export function calculateEstimatedCost(
+  modelId: string,
+  inputTokens: number,
+  outputTokens: number
+): number {
   const config = getModelConfig(modelId);
   if (!config || !config.costPerToken) return 0;
 
   const totalTokens = inputTokens + outputTokens;
   return (totalTokens / 1000) * config.costPerToken;
 }
-
 
 export function estimateTokenCount(text: string): number {
   // Rough estimation: ~4 chars per token for English text

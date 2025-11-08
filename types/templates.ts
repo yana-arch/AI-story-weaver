@@ -86,7 +86,11 @@ export interface PromptTemplate extends BaseTemplate {
   model?: string; // Preferred AI model
   temperature?: number;
   maxTokens?: number;
-  expectedOutput: 'story_continuation' | 'character_description' | 'plot_outline' | 'scene_description';
+  expectedOutput:
+    | 'story_continuation'
+    | 'character_description'
+    | 'plot_outline'
+    | 'scene_description';
   // Composition and inheritance
   parentTemplateId?: string; // For inheritance
   subTemplates?: TemplateComposition[]; // For composition
@@ -107,7 +111,13 @@ export interface TemplateComposition {
 }
 
 export interface TemplateConstraint {
-  type: 'min_characters' | 'max_characters' | 'required_keywords' | 'forbidden_keywords' | 'format' | 'custom';
+  type:
+    | 'min_characters'
+    | 'max_characters'
+    | 'required_keywords'
+    | 'forbidden_keywords'
+    | 'format'
+    | 'custom';
   value: any;
   message: string;
 }
@@ -122,7 +132,14 @@ export interface SceneTemplate extends BaseTemplate {
   type: TemplateType.SCENE_TEMPLATE;
   content: string;
   variables: TemplateVariable[];
-  sceneType: 'opening' | 'rising_action' | 'climax' | 'falling_action' | 'resolution' | 'flashback' | 'dream';
+  sceneType:
+    | 'opening'
+    | 'rising_action'
+    | 'climax'
+    | 'falling_action'
+    | 'resolution'
+    | 'flashback'
+    | 'dream';
   mood: string[]; // e.g., ['tense', 'romantic', 'mysterious']
   pacing: 'slow' | 'medium' | 'fast';
 }

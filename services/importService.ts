@@ -9,6 +9,8 @@ import type {
   ImportedStory,
 } from '../types/chapter';
 
+import { initEpubFile } from '@lingo-reader/epub-parser';
+
 export class ImportService {
   private static instance: ImportService;
   private chapterPatterns: ChapterPattern[] = [
@@ -213,7 +215,6 @@ export class ImportService {
         errors,
         metadata,
       };
-
     } catch (error) {
       errors.push({
         type: 'parse',
@@ -308,7 +309,35 @@ export class ImportService {
   }
 
   private async parseEpub(file: File): Promise<string> {
-    throw new Error('EPUB parsing is not yet supported in the browser environment. Please use .txt or .md files for now.');
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = async (event) => {
+        if (event.target?.result instanceof ArrayBuffer) {
+          try {
+            const epub = await initEpubFile(new Uint8Array(event.target.result));
+            const spine = epub.getSpine();
+
+            let fullContent = '';
+            for (const item of spine) {
+              const { html } = await epub.loadChapter(item.id);
+              fullContent += html.replace(/<[^>]*>/g, ' ') + '\n\n';
+            }
+            resolve(fullContent.trim());
+          } catch (error) {
+            reject(error);
+          }
+        } else {
+          reject(new Error('Failed to read EPUB file as ArrayBuffer'));
+        }
+      };
+
+      reader.onerror = () => {
+        reject(new Error('File reading failed'));
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
   }
 
   private async splitIntoChapters(
@@ -331,7 +360,10 @@ export class ImportService {
     }
   }
 
-  private splitByPattern(content: string, options: ImportOptions['splitOptions']): ImportedChapter[] {
+  private splitByPattern(
+    content: string,
+    options: ImportOptions['splitOptions']
+  ): ImportedChapter[] {
     const chapters: ImportedChapter[] = [];
     const pattern = new RegExp(options.pattern || '', 'gm');
     const matches = [...content.matchAll(pattern)];
@@ -373,7 +405,10 @@ export class ImportService {
     return chapters;
   }
 
-  private splitByWordCount(content: string, options: ImportOptions['splitOptions']): ImportedChapter[] {
+  private splitByWordCount(
+    content: string,
+    options: ImportOptions['splitOptions']
+  ): ImportedChapter[] {
     const chapters: ImportedChapter[] = [];
     const words = content.split(/\s+/);
     const wordsPerChapter = options.wordCount || 2000;
@@ -391,13 +426,19 @@ export class ImportService {
     return chapters;
   }
 
-  private splitManually(content: string, options: ImportOptions['splitOptions']): ImportedChapter[] {
+  private splitManually(
+    content: string,
+    options: ImportOptions['splitOptions']
+  ): ImportedChapter[] {
     // For manual splitting, return the entire content as one chapter
     // The UI will handle manual splitting
     return [this.createSingleChapter(content, 'Manual Split')];
   }
 
-  private async splitByAI(content: string, options: ImportOptions['splitOptions']): Promise<ImportedChapter[]> {
+  private async splitByAI(
+    content: string,
+    options: ImportOptions['splitOptions']
+  ): Promise<ImportedChapter[]> {
     // This would integrate with AI service to intelligently split content
     // For now, fall back to pattern-based splitting
     return this.splitByPattern(content, options);
@@ -416,7 +457,11 @@ export class ImportService {
     };
   }
 
-  private createChapterFromContent(content: string, title: string, position: number): ImportedChapter {
+  private createChapterFromContent(
+    content: string,
+    title: string,
+    position: number
+  ): ImportedChapter {
     const wordCount = content.split(/\s+/).length;
     return {
       id: `imported_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -470,7 +515,10 @@ export class ImportService {
     return Math.min(baseTime, 300); // Cap at 5 minutes
   }
 
-  async importStoriesFromFiles(files: File[], options: ImportOptions): Promise<{
+  async importStoriesFromFiles(
+    files: File[],
+    options: ImportOptions
+  ): Promise<{
     success: boolean;
     stories: ImportedStory[];
     errors: ImportError[];
@@ -495,20 +543,22 @@ export class ImportService {
         } else {
           return {
             success: false,
-            error: new Error(`Failed to import ${file.name}: ${result.errors.map(e => e.message).join('; ')}`)
+            error: new Error(
+              `Failed to import ${file.name}: ${result.errors.map((e) => e.message).join('; ')}`
+            ),
           };
         }
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error : new Error(`Unknown error importing ${file.name}`)
+          error: error instanceof Error ? error : new Error(`Unknown error importing ${file.name}`),
         };
       }
     });
 
     const results = await Promise.all(filePromises);
 
-    results.forEach(result => {
+    results.forEach((result) => {
       if (result.success) {
         stories.push(result.story);
       } else {
@@ -533,7 +583,7 @@ export class ImportService {
 
   private extractStoryTitle(fileName: string, firstChapterContent: string): string {
     // Try to extract title from the first few lines of content
-    const lines = firstChapterContent.split('\n').filter(line => line.trim());
+    const lines = firstChapterContent.split('\n').filter((line) => line.trim());
     for (const line of lines.slice(0, 5)) {
       const trimmed = line.trim();
       if (trimmed.length > 10 && trimmed.length < 100 && !trimmed.includes('\n')) {
@@ -543,7 +593,10 @@ export class ImportService {
     }
 
     // Fallback to filename without extension
-    return fileName.replace(/\.[^/.]+$/, '').replace(/_/g, ' ').replace(/-/g, ' ');
+    return fileName
+      .replace(/\.[^/.]+$/, '')
+      .replace(/_/g, ' ')
+      .replace(/-/g, ' ');
   }
 }
 

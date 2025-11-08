@@ -9,9 +9,7 @@ interface AppProviderProps {
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   return (
     <SettingsProvider>
-      <StoryProvider>
-        {children}
-      </StoryProvider>
+      <StoryProvider>{children}</StoryProvider>
     </SettingsProvider>
   );
 };

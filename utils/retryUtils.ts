@@ -38,7 +38,7 @@ export async function withRetry<T>(
 
       onRetry?.(attempt + 1, error);
 
-      await new Promise(resolve => setTimeout(resolve, jitteredDelay));
+      await new Promise((resolve) => setTimeout(resolve, jitteredDelay));
     }
   }
 

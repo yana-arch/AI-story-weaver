@@ -18,12 +18,7 @@ interface ExportStatus {
   filename?: string;
 }
 
-export const ExportDialog: React.FC<ExportDialogProps> = ({
-  story,
-  segments,
-  isOpen,
-  onClose,
-}) => {
+export const ExportDialog: React.FC<ExportDialogProps> = ({ story, segments, isOpen, onClose }) => {
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
     format: 'txt',
     includeMetadata: false,
@@ -73,17 +68,13 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
       setTimeout(() => {
         onClose();
       }, 2000);
-
     } catch (error) {
       console.error('Export failed:', error);
-      addError(
-        'Xuất câu chuyện thất bại. Vui lòng thử lại.',
-        {
-          recoverable: true,
-          context: 'Story Export',
-          retryAction: handleExport,
-        }
-      );
+      addError('Xuất câu chuyện thất bại. Vui lòng thử lại.', {
+        recoverable: true,
+        context: 'Story Export',
+        retryAction: handleExport,
+      });
       setExportStatus({ isExporting: false, exported: false });
     }
   };
@@ -110,10 +101,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
       <div className="bg-card rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-lg font-semibold">Xuất câu chuyện</h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-muted rounded transition-colors"
-          >
+          <button onClick={onClose} className="p-1 hover:bg-muted rounded transition-colors">
             <CloseIcon className="w-5 h-5" />
           </button>
         </div>
@@ -126,9 +114,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               <p className="text-sm text-muted-foreground">
                 Tệp đã được tải xuống: {exportStatus.filename}
                 {exportStatus.fileSize && (
-                  <span className="ml-1">
-                    ({formatFileSize(exportStatus.fileSize)})
-                  </span>
+                  <span className="ml-1">({formatFileSize(exportStatus.fileSize)})</span>
                 )}
               </p>
             </div>
@@ -136,9 +122,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
             <>
               {/* Format Selection */}
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Định dạng xuất
-                </label>
+                <label className="block text-sm font-medium mb-2">Định dạng xuất</label>
                 <div className="space-y-2">
                   {[
                     { value: 'txt', label: 'Văn bản thuần (.txt)' },
@@ -146,16 +130,21 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                     { value: 'html', label: 'HTML (.html)' },
                     { value: 'json', label: 'JSON (.json)' },
                   ].map(({ value, label }) => (
-                    <label key={value} className="flex items-center p-3 border border-border rounded-md hover:bg-accent cursor-pointer transition-colors">
+                    <label
+                      key={value}
+                      className="flex items-center p-3 border border-border rounded-md hover:bg-accent cursor-pointer transition-colors"
+                    >
                       <input
                         type="radio"
                         name="format"
                         value={value}
                         checked={exportOptions.format === value}
-                        onChange={(e) => setExportOptions({
-                          ...exportOptions,
-                          format: e.target.value as ExportOptions['format']
-                        })}
+                        onChange={(e) =>
+                          setExportOptions({
+                            ...exportOptions,
+                            format: e.target.value as ExportOptions['format'],
+                          })
+                        }
                         className="mr-3"
                       />
                       <div className="flex-1">
@@ -177,10 +166,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                 <input
                   type="text"
                   value={exportOptions.customTitle || ''}
-                  onChange={(e) => setExportOptions({
-                    ...exportOptions,
-                    customTitle: e.target.value
-                  })}
+                  onChange={(e) =>
+                    setExportOptions({
+                      ...exportOptions,
+                      customTitle: e.target.value,
+                    })
+                  }
                   placeholder={story.name}
                   className="w-full px-3 py-2 border border-border rounded-md bg-background"
                 />
@@ -188,16 +179,16 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 
               {/* Custom Author */}
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Tác giả (không bắt buộc)
-                </label>
+                <label className="block text-sm font-medium mb-2">Tác giả (không bắt buộc)</label>
                 <input
                   type="text"
                   value={exportOptions.customAuthor || ''}
-                  onChange={(e) => setExportOptions({
-                    ...exportOptions,
-                    customAuthor: e.target.value
-                  })}
+                  onChange={(e) =>
+                    setExportOptions({
+                      ...exportOptions,
+                      customAuthor: e.target.value,
+                    })
+                  }
                   placeholder="Tên tác giả"
                   className="w-full px-3 py-2 border border-border rounded-md bg-background"
                 />
@@ -209,10 +200,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                   <input
                     type="checkbox"
                     checked={exportOptions.includeMetadata ?? false}
-                    onChange={(e) => setExportOptions({
-                      ...exportOptions,
-                      includeMetadata: e.target.checked
-                    })}
+                    onChange={(e) =>
+                      setExportOptions({
+                        ...exportOptions,
+                        includeMetadata: e.target.checked,
+                      })
+                    }
                     className="mr-2"
                   />
                   <span className="text-sm">Bao gồm thông tin metadata (ngày tạo, cập nhật)</span>
@@ -222,23 +215,29 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                   <input
                     type="checkbox"
                     checked={exportOptions.includeCharacterProfiles ?? false}
-                    onChange={(e) => setExportOptions({
-                      ...exportOptions,
-                      includeCharacterProfiles: e.target.checked
-                    })}
+                    onChange={(e) =>
+                      setExportOptions({
+                        ...exportOptions,
+                        includeCharacterProfiles: e.target.checked,
+                      })
+                    }
                     className="mr-2"
                   />
-                  <span className="text-sm">Bao gồm thông tin nhân vật ({story.characterProfiles.length} nhân vật)</span>
+                  <span className="text-sm">
+                    Bao gồm thông tin nhân vật ({story.characterProfiles.length} nhân vật)
+                  </span>
                 </label>
 
                 <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={exportOptions.includeGenerationSettings ?? false}
-                    onChange={(e) => setExportOptions({
-                      ...exportOptions,
-                      includeGenerationSettings: e.target.checked
-                    })}
+                    onChange={(e) =>
+                      setExportOptions({
+                        ...exportOptions,
+                        includeGenerationSettings: e.target.checked,
+                      })
+                    }
                     className="mr-2"
                   />
                   <span className="text-sm">Bao gồm cài đặt tạo câu chuyện</span>

@@ -21,7 +21,7 @@ export const useNetworkStatus = () => {
 
   useEffect(() => {
     const updateOnlineStatus = () => {
-      setNetworkStatus(prev => {
+      setNetworkStatus((prev) => {
         const now = Date.now();
         return {
           ...prev,
@@ -33,7 +33,7 @@ export const useNetworkStatus = () => {
     };
 
     const updateOfflineStatus = () => {
-      setNetworkStatus(prev => {
+      setNetworkStatus((prev) => {
         const now = Date.now();
         return {
           ...prev,
@@ -49,12 +49,13 @@ export const useNetworkStatus = () => {
 
     // Try to get connection information (for supported browsers)
     const updateConnectionInfo = () => {
-      const connection = (navigator as any).connection ||
-                        (navigator as any).mozConnection ||
-                        (navigator as any).webkitConnection;
+      const connection =
+        (navigator as any).connection ||
+        (navigator as any).mozConnection ||
+        (navigator as any).webkitConnection;
 
       if (connection) {
-        setNetworkStatus(prev => ({
+        setNetworkStatus((prev) => ({
           ...prev,
           connectionType: connection.type || null,
           effectiveType: connection.effectiveType || null,
@@ -71,9 +72,10 @@ export const useNetworkStatus = () => {
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOfflineStatus);
 
-      const connection = (navigator as any).connection ||
-                        (navigator as any).mozConnection ||
-                        (navigator as any).webkitConnection;
+      const connection =
+        (navigator as any).connection ||
+        (navigator as any).mozConnection ||
+        (navigator as any).webkitConnection;
 
       if (connection) {
         connection.removeEventListener('change', updateConnectionInfo);

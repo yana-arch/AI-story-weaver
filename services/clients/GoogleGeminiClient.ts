@@ -32,10 +32,7 @@ export class GoogleGeminiClient {
     }
   }
 
-  async generateText(
-    prompts: AIPrompt[],
-    options: AIRequestOptions = {}
-  ): Promise<AIResponse> {
+  async generateText(prompts: AIPrompt[], options: AIRequestOptions = {}): Promise<AIResponse> {
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
       throw new AIError(

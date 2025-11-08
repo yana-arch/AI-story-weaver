@@ -64,19 +64,16 @@ AI Story Weaver is an AI-powered creative storytelling tool that helps you craft
 ## Usage
 
 1. **Start a new story:**
-
    - Click the "New Story" button to create a new story project
    - Enter the opening segment of your story
 
 2. **Use AI for creative writing:**
-
    - Open the AI control panel on the right side
    - Set up scenario, story structure, character dynamics
    - Use custom prompts to guide the AI
    - Click "Generate with AI" to create content
 
 3. **Manage characters:**
-
    - Use analysis tools to automatically extract characters
    - Edit detailed character profiles
 

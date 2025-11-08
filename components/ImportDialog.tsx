@@ -56,15 +56,15 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
   const addFiles = useCallback((files: File[] | FileList) => {
     const newFiles = Array.from(files);
-    setSelectedFiles(prev => {
-      const existingNames = prev.map(f => f.name);
-      const nonDuplicateFiles = newFiles.filter(f => !existingNames.includes(f.name));
+    setSelectedFiles((prev) => {
+      const existingNames = prev.map((f) => f.name);
+      const nonDuplicateFiles = newFiles.filter((f) => !existingNames.includes(f.name));
       return [...prev, ...nonDuplicateFiles];
     });
   }, []);
 
   const removeFile = useCallback((index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -77,21 +77,27 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
 
-    if (e.dataTransfer.files) {
-      addFiles(e.dataTransfer.files);
-    }
-  }, [addFiles]);
+      if (e.dataTransfer.files) {
+        addFiles(e.dataTransfer.files);
+      }
+    },
+    [addFiles]
+  );
 
-  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      addFiles(e.target.files);
-    }
-  }, [addFiles]);
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+        addFiles(e.target.files);
+      }
+    },
+    [addFiles]
+  );
 
   const handleImport = async () => {
     if (selectedFiles.length === 0) return;
@@ -100,41 +106,44 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
     try {
       // Simulate progress updates
-      const updateProgress = (stage: ProcessingProgress['stage'], progress: number, message: string) => {
+      const updateProgress = (
+        stage: ProcessingProgress['stage'],
+        progress: number,
+        message: string
+      ) => {
         setProgress({ stage, progress, message });
       };
 
       updateProgress('uploading', 10, 'Đang tải file lên...');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       updateProgress('parsing', 30, 'Đang phân tích nội dung...');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       if (importOptions.autoSplit) {
         updateProgress('splitting', 60, 'Đang chia chương...');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
       if (importOptions.aiProcessing) {
         updateProgress('ai_processing', 80, 'Đang xử lý AI...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       updateProgress('saving', 90, 'Đang lưu kết quả...');
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Actual import - process multiple files
       const result = await importService.importStoriesFromFiles(selectedFiles, importOptions);
 
       if (!result.success) {
-        throw new Error(`Import failed: ${result.errors.map(e => e.message).join('; ')}`);
+        throw new Error(`Import failed: ${result.errors.map((e) => e.message).join('; ')}`);
       }
 
       updateProgress('saving', 100, 'Hoàn thành!');
 
       onImportComplete(result.stories);
       onClose();
-
     } catch (error) {
       setProgress({
         stage: 'saving',
@@ -154,7 +163,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
       customPattern: '',
     };
 
-    setImportOptions(prev => ({
+    setImportOptions((prev) => ({
       ...prev,
       aiProcessingOptions: {
         ...prev.aiProcessingOptions,
@@ -164,7 +173,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
   };
 
   const updateContentFilter = (index: number, filter: ContentFilter) => {
-    setImportOptions(prev => ({
+    setImportOptions((prev) => ({
       ...prev,
       aiProcessingOptions: {
         ...prev.aiProcessingOptions,
@@ -176,7 +185,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
   };
 
   const removeContentFilter = (index: number) => {
-    setImportOptions(prev => ({
+    setImportOptions((prev) => ({
       ...prev,
       aiProcessingOptions: {
         ...prev.aiProcessingOptions,
@@ -206,9 +215,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors bg-background ${
-              dragActive
-                ? 'border-primary bg-muted/50'
-                : 'border-border hover:border-primary/50'
+              dragActive ? 'border-primary bg-muted/50' : 'border-border hover:border-primary/50'
             }`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -244,15 +251,29 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
           {selectedFiles.length > 0 && (
             <div className="mt-4 space-y-2">
-              <h4 className="font-medium text-foreground">File đã chọn ({selectedFiles.length}):</h4>
+              <h4 className="font-medium text-foreground">
+                File đã chọn ({selectedFiles.length}):
+              </h4>
               {selectedFiles.map((file, index) => (
-                <div key={index} className="bg-muted/50 border border-border rounded-lg p-4 flex items-center justify-between">
+                <div
+                  key={index}
+                  className="bg-muted/50 border border-border rounded-lg p-4 flex items-center justify-between"
+                >
                   <div className="flex items-center space-x-3">
                     <div className="text-2xl">📄</div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground break-all" style={{ wordBreak: 'break-all', hyphens: 'none' }}>{file.name}</p>
-                      <p className="text-sm text-muted-foreground break-all" style={{ wordBreak: 'break-all' }}>
-                        {(file.size / 1024 / 1024).toFixed(2)} MB • {file.name.split('.').pop()?.toUpperCase()}
+                      <p
+                        className="font-medium text-foreground break-all"
+                        style={{ wordBreak: 'break-all', hyphens: 'none' }}
+                      >
+                        {file.name}
+                      </p>
+                      <p
+                        className="text-sm text-muted-foreground break-all"
+                        style={{ wordBreak: 'break-all' }}
+                      >
+                        {(file.size / 1024 / 1024).toFixed(2)} MB •{' '}
+                        {file.name.split('.').pop()?.toUpperCase()}
                       </p>
                     </div>
                   </div>
@@ -279,10 +300,12 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                   <label className="block text-sm font-medium mb-2 text-foreground">Encoding</label>
                   <select
                     value={importOptions.encoding || 'utf-8'}
-                    onChange={(e) => setImportOptions(prev => ({
-                      ...prev,
-                      encoding: e.target.value
-                    }))}
+                    onChange={(e) =>
+                      setImportOptions((prev) => ({
+                        ...prev,
+                        encoding: e.target.value,
+                      }))
+                    }
                     className="w-full p-2 bg-background border border-border rounded-md text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                   >
                     <option value="utf-8">UTF-8</option>
@@ -290,7 +313,9 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                     <option value="utf-16le">UTF-16 LE</option>
                     <option value="utf-16be">UTF-16 BE</option>
                   </select>
-                  <p className="text-xs text-muted-foreground mt-1">Định dạng file được tự động phát hiện</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Định dạng file được tự động phát hiện
+                  </p>
                 </div>
               </div>
 
@@ -299,10 +324,12 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                   <input
                     type="checkbox"
                     checked={importOptions.preserveFormatting}
-                    onChange={(e) => setImportOptions(prev => ({
-                      ...prev,
-                      preserveFormatting: e.target.checked
-                    }))}
+                    onChange={(e) =>
+                      setImportOptions((prev) => ({
+                        ...prev,
+                        preserveFormatting: e.target.checked,
+                      }))
+                    }
                     className="mr-2 accent-primary"
                   />
                   <span className="text-sm text-foreground">Giữ nguyên định dạng</span>
@@ -312,10 +339,12 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                   <input
                     type="checkbox"
                     checked={importOptions.createHierarchy}
-                    onChange={(e) => setImportOptions(prev => ({
-                      ...prev,
-                      createHierarchy: e.target.checked
-                    }))}
+                    onChange={(e) =>
+                      setImportOptions((prev) => ({
+                        ...prev,
+                        createHierarchy: e.target.checked,
+                      }))
+                    }
                     className="mr-2 accent-primary"
                   />
                   <span className="text-sm text-foreground">Tạo cấu trúc phân cấp</span>
@@ -331,10 +360,12 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                   <input
                     type="checkbox"
                     checked={importOptions.autoSplit}
-                    onChange={(e) => setImportOptions(prev => ({
-                      ...prev,
-                      autoSplit: e.target.checked
-                    }))}
+                    onChange={(e) =>
+                      setImportOptions((prev) => ({
+                        ...prev,
+                        autoSplit: e.target.checked,
+                      }))
+                    }
                     className="mr-2 accent-primary"
                   />
                   <span className="text-sm text-foreground">Tự động chia chương</span>
@@ -343,16 +374,20 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                 {importOptions.autoSplit && (
                   <div className="ml-6 space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-foreground">Phương Thức Chia</label>
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        Phương Thức Chia
+                      </label>
                       <select
                         value={importOptions.splitOptions.method}
-                        onChange={(e) => setImportOptions(prev => ({
-                          ...prev,
-                          splitOptions: {
-                            ...prev.splitOptions,
-                            method: e.target.value as ImportOptions['splitOptions']['method']
-                          }
-                        }))}
+                        onChange={(e) =>
+                          setImportOptions((prev) => ({
+                            ...prev,
+                            splitOptions: {
+                              ...prev.splitOptions,
+                              method: e.target.value as ImportOptions['splitOptions']['method'],
+                            },
+                          }))
+                        }
                         className="w-full p-2 bg-background border border-border rounded-md text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                       >
                         <option value="pattern">Theo Pattern</option>
@@ -364,17 +399,21 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
                     {importOptions.splitOptions.method === 'pattern' && (
                       <div>
-                        <label className="block text-sm font-medium mb-2 text-foreground">Pattern Chia Chương</label>
+                        <label className="block text-sm font-medium mb-2 text-foreground">
+                          Pattern Chia Chương
+                        </label>
                         <input
                           type="text"
                           value={importOptions.splitOptions.pattern || ''}
-                          onChange={(e) => setImportOptions(prev => ({
-                            ...prev,
-                            splitOptions: {
-                              ...prev.splitOptions,
-                              pattern: e.target.value
-                            }
-                          }))}
+                          onChange={(e) =>
+                            setImportOptions((prev) => ({
+                              ...prev,
+                              splitOptions: {
+                                ...prev.splitOptions,
+                                pattern: e.target.value,
+                              },
+                            }))
+                          }
                           placeholder="Ví dụ: Chương (\d+): (.+)"
                           className="w-full p-2 bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                         />
@@ -383,17 +422,21 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
                     {importOptions.splitOptions.method === 'word_count' && (
                       <div>
-                        <label className="block text-sm font-medium mb-2 text-foreground">Số Từ Mỗi Chương</label>
+                        <label className="block text-sm font-medium mb-2 text-foreground">
+                          Số Từ Mỗi Chương
+                        </label>
                         <input
                           type="number"
                           value={importOptions.splitOptions.wordCount || 2000}
-                          onChange={(e) => setImportOptions(prev => ({
-                            ...prev,
-                            splitOptions: {
-                              ...prev.splitOptions,
-                              wordCount: parseInt(e.target.value)
-                            }
-                          }))}
+                          onChange={(e) =>
+                            setImportOptions((prev) => ({
+                              ...prev,
+                              splitOptions: {
+                                ...prev.splitOptions,
+                                wordCount: parseInt(e.target.value),
+                              },
+                            }))
+                          }
                           className="w-full p-2 bg-background border border-border rounded-md text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                         />
                       </div>
@@ -404,13 +447,15 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                         <input
                           type="checkbox"
                           checked={importOptions.splitOptions.preserveTitles}
-                          onChange={(e) => setImportOptions(prev => ({
-                            ...prev,
-                            splitOptions: {
-                              ...prev.splitOptions,
-                              preserveTitles: e.target.checked
-                            }
-                          }))}
+                          onChange={(e) =>
+                            setImportOptions((prev) => ({
+                              ...prev,
+                              splitOptions: {
+                                ...prev.splitOptions,
+                                preserveTitles: e.target.checked,
+                              },
+                            }))
+                          }
                           className="mr-2 accent-primary"
                         />
                         <span className="text-sm text-foreground">Giữ nguyên tiêu đề chương</span>
@@ -420,13 +465,15 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                         <input
                           type="checkbox"
                           checked={importOptions.splitOptions.generateTitles}
-                          onChange={(e) => setImportOptions(prev => ({
-                            ...prev,
-                            splitOptions: {
-                              ...prev.splitOptions,
-                              generateTitles: e.target.checked
-                            }
-                          }))}
+                          onChange={(e) =>
+                            setImportOptions((prev) => ({
+                              ...prev,
+                              splitOptions: {
+                                ...prev.splitOptions,
+                                generateTitles: e.target.checked,
+                              },
+                            }))
+                          }
                           className="mr-2 accent-primary"
                         />
                         <span className="text-sm text-foreground">Tự động tạo tiêu đề</span>
@@ -445,10 +492,12 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                   <input
                     type="checkbox"
                     checked={importOptions.aiProcessing}
-                    onChange={(e) => setImportOptions(prev => ({
-                      ...prev,
-                      aiProcessing: e.target.checked
-                    }))}
+                    onChange={(e) =>
+                      setImportOptions((prev) => ({
+                        ...prev,
+                        aiProcessing: e.target.checked,
+                      }))
+                    }
                     className="mr-2 accent-primary"
                   />
                   <span className="text-sm text-foreground">Bật xử lý AI</span>
@@ -461,13 +510,15 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                         <input
                           type="checkbox"
                           checked={importOptions.aiProcessingOptions.enableContentModeration}
-                          onChange={(e) => setImportOptions(prev => ({
-                            ...prev,
-                            aiProcessingOptions: {
-                              ...prev.aiProcessingOptions,
-                              enableContentModeration: e.target.checked
-                            }
-                          }))}
+                          onChange={(e) =>
+                            setImportOptions((prev) => ({
+                              ...prev,
+                              aiProcessingOptions: {
+                                ...prev.aiProcessingOptions,
+                                enableContentModeration: e.target.checked,
+                              },
+                            }))
+                          }
                           className="mr-2 accent-primary"
                         />
                         <span className="text-sm text-foreground">Kiểm duyệt nội dung</span>
@@ -477,13 +528,15 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                         <input
                           type="checkbox"
                           checked={importOptions.aiProcessingOptions.enableContentEnhancement}
-                          onChange={(e) => setImportOptions(prev => ({
-                            ...prev,
-                            aiProcessingOptions: {
-                              ...prev.aiProcessingOptions,
-                              enableContentEnhancement: e.target.checked
-                            }
-                          }))}
+                          onChange={(e) =>
+                            setImportOptions((prev) => ({
+                              ...prev,
+                              aiProcessingOptions: {
+                                ...prev.aiProcessingOptions,
+                                enableContentEnhancement: e.target.checked,
+                              },
+                            }))
+                          }
                           className="mr-2 accent-primary"
                         />
                         <span className="text-sm text-foreground">Cải thiện nội dung</span>
@@ -493,13 +546,15 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                         <input
                           type="checkbox"
                           checked={importOptions.aiProcessingOptions.enableTranslation}
-                          onChange={(e) => setImportOptions(prev => ({
-                            ...prev,
-                            aiProcessingOptions: {
-                              ...prev.aiProcessingOptions,
-                              enableTranslation: e.target.checked
-                            }
-                          }))}
+                          onChange={(e) =>
+                            setImportOptions((prev) => ({
+                              ...prev,
+                              aiProcessingOptions: {
+                                ...prev.aiProcessingOptions,
+                                enableTranslation: e.target.checked,
+                              },
+                            }))
+                          }
                           className="mr-2 accent-primary"
                         />
                         <span className="text-sm text-foreground">Dịch sang ngôn ngữ khác</span>
@@ -508,16 +563,20 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
                     {importOptions.aiProcessingOptions.enableTranslation && (
                       <div>
-                        <label className="block text-sm font-medium mb-2 text-foreground">Ngôn Ngữ Dịch</label>
+                        <label className="block text-sm font-medium mb-2 text-foreground">
+                          Ngôn Ngữ Dịch
+                        </label>
                         <select
                           value={importOptions.aiProcessingOptions.targetLanguage || 'vi'}
-                          onChange={(e) => setImportOptions(prev => ({
-                            ...prev,
-                            aiProcessingOptions: {
-                              ...prev.aiProcessingOptions,
-                              targetLanguage: e.target.value
-                            }
-                          }))}
+                          onChange={(e) =>
+                            setImportOptions((prev) => ({
+                              ...prev,
+                              aiProcessingOptions: {
+                                ...prev.aiProcessingOptions,
+                                targetLanguage: e.target.value,
+                              },
+                            }))
+                          }
                           className="w-full p-2 bg-background border border-border rounded-md text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                         >
                           <option value="vi">Tiếng Việt</option>
@@ -529,16 +588,21 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                     )}
 
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-foreground">Mức Độ Cải Thiện</label>
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        Mức Độ Cải Thiện
+                      </label>
                       <select
                         value={importOptions.aiProcessingOptions.enhancementLevel}
-                        onChange={(e) => setImportOptions(prev => ({
-                          ...prev,
-                          aiProcessingOptions: {
-                            ...prev.aiProcessingOptions,
-                            enhancementLevel: e.target.value as ImportOptions['aiProcessingOptions']['enhancementLevel']
-                          }
-                        }))}
+                        onChange={(e) =>
+                          setImportOptions((prev) => ({
+                            ...prev,
+                            aiProcessingOptions: {
+                              ...prev.aiProcessingOptions,
+                              enhancementLevel: e.target
+                                .value as ImportOptions['aiProcessingOptions']['enhancementLevel'],
+                            },
+                          }))
+                        }
                         className="w-full p-2 bg-background border border-border rounded-md text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                       >
                         <option value="light">Nhẹ nhàng</option>
@@ -549,7 +613,9 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <label className="text-sm font-medium text-foreground">Bộ Lọc Nội Dung</label>
+                        <label className="text-sm font-medium text-foreground">
+                          Bộ Lọc Nội Dung
+                        </label>
                         <button
                           onClick={addContentFilter}
                           className="text-primary hover:text-primary/80 text-sm"
@@ -560,13 +626,18 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
                       <div className="space-y-2">
                         {importOptions.aiProcessingOptions.contentFilters.map((filter, index) => (
-                          <div key={index} className="flex items-center space-x-2 p-2 bg-muted/50 border border-border rounded">
+                          <div
+                            key={index}
+                            className="flex items-center space-x-2 p-2 bg-muted/50 border border-border rounded"
+                          >
                             <select
                               value={filter.type}
-                              onChange={(e) => updateContentFilter(index, {
-                                ...filter,
-                                type: e.target.value as ContentFilter['type']
-                              })}
+                              onChange={(e) =>
+                                updateContentFilter(index, {
+                                  ...filter,
+                                  type: e.target.value as ContentFilter['type'],
+                                })
+                              }
                               className="flex-1 p-1 bg-background border border-border rounded text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                             >
                               <option value="violence">Bạo lực</option>
@@ -578,10 +649,12 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
                             <select
                               value={filter.action}
-                              onChange={(e) => updateContentFilter(index, {
-                                ...filter,
-                                action: e.target.value as ContentFilter['action']
-                              })}
+                              onChange={(e) =>
+                                updateContentFilter(index, {
+                                  ...filter,
+                                  action: e.target.value as ContentFilter['action'],
+                                })
+                              }
                               className="flex-1 p-1 bg-background border border-border rounded text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                             >
                               <option value="remove">Xóa bỏ</option>
@@ -612,12 +685,8 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-border border-t-primary"></div>
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium text-foreground">
-                        {progress.message}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {progress.progress}%
-                      </div>
+                      <div className="text-sm font-medium text-foreground">{progress.message}</div>
+                      <div className="text-xs text-muted-foreground">{progress.progress}%</div>
                     </div>
                     <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
                       <div
@@ -643,24 +712,31 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                 {/* File-specific progress */}
                 {selectedFiles.length > 0 && (
                   <div className="space-y-2">
-                    <div className="text-xs font-medium text-muted-foreground">Tiến tại xử lý từng file:</div>
+                    <div className="text-xs font-medium text-muted-foreground">
+                      Tiến tại xử lý từng file:
+                    </div>
                     {selectedFiles.map((file, index) => {
-                      const isCompleted = progress.progress >= ((index + 1) / selectedFiles.length) * 100;
+                      const isCompleted =
+                        progress.progress >= ((index + 1) / selectedFiles.length) * 100;
                       return (
                         <div key={index} className="flex items-center space-x-2 text-xs">
-                          <div className={`w-4 h-4 rounded-full border-2 ${
-                            isCompleted
-                              ? 'border-green-500 bg-green-100'
-                              : 'border-muted-foreground/20 bg-muted'
-                          } flex items-center justify-center`}>
-                            {isCompleted && <div className="w-2 h-2 bg-green-500 rounded-full"></div>}
+                          <div
+                            className={`w-4 h-4 rounded-full border-2 ${
+                              isCompleted
+                                ? 'border-green-500 bg-green-100'
+                                : 'border-muted-foreground/20 bg-muted'
+                            } flex items-center justify-center`}
+                          >
+                            {isCompleted && (
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            )}
                           </div>
-                          <span className={`truncate ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>
+                          <span
+                            className={`truncate ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}
+                          >
                             {file.name}
                           </span>
-                          {isCompleted && (
-                            <span className="text-green-600 text-xs ml-auto">✓</span>
-                          )}
+                          {isCompleted && <span className="text-green-600 text-xs ml-auto">✓</span>}
                         </div>
                       );
                     })}

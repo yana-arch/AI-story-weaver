@@ -1,4 +1,3 @@
-
 ## What's New (v1.1.0) - Major Architecture & Performance Update
 
 ### 🏗️ **Architecture & Code Quality (Complete Refactoring)**

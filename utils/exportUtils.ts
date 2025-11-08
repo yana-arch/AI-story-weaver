@@ -16,7 +16,10 @@ export interface ExportResult {
 }
 
 // Convert story segments to plain text
-function storySegmentsToText(segments: StorySegment[], options: ExportOptions = { format: 'txt' }): string {
+function storySegmentsToText(
+  segments: StorySegment[],
+  options: ExportOptions = { format: 'txt' }
+): string {
   const { customTitle } = options;
 
   let content = '';
@@ -39,7 +42,10 @@ function storySegmentsToText(segments: StorySegment[], options: ExportOptions = 
 }
 
 // Convert to Markdown format
-function storySegmentsToMarkdown(segments: StorySegment[], options: ExportOptions = { format: 'markdown' }): string {
+function storySegmentsToMarkdown(
+  segments: StorySegment[],
+  options: ExportOptions = { format: 'markdown' }
+): string {
   const { customTitle, customAuthor } = options;
 
   let content = '';
@@ -71,7 +77,10 @@ function storySegmentsToMarkdown(segments: StorySegment[], options: ExportOption
 }
 
 // Convert to HTML format
-function storySegmentsToHTML(segments: StorySegment[], options: ExportOptions = { format: 'html' }): string {
+function storySegmentsToHTML(
+  segments: StorySegment[],
+  options: ExportOptions = { format: 'html' }
+): string {
   const { customTitle, customAuthor } = options;
 
   let html = `<!DOCTYPE html>
@@ -170,7 +179,7 @@ function storySegmentsToEnhancedText(
   if (includeCharacterProfiles && story.characterProfiles.length > 0) {
     content += '\n\n' + '='.repeat(30) + ' CHARACTERS ' + '='.repeat(30) + '\n\n';
 
-    story.characterProfiles.forEach(profile => {
+    story.characterProfiles.forEach((profile) => {
       content += `**${profile.name}**\n`;
       if (profile.appearance) content += `Appearance: ${profile.appearance}\n`;
       if (profile.personality) content += `Personality: ${profile.personality}\n`;
@@ -231,14 +240,18 @@ export async function exportStory(
       break;
 
     case 'json':
-      content = JSON.stringify({
-        story: {
-          ...story,
-          storySegments: segments,
+      content = JSON.stringify(
+        {
+          story: {
+            ...story,
+            storySegments: segments,
+          },
+          exportOptions: options,
+          exportDate: new Date().toISOString(),
         },
-        exportOptions: options,
-        exportDate: new Date().toISOString(),
-      }, null, 2);
+        null,
+        2
+      );
       mimeType = 'application/json';
       extension = 'json';
       break;

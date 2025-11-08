@@ -15,14 +15,15 @@ export const useReadingProgress = () => {
       return activeStory.storySegments;
     }
     const lowercasedQuery = searchQuery.toLowerCase();
-    return activeStory.storySegments.filter(segment =>
-      segment.type !== 'chapter' && segment.content.toLowerCase().includes(lowercasedQuery)
+    return activeStory.storySegments.filter(
+      (segment) =>
+        segment.type !== 'chapter' && segment.content.toLowerCase().includes(lowercasedQuery)
     );
   }, [activeStory, searchQuery]);
 
   const lastReadIndex = useMemo(() => {
     if (!activeStory || !activeStory.lastReadSegmentId) return -1;
-    return filteredSegments.findIndex(s => s.id === activeStory.lastReadSegmentId);
+    return filteredSegments.findIndex((s) => s.id === activeStory.lastReadSegmentId);
   }, [filteredSegments, activeStory]);
 
   const setSegmentRef = useCallback((segmentId: string, el: HTMLElement | null) => {
@@ -36,7 +37,7 @@ export const useReadingProgress = () => {
   // Reading progress observer effect
   useEffect(() => {
     const handleIntersect = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach(entry => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const segmentId = entry.target.getAttribute('data-segment-id');
           if (segmentId && activeStory) {
@@ -58,7 +59,7 @@ export const useReadingProgress = () => {
 
     const currentObserver = observer.current;
 
-    segmentRefs.current.forEach(el => {
+    segmentRefs.current.forEach((el) => {
       if (el) currentObserver.observe(el);
     });
 
@@ -73,9 +74,10 @@ export const useReadingProgress = () => {
   useEffect(() => {
     if (!didInitialScroll.current && endOfStoryRef.current && lastReadIndex >= 0) {
       setTimeout(() => {
-        const targetElement = lastReadIndex < filteredSegments.length - 1
-          ? segmentRefs.current.get(activeStory?.lastReadSegmentId || '')
-          : endOfStoryRef.current;
+        const targetElement =
+          lastReadIndex < filteredSegments.length - 1
+            ? segmentRefs.current.get(activeStory?.lastReadSegmentId || '')
+            : endOfStoryRef.current;
 
         if (targetElement) {
           targetElement.scrollIntoView({

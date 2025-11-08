@@ -1,6 +1,10 @@
 import React, { useMemo } from 'react';
 import { Story } from '../types';
-import { getAnalyticsService, CharacterAnalytics, CharacterRelationship } from '../services/analyticsService';
+import {
+  getAnalyticsService,
+  CharacterAnalytics,
+  CharacterRelationship,
+} from '../services/analyticsService';
 import { CheckCircleIcon } from './icons';
 
 interface CharacterNetworkDashboardProps {
@@ -10,21 +14,31 @@ interface CharacterNetworkDashboardProps {
 
 const getRelationshipTypeColor = (type: CharacterRelationship['type']): string => {
   switch (type) {
-    case 'positive': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-    case 'negative': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-    case 'romantic': return 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400';
-    case 'neutral': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
-    default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+    case 'positive':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+    case 'negative':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+    case 'romantic':
+      return 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400';
+    case 'neutral':
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
   }
 };
 
 const getRelationshipTypeLabel = (type: CharacterRelationship['type']): string => {
   switch (type) {
-    case 'positive': return 'Tích cực';
-    case 'negative': return 'Xung đột';
-    case 'romantic': return 'Lãng mạn';
-    case 'neutral': return 'Trung lập';
-    default: return 'Không xác định';
+    case 'positive':
+      return 'Tích cực';
+    case 'negative':
+      return 'Xung đột';
+    case 'romantic':
+      return 'Lãng mạn';
+    case 'neutral':
+      return 'Trung lập';
+    default:
+      return 'Không xác định';
   }
 };
 
@@ -32,10 +46,10 @@ const getTraitColor = (trait: string): string => {
   const positiveTraits = ['khoan dung', 'thông minh', 'kiên trì', 'lạc quan', 'hoạt bát'];
   const negativeTraits = ['hận thù', 'nóng tính', 'keo kiệt', 'thiển cận', 'lười biếng'];
 
-  if (positiveTraits.some(t => trait.toLowerCase().includes(t))) {
+  if (positiveTraits.some((t) => trait.toLowerCase().includes(t))) {
     return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
   }
-  if (negativeTraits.some(t => trait.toLowerCase().includes(t))) {
+  if (negativeTraits.some((t) => trait.toLowerCase().includes(t))) {
     return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
   }
   return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
@@ -43,7 +57,7 @@ const getTraitColor = (trait: string): string => {
 
 export const CharacterNetworkDashboard: React.FC<CharacterNetworkDashboardProps> = ({
   story,
-  className = ''
+  className = '',
 }) => {
   const analyticsService = getAnalyticsService();
 
@@ -56,11 +70,10 @@ export const CharacterNetworkDashboard: React.FC<CharacterNetworkDashboardProps>
     return (
       <div className={`text-center py-12 ${className}`}>
         <div className="text-6xl mb-4">👥</div>
-        <h3 className="text-lg font-medium text-muted-foreground mb-2">
-          Chưa có nhân vật nào
-        </h3>
+        <h3 className="text-lg font-medium text-muted-foreground mb-2">Chưa có nhân vật nào</h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Tạo profile cho các nhân vật trong truyện để xem mạng lưới mối quan hệ và phân tích nhân vật chi tiết.
+          Tạo profile cho các nhân vật trong truyện để xem mạng lưới mối quan hệ và phân tích nhân
+          vật chi tiết.
         </p>
       </div>
     );
@@ -69,23 +82,20 @@ export const CharacterNetworkDashboard: React.FC<CharacterNetworkDashboardProps>
   return (
     <div className={`space-y-6 ${className}`}>
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-foreground mb-2">
-          Mạng lưới nhân vật
-        </h2>
-        <p className="text-muted-foreground">
-          Phân tích mối quan hệ và đặc điểm của từng nhân vật
-        </p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Mạng lưới nhân vật</h2>
+        <p className="text-muted-foreground">Phân tích mối quan hệ và đặc điểm của từng nhân vật</p>
       </div>
 
       {/* Character Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {characterAnalytics.map((character) => (
-          <div key={character.name} className="bg-card rounded-lg p-6 border hover:shadow-md transition-shadow">
+          <div
+            key={character.name}
+            className="bg-card rounded-lg p-6 border hover:shadow-md transition-shadow"
+          >
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="font-semibold text-lg text-foreground mb-1">
-                  {character.name}
-                </h3>
+                <h3 className="font-semibold text-lg text-foreground mb-1">{character.name}</h3>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <span className="text-xs">💬</span>
@@ -98,9 +108,7 @@ export const CharacterNetworkDashboard: React.FC<CharacterNetworkDashboardProps>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-primary">
-                  {character.wordCount}
-                </div>
+                <div className="text-2xl font-bold text-primary">{character.wordCount}</div>
                 <div className="text-xs text-muted-foreground">từ</div>
               </div>
             </div>
@@ -138,14 +146,14 @@ export const CharacterNetworkDashboard: React.FC<CharacterNetworkDashboardProps>
                             <div
                               key={i}
                               className={`w-2 h-2 rounded-full ${
-                                i <= relationship.strength
-                                  ? 'bg-primary'
-                                  : 'bg-muted'
+                                i <= relationship.strength ? 'bg-primary' : 'bg-muted'
                               }`}
                             />
                           ))}
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-xs ${getRelationshipTypeColor(relationship.type)}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs ${getRelationshipTypeColor(relationship.type)}`}
+                        >
                           {getRelationshipTypeLabel(relationship.type)}
                         </span>
                       </div>
@@ -162,11 +170,15 @@ export const CharacterNetworkDashboard: React.FC<CharacterNetworkDashboardProps>
                 <div className="flex items-center gap-2 text-xs">
                   {character.developmentArc.map((stage, index) => (
                     <React.Fragment key={index}>
-                      <span className={`px-2 py-1 rounded ${
-                        index === 0 ? 'bg-blue-100 text-blue-800' :
-                        index === character.developmentArc.length - 1 ? 'bg-green-100 text-green-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
+                      <span
+                        className={`px-2 py-1 rounded ${
+                          index === 0
+                            ? 'bg-blue-100 text-blue-800'
+                            : index === character.developmentArc.length - 1
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                      >
                         {stage}
                       </span>
                       {index < character.developmentArc.length - 1 && (
@@ -199,7 +211,9 @@ export const CharacterNetworkDashboard: React.FC<CharacterNetworkDashboardProps>
                 {character.relationships.map((rel, index) => (
                   <React.Fragment key={index}>
                     <div className="flex items-center gap-1">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getRelationshipTypeColor(rel.type)}`}>
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${getRelationshipTypeColor(rel.type)}`}
+                      >
                         {rel.character}
                       </span>
                       <div className="flex gap-0.5">
@@ -207,9 +221,7 @@ export const CharacterNetworkDashboard: React.FC<CharacterNetworkDashboardProps>
                           <div
                             key={i}
                             className={`w-1 h-3 rounded-sm ${
-                              i <= Math.ceil(rel.strength / 2)
-                                ? 'bg-primary'
-                                : 'bg-muted'
+                              i <= Math.ceil(rel.strength / 2) ? 'bg-primary' : 'bg-muted'
                             }`}
                           />
                         ))}
@@ -258,28 +270,26 @@ export const CharacterNetworkDashboard: React.FC<CharacterNetworkDashboardProps>
           {characterAnalytics
             .sort((a, b) => b.appearanceCount - a.appearanceCount)
             .map((character) => (
-            <div key={character.name} className="flex items-center gap-3">
-              <div className="min-w-0 flex-shrink-0 w-20">
-                <span className="text-sm font-medium text-foreground">
-                  {character.name}
-                </span>
-              </div>
+              <div key={character.name} className="flex items-center gap-3">
+                <div className="min-w-0 flex-shrink-0 w-20">
+                  <span className="text-sm font-medium text-foreground">{character.name}</span>
+                </div>
 
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
-                    <div
-                      className="bg-primary h-full rounded-full transition-all duration-500"
-                      style={{ width: `${character.appearanceCount}%` }}
-                    />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
+                      <div
+                        className="bg-primary h-full rounded-full transition-all duration-500"
+                        style={{ width: `${character.appearanceCount}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground min-w-[3rem] text-right">
+                      {character.appearanceCount}%
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground min-w-[3rem] text-right">
-                    {character.appearanceCount}%
-                  </span>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
 
         <div className="mt-4 pt-3 border-t">

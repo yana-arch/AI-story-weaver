@@ -81,12 +81,17 @@ export class AnalyticsService {
     }
   }
 
-  recordWritingSession(startTime: number, endTime: number, wordCount: number, segmentId: string): void {
+  recordWritingSession(
+    startTime: number,
+    endTime: number,
+    wordCount: number,
+    segmentId: string
+  ): void {
     const session: WritingSession = {
       startTime,
       endTime,
       wordCount,
-      segmentId
+      segmentId,
     };
 
     this.writingSessions.push(session);
@@ -95,7 +100,7 @@ export class AnalyticsService {
 
   getWritingStats(currentStory?: Story): WritingStats {
     const sessions = currentStory
-      ? this.writingSessions.filter(s => s.segmentId === currentStory.id)
+      ? this.writingSessions.filter((s) => s.segmentId === currentStory.id)
       : this.writingSessions;
 
     if (sessions.length === 0) {
@@ -108,7 +113,7 @@ export class AnalyticsService {
         totalWritingTime: 0,
         lastActivity: 0,
         streakDays: 0,
-        favoriteWritingHour: 0
+        favoriteWritingHour: 0,
       };
     }
 
@@ -119,17 +124,17 @@ export class AnalyticsService {
 
     // Calculate writing hours distribution
     const hourCounts: Record<number, number> = {};
-    sessions.forEach(session => {
+    sessions.forEach((session) => {
       const hour = new Date(session.startTime).getHours();
       hourCounts[hour] = (hourCounts[hour] || 0) + 1;
     });
 
-    const favoriteWritingHour = Object.entries(hourCounts)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || 0;
+    const favoriteWritingHour =
+      Object.entries(hourCounts).sort(([, a], [, b]) => b - a)[0]?.[0] || 0;
 
     // Calculate streak
-    const dates = [...new Set(sessions.map(s => new Date(s.startTime).toDateString()))]
-      .map(d => new Date(d).getTime())
+    const dates = [...new Set(sessions.map((s) => new Date(s.startTime).toDateString()))]
+      .map((d) => new Date(d).getTime())
       .sort();
 
     let streakDays = 0;
@@ -153,7 +158,7 @@ export class AnalyticsService {
       totalWritingTime: totalTime,
       lastActivity: sessions[sessions.length - 1]?.endTime || 0,
       streakDays,
-      favoriteWritingHour: parseInt(favoriteWritingHour.toString())
+      favoriteWritingHour: parseInt(favoriteWritingHour.toString()),
     };
   }
 
@@ -162,14 +167,18 @@ export class AnalyticsService {
 
     const content = this.extractStoryContent(story);
 
-    return story.characterProfiles.map(profile => {
+    return story.characterProfiles.map((profile) => {
       const mentions = this.countCharacterMentions(content, profile.name);
       const dialogs = this.countCharacterDialogs(content, profile.name);
       const appearanceRate = this.calculateAppearanceRate(content, profile.name);
       const wordCount = this.calculateCharacterWordCount(content, profile.name);
 
       // Analyze relationships with other characters
-      const relationships = this.analyzeCharacterRelationships(content, profile.name, story.characterProfiles);
+      const relationships = this.analyzeCharacterRelationships(
+        content,
+        profile.name,
+        story.characterProfiles
+      );
 
       // Extract traits from profile (this would be enhanced with AI analysis in future)
       const traits = this.extractCharacterTraits(profile);
@@ -182,15 +191,15 @@ export class AnalyticsService {
         dialogCount: dialogs,
         relationships,
         traits,
-        developmentArc: this.analyzeCharacterDevelopment(content, profile.name)
+        developmentArc: this.analyzeCharacterDevelopment(content, profile.name),
       };
     });
   }
 
   private extractStoryContent(story: Story): string {
     return story.storySegments
-      .filter(seg => seg.type === 'ai' || seg.type === 'chapter')
-      .map(seg => seg.content)
+      .filter((seg) => seg.type === 'ai' || seg.type === 'chapter')
+      .map((seg) => seg.content)
       .join('\n\n');
   }
 
@@ -202,17 +211,17 @@ export class AnalyticsService {
   private countCharacterDialogs(content: string, characterName: string): number {
     // Simple heuristic: count lines that start with character name
     const lines = content.split('\n');
-    return lines.filter(line =>
-      line.trim().startsWith(characterName + ':') ||
-      line.trim().startsWith('"' + characterName)
+    return lines.filter(
+      (line) =>
+        line.trim().startsWith(characterName + ':') || line.trim().startsWith('"' + characterName)
     ).length;
   }
 
   private calculateAppearanceRate(content: string, characterName: string): number {
-    const segments = content.split('\n\n').filter(seg => seg.trim().length > 0);
+    const segments = content.split('\n\n').filter((seg) => seg.trim().length > 0);
     let appearances = 0;
 
-    segments.forEach(segment => {
+    segments.forEach((segment) => {
       if (segment.includes(characterName)) {
         appearances++;
       }
@@ -222,55 +231,71 @@ export class AnalyticsService {
   }
 
   private calculateCharacterWordCount(content: string, characterName: string): number {
-    const sentences = content.split(/[.!?]+/).filter(s => s.includes(characterName));
+    const sentences = content.split(/[.!?]+/).filter((s) => s.includes(characterName));
     return sentences.reduce((count, sentence) => count + sentence.split(/\s+/).length, 0);
   }
 
-  private analyzeCharacterRelationships(content: string, characterName: string, allProfiles: any[]): CharacterRelationship[] {
+  private analyzeCharacterRelationships(
+    content: string,
+    characterName: string,
+    allProfiles: any[]
+  ): CharacterRelationship[] {
     return allProfiles
-      .filter(profile => profile.name !== characterName)
-      .map(profile => {
+      .filter((profile) => profile.name !== characterName)
+      .map((profile) => {
         const interactions = this.countCharacterInteractions(content, characterName, profile.name);
         const type = this.determineRelationshipType(content, characterName, profile.name);
-        const strength = this.calculateRelationshipStrength(content, characterName, profile.name, interactions);
+        const strength = this.calculateRelationshipStrength(
+          content,
+          characterName,
+          profile.name,
+          interactions
+        );
 
         return {
           character: profile.name,
           interactions,
           type,
-          strength
+          strength,
         };
       })
-      .filter(rel => rel.interactions > 0);
+      .filter((rel) => rel.interactions > 0);
   }
 
   private countCharacterInteractions(content: string, char1: string, char2: string): number {
     const segments = content.split('\n\n');
-    return segments.filter(segment =>
-      segment.includes(char1) && segment.includes(char2)
-    ).length;
+    return segments.filter((segment) => segment.includes(char1) && segment.includes(char2)).length;
   }
 
-  private determineRelationshipType(content: string, char1: string, char2: string): 'positive' | 'negative' | 'neutral' | 'romantic' {
+  private determineRelationshipType(
+    content: string,
+    char1: string,
+    char2: string
+  ): 'positive' | 'negative' | 'neutral' | 'romantic' {
     const combinedContent = content.toLowerCase();
 
     const romanticKeywords = ['yêu', 'thương', 'hôn', 'ôm', 'nhìn', 'cười', 'hạnh phúc'];
     const negativeKeywords = ['ghi', 'thù', 'sợ', 'đau khổ', 'cãi vã', 'la mắng'];
     const positiveKeywords = ['thân thiện', 'hỗ trợ', 'giúp đỡ', 'cùng nhau', 'bạn bè'];
 
-    if (romanticKeywords.some(keyword => combinedContent.includes(keyword))) {
+    if (romanticKeywords.some((keyword) => combinedContent.includes(keyword))) {
       return 'romantic';
     }
-    if (negativeKeywords.some(keyword => combinedContent.includes(keyword))) {
+    if (negativeKeywords.some((keyword) => combinedContent.includes(keyword))) {
       return 'negative';
     }
-    if (positiveKeywords.some(keyword => combinedContent.includes(keyword))) {
+    if (positiveKeywords.some((keyword) => combinedContent.includes(keyword))) {
       return 'positive';
     }
     return 'neutral';
   }
 
-  private calculateRelationshipStrength(content: string, char1: string, char2: string, interactions: number): number {
+  private calculateRelationshipStrength(
+    content: string,
+    char1: string,
+    char2: string,
+    interactions: number
+  ): number {
     const maxStrength = 10;
     let baseStrength = Math.min(interactions * 0.5, 5);
 
@@ -296,7 +321,7 @@ export class AnalyticsService {
 
   private analyzeCharacterDevelopment(content: string, characterName: string): string[] {
     // Simple development arc detection based on content changes
-    const segments = content.split('\n\n').filter(seg => seg.includes(characterName));
+    const segments = content.split('\n\n').filter((seg) => seg.includes(characterName));
 
     if (segments.length < 3) return ['Giới thiệu'];
 
@@ -306,10 +331,12 @@ export class AnalyticsService {
 
   getStoryStructureAnalytics(story: Story): StoryStructureAnalytics {
     const content = this.extractStoryContent(story);
-    const segments = content.split('\n\n').filter(seg => seg.trim().length > 0);
+    const segments = content.split('\n\n').filter((seg) => seg.trim().length > 0);
 
     // Chapter count - assuming each major section is a chapter
-    const chapterCount = story.storySegments.filter(seg => seg.type === 'chapter').length || Math.max(1, segments.length / 10);
+    const chapterCount =
+      story.storySegments.filter((seg) => seg.type === 'chapter').length ||
+      Math.max(1, segments.length / 10);
 
     // Scene count - rough estimate
     const sceneCount = segments.length;
@@ -322,7 +349,7 @@ export class AnalyticsService {
     // Tension curve - simplified
     const tensionCurve = segments.map((_, index) => ({
       position: (index / segments.length) * 100,
-      tension: Math.sin((index / segments.length) * Math.PI) * 5 + 5 // Simple sine wave
+      tension: Math.sin((index / segments.length) * Math.PI) * 5 + 5, // Simple sine wave
     }));
 
     // Pacing analysis
@@ -331,7 +358,7 @@ export class AnalyticsService {
     // Character presence
     const characterPresence: Record<string, number> = {};
     if (story.characterProfiles) {
-      story.characterProfiles.forEach(profile => {
+      story.characterProfiles.forEach((profile) => {
         characterPresence[profile.name] = this.calculateAppearanceRate(content, profile.name);
       });
     }
@@ -342,17 +369,21 @@ export class AnalyticsService {
       actStructure: { act1Percentage, act2Percentage, act3Percentage },
       tensionCurve,
       pacingMetrics,
-      characterPresence
+      characterPresence,
     };
   }
 
-  private analyzePacing(content: string): { slowSections: number; mediumSections: number; fastSections: number } {
+  private analyzePacing(content: string): {
+    slowSections: number;
+    mediumSections: number;
+    fastSections: number;
+  } {
     const sentences = content.split(/[.!?]+/);
     let slowSections = 0;
     let mediumSections = 0;
     let fastSections = 0;
 
-    sentences.forEach(sentence => {
+    sentences.forEach((sentence) => {
       const wordCount = sentence.split(/\s+/).length;
       if (wordCount > 30) slowSections++;
       else if (wordCount > 15) mediumSections++;

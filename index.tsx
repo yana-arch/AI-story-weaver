@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -11,7 +10,7 @@ import App from './App';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
+  throw new Error('Could not find root element to mount to');
 }
 
 const root = ReactDOM.createRoot(rootElement);
@@ -34,6 +33,20 @@ root.render(
   </React.StrictMode>
 );
 
+// Register service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { type: 'module' })
+      .then(registration => {
+        console.log('SW registered: ', registration);
+      })
+      .catch(registrationError => {
+        console.log('SW registration failed: ', registrationError);
+      });
+  });
+}
+
+
 // Performance Profiler callback
 function onPerformanceRender(
   id: string,
@@ -45,7 +58,9 @@ function onPerformanceRender(
 ) {
   // Log only slow renders (>5ms) to avoid console spam
   if (actualDuration > 5) {
-    console.info(`🎨 ${phase} ${id}: ${actualDuration.toFixed(2)}ms (base: ${baseDuration.toFixed(2)}ms)`);
+    console.info(
+      `🎨 ${phase} ${id}: ${actualDuration.toFixed(2)}ms (base: ${baseDuration.toFixed(2)}ms)`
+    );
   }
 
   // Warn for very slow renders (>20ms)

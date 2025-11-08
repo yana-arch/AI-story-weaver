@@ -6,41 +6,101 @@ import { useReadingProgress } from './hooks/useReadingProgress';
 import { useErrorHandler } from './hooks/useErrorHandler';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { useTTS } from './hooks/useTTS';
-import { usePerformanceMonitor, useMemoryLeakDetector, useApiPerformanceMonitor } from './hooks/usePerformanceMonitor';
+import {
+  usePerformanceMonitor,
+  useMemoryLeakDetector,
+  useApiPerformanceMonitor,
+} from './hooks/usePerformanceMonitor';
 import { deleteHistory } from './services/historyService';
 import * as storyManager from './services/storyManagerService';
 import type { StorySegment, HistoryEntry, CharacterProfile } from './types';
 import { GenerationMode } from './types';
 
 // Lazy-loaded components for better initial bundle size
-const ApiKeyManager = lazy(() => import('./components/ApiKeyManager').then(module => ({ default: module.ApiKeyManager })));
-const ContentNavigator = lazy(() => import('./components/ContentNavigator').then(module => ({ default: module.ContentNavigator })));
-const CustomPromptsManager = lazy(() => import('./components/CustomPromptsManager').then(module => ({ default: module.CustomPromptsManager })));
-const KeywordPresetManager = lazy(() => import('./components/KeywordPresetManager').then(module => ({ default: module.KeywordPresetManager })));
-const VersionHistoryViewer = lazy(() => import('./components/VersionHistoryViewer').then(module => ({ default: module.VersionHistoryViewer })));
-const StoryContentRenderer = lazy(() => import('./components/StoryContentRenderer').then(module => ({ default: module.StoryContentRenderer })));
-const StoryDisplaySettings = lazy(() => import('./components/StoryDisplaySettings').then(module => ({ default: module.StoryDisplaySettings })));
-const CharacterPanel = lazy(() => import('./components/CharacterPanel').then(module => ({ default: module.CharacterPanel })));
-const CharacterProfileEditor = lazy(() => import('./components/CharacterProfileEditor').then(module => ({ default: module.CharacterProfileEditor })));
-const ChapterList = lazy(() => import('./components/ChapterList').then(module => ({ default: module.ChapterList })));
-const StoryManager = lazy(() => import('./components/StoryManager').then(module => ({ default: module.StoryManager })));
-const ThemeManager = lazy(() => import('./components/ThemeManager').then(module => ({ default: module.ThemeManager })));
-const TTSSettings = lazy(() => import('./components/TTSSettings').then(module => ({ default: module.TTSSettings })));
-const ExportDialog = lazy(() => import('./components/ExportDialog').then(module => ({ default: module.ExportDialog })));
+const ApiKeyManager = lazy(() =>
+  import('./components/ApiKeyManager').then((module) => ({ default: module.ApiKeyManager }))
+);
+const ContentNavigator = lazy(() =>
+  import('./components/ContentNavigator').then((module) => ({ default: module.ContentNavigator }))
+);
+const CustomPromptsManager = lazy(() =>
+  import('./components/CustomPromptsManager').then((module) => ({
+    default: module.CustomPromptsManager,
+  }))
+);
+const KeywordPresetManager = lazy(() =>
+  import('./components/KeywordPresetManager').then((module) => ({
+    default: module.KeywordPresetManager,
+  }))
+);
+const VersionHistoryViewer = lazy(() =>
+  import('./components/VersionHistoryViewer').then((module) => ({
+    default: module.VersionHistoryViewer,
+  }))
+);
+const StoryContentRenderer = lazy(() =>
+  import('./components/StoryContentRenderer').then((module) => ({
+    default: module.StoryContentRenderer,
+  }))
+);
+const StoryDisplaySettings = lazy(() =>
+  import('./components/StoryDisplaySettings').then((module) => ({
+    default: module.StoryDisplaySettings,
+  }))
+);
+const CharacterPanel = lazy(() =>
+  import('./components/CharacterPanel').then((module) => ({ default: module.CharacterPanel }))
+);
+const CharacterProfileEditor = lazy(() =>
+  import('./components/CharacterProfileEditor').then((module) => ({
+    default: module.CharacterProfileEditor,
+  }))
+);
+const ChapterList = lazy(() =>
+  import('./components/ChapterList').then((module) => ({ default: module.ChapterList }))
+);
+const StoryManager = lazy(() =>
+  import('./components/StoryManager').then((module) => ({ default: module.StoryManager }))
+);
+const ThemeManager = lazy(() =>
+  import('./components/ThemeManager').then((module) => ({ default: module.ThemeManager }))
+);
+const TTSSettings = lazy(() =>
+  import('./components/TTSSettings').then((module) => ({ default: module.TTSSettings }))
+);
+const ExportDialog = lazy(() =>
+  import('./components/ExportDialog').then((module) => ({ default: module.ExportDialog }))
+);
 
 // Loading component for lazy-loaded components
 const ComponentLoadingFallback = () => (
-    <div className="flex items-center justify-center p-8">
-        <div className="text-muted-foreground">Loading...</div>
-    </div>
+  <div className="flex items-center justify-center p-8">
+    <div className="text-muted-foreground">Loading...</div>
+  </div>
 );
 
 // Import icons
 import {
-  KeyIcon, BookmarkIcon, EditIcon, SaveIcon, CopyIcon, TrashIcon, CloseIcon,
-  CheckCircleIcon, HistoryIcon, DragHandleIcon, SearchIcon, UploadIcon,
-  DownloadIcon, BookOpenIcon, UserGroupIcon, CollectionIcon, PanelRightIcon,
-  PaintBrushIcon, SpeakerIcon, CogIcon
+  KeyIcon,
+  BookmarkIcon,
+  EditIcon,
+  SaveIcon,
+  CopyIcon,
+  TrashIcon,
+  CloseIcon,
+  CheckCircleIcon,
+  HistoryIcon,
+  DragHandleIcon,
+  SearchIcon,
+  UploadIcon,
+  DownloadIcon,
+  BookOpenIcon,
+  UserGroupIcon,
+  CollectionIcon,
+  PanelRightIcon,
+  PaintBrushIcon,
+  SpeakerIcon,
+  CogIcon,
 } from './components/icons';
 
 const AppContent: React.FC = () => {
@@ -121,8 +181,22 @@ const AppContent: React.FC = () => {
   } = useSettings();
 
   // Custom hooks
-  const { handleGenerate, handleStartEdit, handleSaveEdit, handleRevertToVersion, handleGenerateProfiles } = useStoryOperations();
-  const { draggedSegmentId, dropTargetId, handleDragStart, handleDragEnter, handleDragOver, handleDrop, handleDragEnd } = useDragDrop();
+  const {
+    handleGenerate,
+    handleStartEdit,
+    handleSaveEdit,
+    handleRevertToVersion,
+    handleGenerateProfiles,
+  } = useStoryOperations();
+  const {
+    draggedSegmentId,
+    dropTargetId,
+    handleDragStart,
+    handleDragEnter,
+    handleDragOver,
+    handleDrop,
+    handleDragEnd,
+  } = useDragDrop();
   const { filteredSegments, lastReadIndex, setSegmentRef, endOfStoryRef } = useReadingProgress();
 
   // Other hooks
@@ -174,7 +248,9 @@ const AppContent: React.FC = () => {
   };
 
   const handleDeleteSegmentLocal = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this segment? This action cannot be undone.")) {
+    if (
+      window.confirm('Are you sure you want to delete this segment? This action cannot be undone.')
+    ) {
       deleteSegment(id);
       deleteHistory(id);
     }
@@ -193,15 +269,15 @@ const AppContent: React.FC = () => {
 
   const handleDeleteCharacter = (id: string) => {
     if (!activeStory) return;
-    if (window.confirm("Are you sure you want to delete this character profile?")) {
-      const newProfiles = activeStory.characterProfiles.filter(p => p.id !== id);
+    if (window.confirm('Are you sure you want to delete this character profile?')) {
+      const newProfiles = activeStory.characterProfiles.filter((p) => p.id !== id);
       updateCharacterProfiles(newProfiles);
     }
   };
 
   const handleSaveCharacterProfile = (profile: CharacterProfile) => {
     if (!activeStory) return;
-    const existingIndex = activeStory.characterProfiles.findIndex(p => p.id === profile.id);
+    const existingIndex = activeStory.characterProfiles.findIndex((p) => p.id === profile.id);
     let newProfiles;
 
     if (existingIndex > -1) {
@@ -255,8 +331,8 @@ const AppContent: React.FC = () => {
       document.body.removeChild(linkElement);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Failed to save session:", error);
-      alert("Failed to save story session.");
+      console.error('Failed to save session:', error);
+      alert('Failed to save story session.');
     }
   };
 
@@ -270,14 +346,19 @@ const AppContent: React.FC = () => {
         const result = e.target?.result as string;
         const loadedStory = JSON.parse(result);
 
-        if (loadedStory.id && loadedStory.name && Array.isArray(loadedStory.storySegments) && loadedStory.generationConfig) {
+        if (
+          loadedStory.id &&
+          loadedStory.name &&
+          Array.isArray(loadedStory.storySegments) &&
+          loadedStory.generationConfig
+        ) {
           setActiveStory(loadedStory);
           alert(`Story "${loadedStory.name}" loaded successfully!`);
         } else {
           throw new Error('Invalid session file format.');
         }
       } catch (error) {
-        console.error("Failed to load session:", error);
+        console.error('Failed to load session:', error);
         alert('Error loading session file. Please ensure it is a valid story file.');
       }
     };
@@ -291,25 +372,24 @@ const AppContent: React.FC = () => {
   // Configuration operations
   const handleSetConfig = (updater: React.SetStateAction<any>) => {
     if (!activeStory) return;
-    const newConfig = typeof updater === 'function'
-      ? updater(activeStory.generationConfig)
-      : updater;
+    const newConfig =
+      typeof updater === 'function' ? updater(activeStory.generationConfig) : updater;
     updateGenerationConfig(newConfig);
   };
 
   const handleSaveKeywordPreset = () => {
     if (!activeStory) return;
-    const name = window.prompt("Enter a name for this keyword preset:");
+    const name = window.prompt('Enter a name for this keyword preset:');
     if (name && name.trim()) {
       // This would need to be implemented in the story context
-      console.log("Save keyword preset:", name);
+      console.log('Save keyword preset:', name);
     }
   };
 
   // Computed values
   const isGenerateDisabled = useMemo(() => {
     if (!activeStory) return true;
-    return activeStory.storySegments.filter(s => s.type !== 'chapter').length === 0;
+    return activeStory.storySegments.filter((s) => s.type !== 'chapter').length === 0;
   }, [activeStory]);
 
   return (
@@ -319,47 +399,81 @@ const AppContent: React.FC = () => {
         <div className="flex flex-col gap-2 w-full px-2">
           {/* Load Button */}
           <div className="relative">
-            <label htmlFor="load-session" className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors cursor-pointer" title="Load Story Session">
+            <label
+              htmlFor="load-session"
+              className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors cursor-pointer"
+              title="Load Story Session"
+            >
               <UploadIcon className="w-5 h-5" />
               <span className="text-xs text-center">Load</span>
             </label>
-            <input id="load-session" type="file" accept=".json" onChange={handleLoadSession} className="hidden" />
+            <input
+              id="load-session"
+              type="file"
+              accept=".json"
+              onChange={handleLoadSession}
+              className="hidden"
+            />
           </div>
 
           {/* Save Button */}
-          <button onClick={handleSaveSession} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Save Story Session">
+          <button
+            onClick={handleSaveSession}
+            className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors"
+            title="Save Story Session"
+          >
             <DownloadIcon className="w-5 h-5" />
             <span className="text-xs text-center">Save</span>
           </button>
 
-          <hr/>
+          <hr />
 
           {/* Prompts Button */}
-          <button onClick={() => setIsPromptManagerOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Manage Custom Prompts">
+          <button
+            onClick={() => setIsPromptManagerOpen(true)}
+            className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors"
+            title="Manage Custom Prompts"
+          >
             <BookmarkIcon className="w-5 h-5" />
             <span className="text-xs text-center">Prompts</span>
           </button>
 
           {/* Characters Button */}
-          <button onClick={() => setIsCharacterPanelOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="View Characters">
+          <button
+            onClick={() => setIsCharacterPanelOpen(true)}
+            className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors"
+            title="View Characters"
+          >
             <UserGroupIcon className="w-5 h-5" />
             <span className="text-xs text-center">Characters</span>
           </button>
 
           {/* Chapters Button */}
-          <button onClick={() => setIsChapterListOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="View Chapter List">
+          <button
+            onClick={() => setIsChapterListOpen(true)}
+            className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors"
+            title="View Chapter List"
+          >
             <BookOpenIcon className="w-5 h-5" />
             <span className="text-xs text-center">Chapters</span>
           </button>
 
           {/* Export Button */}
-          <button onClick={() => setIsExportDialogOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Export Story">
+          <button
+            onClick={() => setIsExportDialogOpen(true)}
+            className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors"
+            title="Export Story"
+          >
             <DownloadIcon className="w-5 h-5" />
             <span className="text-xs text-center">Export</span>
           </button>
 
           {/* Stories Button */}
-          <button onClick={() => setIsStoryManagerOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors" title="Manage Stories">
+          <button
+            onClick={() => setIsStoryManagerOpen(true)}
+            className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-secondary/50 transition-colors"
+            title="Manage Stories"
+          >
             <CollectionIcon className="w-5 h-5" />
             <span className="text-xs text-center">Stories</span>
           </button>
@@ -373,7 +487,9 @@ const AppContent: React.FC = () => {
             <h1 className="text-xl md:text-2xl font-bold text-foreground flex-shrink-0">
               {activeStory ? activeStory.name : 'AI Creative Writer'}
             </h1>
-            <div className={`transition-opacity duration-500 ${saveStatus === 'saved' ? 'opacity-100' : 'opacity-0'}`}>
+            <div
+              className={`transition-opacity duration-500 ${saveStatus === 'saved' ? 'opacity-100' : 'opacity-0'}`}
+            >
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <CheckCircleIcon className="w-4 h-4 text-green-500" />
                 <span>All changes saved.</span>
@@ -469,7 +585,7 @@ const AppContent: React.FC = () => {
             <button
               onClick={() => setIsNavigatorOpen(!isNavigatorOpen)}
               className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"
-              title={isNavigatorOpen ? "Hide AI Panel" : "Show AI Panel"}
+              title={isNavigatorOpen ? 'Hide AI Panel' : 'Show AI Panel'}
             >
               <PanelRightIcon className="w-4 h-4" />
             </button>
@@ -481,131 +597,177 @@ const AppContent: React.FC = () => {
             <div className="text-center text-muted-foreground absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
               <p className="text-lg">Loading story...</p>
             </div>
-          ) : filteredSegments.length === 0 && (
-            <div className="text-center text-muted-foreground absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
-              {searchQuery ? (
-                <p className="text-lg">No segments match your search.</p>
-              ) : (
-                <>
-                  <p className="text-lg">Bắt đầu câu chuyện của bạn.</p>
-                  <p>Viết đoạn mở đầu vào ô bên dưới.</p>
-                </>
-              )}
-            </div>
+          ) : (
+            filteredSegments.length === 0 && (
+              <div className="text-center text-muted-foreground absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
+                {searchQuery ? (
+                  <p className="text-lg">No segments match your search.</p>
+                ) : (
+                  <>
+                    <p className="text-lg">Bắt đầu câu chuyện của bạn.</p>
+                    <p>Viết đoạn mở đầu vào ô bên dưới.</p>
+                  </>
+                )}
+              </div>
+            )
           )}
 
-          {activeStory && filteredSegments.map((segment, index) => {
-            const isBeingDragged = draggedSegmentId === segment.id;
-            const isDropTarget = dropTargetId === segment.id;
+          {activeStory &&
+            filteredSegments.map((segment, index) => {
+              const isBeingDragged = draggedSegmentId === segment.id;
+              const isDropTarget = dropTargetId === segment.id;
 
-            const showUnreadMarker = index === lastReadIndex + 1 && lastReadIndex < filteredSegments.length - 1;
+              const showUnreadMarker =
+                index === lastReadIndex + 1 && lastReadIndex < filteredSegments.length - 1;
 
-            return (
-              <React.Fragment key={segment.id}>
-                {showUnreadMarker && (
-                  <div className="relative my-6 flex items-center" aria-label="New content below">
-                    <span className="flex-shrink-0 bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground rounded-full">MỚI</span>
-                    <div className="flex-grow border-t-2 border-dashed border-primary ml-2"></div>
-                  </div>
-                )}
+              return (
+                <React.Fragment key={segment.id}>
+                  {showUnreadMarker && (
+                    <div className="relative my-6 flex items-center" aria-label="New content below">
+                      <span className="flex-shrink-0 bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground rounded-full">
+                        MỚI
+                      </span>
+                      <div className="flex-grow border-t-2 border-dashed border-primary ml-2"></div>
+                    </div>
+                  )}
 
-                {segment.type === 'chapter' ? (
-                  <div ref={(el) => setSegmentRef(segment.id, el)} data-segment-id={segment.id} className="flex items-center my-6">
-                    <div className="flex-grow border-t border-border"></div>
-                    <h2 className="flex-shrink-0 px-4 text-center text-lg font-bold text-muted-foreground tracking-wider uppercase">{segment.content}</h2>
-                    <div className="flex-grow border-t border-border"></div>
-                  </div>
-                ) : (
-                  <div
-                    ref={(el) => setSegmentRef(segment.id, el)}
-                    data-segment-id={segment.id}
-                    draggable={!editingSegmentId}
-                    onDragStart={(e) => !editingSegmentId && handleDragStart(e, segment.id)}
-                    onDragEnter={(e) => handleDragEnter(e, segment.id)}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, segment.id)}
-                    onDragEnd={handleDragEnd}
-                    onDragLeave={() => {}} // This would need to be handled in useDragDrop
-                    className={`
+                  {segment.type === 'chapter' ? (
+                    <div
+                      ref={(el) => setSegmentRef(segment.id, el)}
+                      data-segment-id={segment.id}
+                      className="flex items-center my-6"
+                    >
+                      <div className="flex-grow border-t border-border"></div>
+                      <h2 className="flex-shrink-0 px-4 text-center text-lg font-bold text-muted-foreground tracking-wider uppercase">
+                        {segment.content}
+                      </h2>
+                      <div className="flex-grow border-t border-border"></div>
+                    </div>
+                  ) : (
+                    <div
+                      ref={(el) => setSegmentRef(segment.id, el)}
+                      data-segment-id={segment.id}
+                      draggable={!editingSegmentId}
+                      onDragStart={(e) => !editingSegmentId && handleDragStart(e, segment.id)}
+                      onDragEnter={(e) => handleDragEnter(e, segment.id)}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, segment.id)}
+                      onDragEnd={handleDragEnd}
+                      onDragLeave={() => {}} // This would need to be handled in useDragDrop
+                      className={`
                       group relative transition-all duration-200
                       ${segment.type === 'user' ? 'pr-8' : 'pl-8'}
                       ${isBeingDragged ? 'opacity-30' : 'opacity-100'}
                       ${isDropTarget ? 'pt-2' : ''}
                     `}
-                  >
-                    {isDropTarget && (
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-primary rounded-full animate-pulse" />
-                    )}
-                    <div className={`relative p-5 rounded-lg mb-6 ${segment.type === 'user' ? 'bg-secondary' : 'bg-primary/10 border border-primary/20'}`}>
-                      {editingSegmentId === segment.id ? (
-                        <textarea
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
-                          rows={Math.max(5, editText.split('\n').length)}
-                          autoFocus
-                          placeholder="Chỉnh sửa nội dung đoạn này..."
-                          title="Chỉnh sửa nội dung đoạn này"
-                        />
-                      ) : (
-                        <StoryContentRenderer
-                          content={segment.content}
-                          displaySettings={activeStory.displaySettings}
-                        />
+                    >
+                      {isDropTarget && (
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-primary rounded-full animate-pulse" />
                       )}
-
-                      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {!editingSegmentId && (
-                          <div className="p-1.5 cursor-grab" title="Drag to reorder">
-                            <DragHandleIcon className="w-4 h-4" />
-                          </div>
+                      <div
+                        className={`relative p-5 rounded-lg mb-6 ${segment.type === 'user' ? 'bg-secondary' : 'bg-primary/10 border border-primary/20'}`}
+                      >
+                        {editingSegmentId === segment.id ? (
+                          <textarea
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                            rows={Math.max(5, editText.split('\n').length)}
+                            autoFocus
+                            placeholder="Chỉnh sửa nội dung đoạn này..."
+                            title="Chỉnh sửa nội dung đoạn này"
+                          />
+                        ) : (
+                          <StoryContentRenderer
+                            content={segment.content}
+                            displaySettings={activeStory.displaySettings}
+                          />
                         )}
 
-                        {editingSegmentId === segment.id ? (
-                          <>
-                            <button onClick={handleSaveEditSegment} className="p-1.5 rounded hover:bg-secondary/80 text-green-400" title="Save">
-                              <SaveIcon className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => setEditingSegmentId(null)} className="p-1.5 rounded hover:bg-secondary/80" title="Cancel">
-                              <CloseIcon className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            {isSpeaking ? (
-                              <button onClick={stop} className="p-1.5 rounded hover:bg-secondary/80 text-red-400" title="Stop reading">
+                        <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {!editingSegmentId && (
+                            <div className="p-1.5 cursor-grab" title="Drag to reorder">
+                              <DragHandleIcon className="w-4 h-4" />
+                            </div>
+                          )}
+
+                          {editingSegmentId === segment.id ? (
+                            <>
+                              <button
+                                onClick={handleSaveEditSegment}
+                                className="p-1.5 rounded hover:bg-secondary/80 text-green-400"
+                                title="Save"
+                              >
+                                <SaveIcon className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setEditingSegmentId(null)}
+                                className="p-1.5 rounded hover:bg-secondary/80"
+                                title="Cancel"
+                              >
                                 <CloseIcon className="w-4 h-4" />
                               </button>
-                            ) : (
-                              <button onClick={() => toggle(segment.content)} className="p-1.5 rounded hover:bg-secondary/80" title="Read aloud">
-                                <SpeakerIcon className="w-4 h-4" />
+                            </>
+                          ) : (
+                            <>
+                              {isSpeaking ? (
+                                <button
+                                  onClick={stop}
+                                  className="p-1.5 rounded hover:bg-secondary/80 text-red-400"
+                                  title="Stop reading"
+                                >
+                                  <CloseIcon className="w-4 h-4" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => toggle(segment.content)}
+                                  className="p-1.5 rounded hover:bg-secondary/80"
+                                  title="Read aloud"
+                                >
+                                  <SpeakerIcon className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleStartEditSegment(segment)}
+                                className="p-1.5 rounded hover:bg-secondary/80"
+                                title="Edit"
+                              >
+                                <EditIcon className="w-4 h-4" />
                               </button>
-                            )}
-                            <button onClick={() => handleStartEditSegment(segment)} className="p-1.5 rounded hover:bg-secondary/80" title="Edit">
-                              <EditIcon className="w-4 h-4" />
+                            </>
+                          )}
+
+                          {segment.type === 'ai' && !editingSegmentId && (
+                            <button
+                              onClick={() => setHistoryViewerTarget(segment.id)}
+                              className="p-1.5 rounded hover:bg-secondary/80"
+                              title="View History"
+                            >
+                              <HistoryIcon className="w-4 h-4" />
                             </button>
-                          </>
-                        )}
+                          )}
 
-                        {segment.type === 'ai' && !editingSegmentId && (
-                          <button onClick={() => setHistoryViewerTarget(segment.id)} className="p-1.5 rounded hover:bg-secondary/80" title="View History">
-                            <HistoryIcon className="w-4 h-4" />
+                          <button
+                            onClick={() => navigator.clipboard.writeText(segment.content)}
+                            className="p-1.5 rounded hover:bg-secondary/80"
+                            title="Copy"
+                          >
+                            <CopyIcon className="w-4 h-4" />
                           </button>
-                        )}
-
-                        <button onClick={() => navigator.clipboard.writeText(segment.content)} className="p-1.5 rounded hover:bg-secondary/80" title="Copy">
-                          <CopyIcon className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDeleteSegmentLocal(segment.id)} className="p-1.5 rounded hover:bg-secondary/80 text-red-400" title="Delete">
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
+                          <button
+                            onClick={() => handleDeleteSegmentLocal(segment.id)}
+                            className="p-1.5 rounded hover:bg-secondary/80 text-red-400"
+                            title="Delete"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          })}
+                  )}
+                </React.Fragment>
+              );
+            })}
           <div ref={endOfStoryRef} />
         </div>
 
@@ -620,7 +782,9 @@ const AppContent: React.FC = () => {
 
       {/* Desktop Aside */}
       {isDesktop && (
-        <aside className={`flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isNavigatorOpen ? 'w-[380px]' : 'w-0'}`}>
+        <aside
+          className={`flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isNavigatorOpen ? 'w-[380px]' : 'w-0'}`}
+        >
           <div className="w-[380px] h-full">
             {activeStory && (
               <Suspense fallback={<ComponentLoadingFallback />}>
@@ -635,7 +799,7 @@ const AppContent: React.FC = () => {
                   selectedPromptIds={activeStory.selectedPromptIds || []}
                   setSelectedPromptIds={(ids) => {
                     // This would need to be implemented in the story context
-                    console.log("Set selected prompt IDs:", ids);
+                    console.log('Set selected prompt IDs:', ids);
                   }}
                   onManagePrompts={() => setIsPromptManagerOpen(true)}
                   keywordPresets={activeStory.keywordPresets || []}
@@ -652,7 +816,10 @@ const AppContent: React.FC = () => {
       {/* Mobile Overlay */}
       {isNavigatorOpen && !isDesktop && (
         <div className="fixed inset-0 z-50">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setIsNavigatorOpen(false)}></div>
+          <div
+            className="fixed inset-0 bg-black/50"
+            onClick={() => setIsNavigatorOpen(false)}
+          ></div>
           <aside className="absolute right-0 top-0 w-80 h-full bg-secondary border-l border-border">
             {activeStory && (
               <Suspense fallback={<ComponentLoadingFallback />}>
@@ -665,7 +832,7 @@ const AppContent: React.FC = () => {
                   customPrompts={activeStory.customPrompts}
                   selectedPromptIds={activeStory.selectedPromptIds || []}
                   setSelectedPromptIds={(ids) => {
-                    console.log("Set selected prompt IDs:", ids);
+                    console.log('Set selected prompt IDs:', ids);
                   }}
                   onManagePrompts={() => setIsPromptManagerOpen(true)}
                   keywordPresets={activeStory.keywordPresets || []}
@@ -696,7 +863,7 @@ const AppContent: React.FC = () => {
             prompts={activeStory.customPrompts}
             setPrompts={(prompts) => {
               // This would need to be implemented in the story context
-              console.log("Set prompts:", prompts);
+              console.log('Set prompts:', prompts);
             }}
             onClose={() => setIsPromptManagerOpen(false)}
           />

@@ -69,9 +69,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="text-center max-w-md">
             <div className="mb-4">
               <ExclamationCircleIcon className="w-16 h-16 text-destructive mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-foreground mb-2">
-                Đã xảy ra lỗi
-              </h2>
+              <h2 className="text-xl font-semibold text-foreground mb-2">Đã xảy ra lỗi</h2>
               <p className="text-muted-foreground text-sm">
                 Ứng dụng gặp sự cố không mong muốn. Bạn có thể thử làm mới trang hoặc tiếp tục.
               </p>

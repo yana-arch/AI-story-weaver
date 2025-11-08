@@ -19,10 +19,8 @@ import { OpenAIClient } from './clients/OpenAIClient';
 import { AnthropicClaudeClient } from './clients/AnthropicClaudeClient';
 
 interface AIClient {
-  generateText(
-    prompts: AIPrompt[],
-    options?: AIRequestOptions
-  ): Promise<AIResponse>;
+  generateText(prompts: AIPrompt[], options?: AIRequestOptions): Promise<AIResponse>;
+  generateImage?(prompt: string, modelId?: string): Promise<AIResponse>; // Optional for image generation
   getProvider(): AIProvider;
   getSupportedModels(): string[];
   testConnection(apiKey?: string): Promise<boolean>;
@@ -49,12 +47,24 @@ class AIService {
   ): Promise<AIResponse> {
     const primaryConfig = getModelConfig(modelId);
     if (!primaryConfig) {
-      throw new AIError(AIProvider.GOOGLE, 'INVALID_MODEL', `Model ${modelId} not supported`, 'unknown', false);
+      throw new AIError(
+        AIProvider.GOOGLE,
+        'INVALID_MODEL',
+        `Model ${modelId} not supported`,
+        'unknown',
+        false
+      );
     }
 
     const client = this.clients.get(primaryConfig.provider);
     if (!client) {
-      throw new AIError(AIProvider.GOOGLE, 'NO_CLIENT', `No client available for provider ${primaryConfig.provider}`, 'unknown', false);
+      throw new AIError(
+        AIProvider.GOOGLE,
+        'NO_CLIENT',
+        `No client available for provider ${primaryConfig.provider}`,
+        'unknown',
+        false
+      );
     }
 
     try {
@@ -66,6 +76,82 @@ class AIService {
       }
       throw error;
     }
+  }
+
+  async generateImage(
+    prompt: string,
+    modelId: string,
+    fallbackModels?: string[]
+  ): Promise<AIResponse> {
+    const primaryConfig = getModelConfig(modelId);
+    if (!primaryConfig) {
+      throw new AIError(
+        AIProvider.OPENAI, // Default to OpenAI for image generation errors
+        'INVALID_MODEL',
+        `Model ${modelId} not supported`,
+        'unknown',
+        false
+      );
+    }
+
+    if (!primaryConfig.capabilities.includes(AIModelCapability.IMAGE_GENERATION)) {
+      throw new AIError(
+        primaryConfig.provider,
+        'UNSUPPORTED_CAPABILITY',
+        `Model ${modelId} does not support image generation`,
+        'unknown',
+        false
+      );
+    }
+
+    const client = this.clients.get(primaryConfig.provider);
+    if (!client || !client.generateImage) {
+      throw new AIError(
+        primaryConfig.provider,
+        'NO_CLIENT_IMAGE_SUPPORT',
+        `Client for ${primaryConfig.provider} does not support image generation`,
+        'unknown',
+        false
+      );
+    }
+
+    try {
+      return await client.generateImage(prompt, modelId);
+    } catch (error) {
+      // Handle primary model failure and attempt fallbacks
+      if (fallbackModels && fallbackModels.length > 0) {
+        return this.tryFallbackImageGeneration(fallbackModels, prompt);
+      }
+      throw error;
+    }
+  }
+
+  private async tryFallbackImageGeneration(
+    fallbackModels: string[],
+    prompt: string
+  ): Promise<AIResponse> {
+    for (const fallbackModel of fallbackModels) {
+      try {
+        const result = await this.generateImage(prompt, fallbackModel);
+        // Log successful fallback
+        console.log(`Successfully used fallback model for image generation: ${fallbackModel}`);
+        return result;
+      } catch (error) {
+        console.warn(`Fallback image model ${fallbackModel} failed:`, error);
+        continue;
+      }
+    }
+
+    // All fallbacks failed
+    const error = new AIError(
+      AIProvider.OPENAI, // Default to OpenAI for image generation errors
+      'ALL_IMAGE_MODELS_FAILED',
+      'All image generation models including fallbacks failed to generate response',
+      'server',
+      true
+    );
+    this.errorHandler(error, { context: 'AI Image Generation', recoverable: true });
+    throw error;
   }
 
   private async tryFallbackGeneration(
@@ -113,11 +199,11 @@ class AIService {
 
   getAvailableModels(): AIModelConfig[] {
     const allModels: AIModelConfig[] = [];
-    Object.values(AIProvider).forEach(provider => {
+    Object.values(AIProvider).forEach((provider) => {
       if (this.clients.has(provider as AIProvider)) {
         const client = this.clients.get(provider as AIProvider)!;
         const models = client.getSupportedModels();
-        models.forEach(modelId => {
+        models.forEach((modelId) => {
           const config = getModelConfig(modelId);
           if (config) allModels.push(config);
         });
@@ -131,7 +217,7 @@ class AIService {
   }
 
   estimateUsage(prompts: AIPrompt[], modelId: string): { tokens: number; cost: number } {
-    const totalText = prompts.map(p => p.content).join(' ');
+    const totalText = prompts.map((p) => p.content).join(' ');
     const tokens = estimateTokenCount(totalText);
 
     // Estimate output tokens (roughly 1/4 of input for story continuation)
@@ -145,7 +231,7 @@ class AIService {
   buildPromptsForStoryGeneration(
     storyContext: string,
     userPrompt: string,
-    characterProfiles: Array<{ name: string; personality: string; background: string; }>,
+    characterProfiles: Array<{ name: string; personality: string; background: string }>,
     systemPrompt?: string
   ): AIPrompt[] {
     const prompts: AIPrompt[] = [];
@@ -158,14 +244,18 @@ class AIService {
     } else {
       prompts.push({
         role: 'system',
-        content: 'You are a creative story writer. Generate engaging, coherent story continuations.',
+        content:
+          'You are a creative story writer. Generate engaging, coherent story continuations.',
       });
     }
 
     if (characterProfiles.length > 0) {
-      const characterInfo = characterProfiles.map(char =>
-        `Character: ${char.name}\nPersonality: ${char.personality}\nBackground: ${char.background}`
-      ).join('\n\n');
+      const characterInfo = characterProfiles
+        .map(
+          (char) =>
+            `Character: ${char.name}\nPersonality: ${char.personality}\nBackground: ${char.background}`
+        )
+        .join('\n\n');
 
       prompts.push({
         role: 'system',
@@ -181,10 +271,7 @@ class AIService {
     return prompts;
   }
 
-  buildPromptsForCharacterAnalysis(
-    storyContent: string,
-    systemPrompt?: string
-  ): AIPrompt[] {
+  buildPromptsForCharacterAnalysis(storyContent: string, systemPrompt?: string): AIPrompt[] {
     const prompts: AIPrompt[] = [];
 
     if (systemPrompt) {
@@ -195,7 +282,8 @@ class AIService {
     } else {
       prompts.push({
         role: 'system',
-        content: 'Analyze the characters in the given story and provide detailed character profiles.',
+        content:
+          'Analyze the characters in the given story and provide detailed character profiles.',
       });
     }
 
@@ -207,10 +295,7 @@ class AIService {
     return prompts;
   }
 
-  buildPromptsForAutoFillSettings(
-    userInstructions: string,
-    systemPrompt?: string
-  ): AIPrompt[] {
+  buildPromptsForAutoFillSettings(userInstructions: string, systemPrompt?: string): AIPrompt[] {
     const prompts: AIPrompt[] = [];
 
     if (systemPrompt) {
@@ -221,7 +306,8 @@ class AIService {
     } else {
       prompts.push({
         role: 'system',
-        content: 'You are an expert story writing assistant. Based on user instructions, suggest optimal settings for AI story generation including scenario, character dynamics, pacing, narrative structure, and other parameters.',
+        content:
+          'You are an expert story writing assistant. Based on user instructions, suggest optimal settings for AI story generation including scenario, character dynamics, pacing, narrative structure, and other parameters.',
       });
     }
 
@@ -232,13 +318,13 @@ class AIService {
 Please suggest the optimal settings for AI story generation. You must return ONLY a valid JSON object with exactly these fields:
 
 {
-  "scenario": "Choose from: Lần đầu, Từ ghét thành yêu, Bạn bè thân thiết, Gương vỡ lại lành, Bạo dạn & Khám phá, or suggest a custom one",
-  "dynamics": "Choose from: Nhân vật A chủ động B bị động/ngượng ngùng, Cả hai cùng chủ động và mãnh liệt, Tập trung vào nội tâm và cảm xúc của nhân vật A, Tập trung vào nội tâm và cảm xúc của nhân vật B, or suggest custom",
-  "pacing": "Choose from: Chậm: Tập trung xây dựng không khí miêu tả chi tiết., Trung bình: Cân bằng giữa hành động và cảm xúc., Nhanh: Đi thẳng vào hành động chính tạo cảm giác dồn dập., or suggest custom",
-  "narrativeStructure": "Choose from: Tự do (Không có cấu trúc), Cấu trúc 3 hồi, Hành trình của người hùng, or suggest custom",
-  "focusKeywords": "Comma-separated list of 2-4 keywords to emphasize",
+  "scenario": "Suggest a scenario for the story",
+  "dynamics": "Suggest character dynamics",
+  "pacing": "Suggest the pacing of the story",
+  "narrativeStructure": "Suggest the narrative structure",
+  "focusKeywords": "Comma-separated list of keywords to emphasize",
   "avoidKeywords": "Comma-separated list of keywords to avoid, or empty string",
-  "adultContentOptions": ["Array of relevant options from: Xây dựng lãng mạn & Cảm xúc, Miêu tả Gợi cảm & Tinh tế, Hành động Tường tận & Trực tiếp, Đối thoại Táo bạo & Thân mật, Yếu tố Thống trị & Phục tùng, or empty array"]
+  "adultContentOptions": ["Array of relevant adult content options, or empty array"]
 }
 
 IMPORTANT: Return ONLY the JSON object. No markdown, no explanations, no additional text. Start with { and end with }.`,
@@ -297,7 +383,10 @@ IMPORTANT: Return ONLY the JSON object. No markdown, no explanations, no additio
         validatedSettings.pacing = parsedSettings.pacing;
       }
 
-      if (parsedSettings.narrativeStructure && typeof parsedSettings.narrativeStructure === 'string') {
+      if (
+        parsedSettings.narrativeStructure &&
+        typeof parsedSettings.narrativeStructure === 'string'
+      ) {
         validatedSettings.narrativeStructure = parsedSettings.narrativeStructure;
       }
 
@@ -327,14 +416,13 @@ IMPORTANT: Return ONLY the JSON object. No markdown, no explanations, no additio
     } catch (error) {
       console.error('Failed to generate auto-fill settings:', error);
       console.error('Raw AI response:', response?.content);
-      throw new Error('Unable to generate settings from instructions. Please try again or fill them manually.');
+      throw new Error(
+        'Unable to generate settings from instructions. Please try again or fill them manually.'
+      );
     }
   }
 
-  buildPromptsForAutoGeneratePrompts(
-    userInstructions: string,
-    systemPrompt?: string
-  ): AIPrompt[] {
+  buildPromptsForAutoGeneratePrompts(userInstructions: string, systemPrompt?: string): AIPrompt[] {
     const prompts: AIPrompt[] = [];
 
     if (systemPrompt) {
@@ -345,7 +433,8 @@ IMPORTANT: Return ONLY the JSON object. No markdown, no explanations, no additio
     } else {
       prompts.push({
         role: 'system',
-        content: 'You are an expert creative writing assistant. Based on user instructions, generate custom prompts that will help AI write better stories. Each prompt should be specific, actionable, and focused on improving story quality.',
+        content:
+          'You are an expert creative writing assistant. Based on user instructions, generate custom prompts that will help AI write better stories. Each prompt should be specific, actionable, and focused on improving story quality.',
       });
     }
 
@@ -420,13 +509,14 @@ IMPORTANT: Return ONLY the JSON array. No markdown, no explanations, no addition
       }
 
       const validatedPrompts = parsedPrompts
-        .filter((prompt: any) =>
-          prompt &&
-          typeof prompt === 'object' &&
-          typeof prompt.title === 'string' &&
-          typeof prompt.content === 'string' &&
-          prompt.title.trim().length > 0 &&
-          prompt.content.trim().length > 0
+        .filter(
+          (prompt: any) =>
+            prompt &&
+            typeof prompt === 'object' &&
+            typeof prompt.title === 'string' &&
+            typeof prompt.content === 'string' &&
+            prompt.title.trim().length > 0 &&
+            prompt.content.trim().length > 0
         )
         .map((prompt: any) => ({
           title: prompt.title.trim(),
@@ -438,15 +528,131 @@ IMPORTANT: Return ONLY the JSON array. No markdown, no explanations, no addition
     } catch (error) {
       console.error('Failed to generate auto prompts:', error);
       console.error('Raw AI response:', response?.content);
-      throw new Error('Unable to generate prompts from instructions. Please try again or create them manually.');
+      throw new Error(
+        'Unable to generate prompts from instructions. Please try again or create them manually.'
+      );
     }
+  }
+
+  async analyzeStoryStructure(
+    storyContent: string,
+    modelId: string,
+    fallbackModels?: string[]
+  ): Promise<AIResponse> {
+    const primaryConfig = getModelConfig(modelId);
+    if (!primaryConfig) {
+      throw new AIError(
+        AIProvider.GOOGLE,
+        'INVALID_MODEL',
+        `Model ${modelId} not supported`,
+        'unknown',
+        false
+      );
+    }
+
+    if (!primaryConfig.capabilities.includes(AIModelCapability.STORY_STRUCTURE_ANALYSIS)) {
+      throw new AIError(
+        primaryConfig.provider,
+        'UNSUPPORTED_CAPABILITY',
+        `Model ${modelId} does not support story structure analysis`,
+        'unknown',
+        false
+      );
+    }
+
+    const prompts = this.buildPromptsForStoryStructureAnalysis(storyContent);
+    return this.generateText(modelId, prompts, {}, fallbackModels);
+  }
+
+  async detectPlotHoles(
+    storyContent: string,
+    modelId: string,
+    fallbackModels?: string[]
+  ): Promise<AIResponse> {
+    const primaryConfig = getModelConfig(modelId);
+    if (!primaryConfig) {
+      throw new AIError(
+        AIProvider.GOOGLE,
+        'INVALID_MODEL',
+        `Model ${modelId} not supported`,
+        'unknown',
+        false
+      );
+    }
+
+    if (!primaryConfig.capabilities.includes(AIModelCapability.PLOT_HOLE_DETECTION)) {
+      throw new AIError(
+        primaryConfig.provider,
+        'UNSUPPORTED_CAPABILITY',
+        `Model ${modelId} does not support plot hole detection`,
+        'unknown',
+        false
+      );
+    }
+
+    const prompts = this.buildPromptsForPlotHoleDetection(storyContent);
+    return this.generateText(modelId, prompts, {}, fallbackModels);
+  }
+
+  buildPromptsForImageGeneration(description: string): AIPrompt[] {
+    return [{ role: 'user', content: description }];
+  }
+
+  buildPromptsForStoryStructureAnalysis(storyContent: string, systemPrompt?: string): AIPrompt[] {
+    const prompts: AIPrompt[] = [];
+
+    if (systemPrompt) {
+      prompts.push({
+        role: 'system',
+        content: systemPrompt,
+      });
+    } else {
+      prompts.push({
+        role: 'system',
+        content:
+          'You are an expert literary critic and story analyst. Analyze the provided story content for its structure, plot points, character arcs, pacing, and overall narrative flow. Provide a detailed report in markdown format.',
+      });
+    }
+
+    prompts.push({
+      role: 'user',
+      content: `Analyze the following story content and provide a detailed report on its story structure, identifying key plot points, character arcs, pacing, and narrative flow. Suggest areas for improvement.\n\nStory Content:\n${storyContent}`,
+    });
+
+    return prompts;
+  }
+
+  buildPromptsForPlotHoleDetection(storyContent: string, systemPrompt?: string): AIPrompt[] {
+    const prompts: AIPrompt[] = [];
+
+    if (systemPrompt) {
+      prompts.push({
+        role: 'system',
+        content: systemPrompt,
+      });
+    } else {
+      prompts.push({
+        role: 'system',
+        content:
+          'You are an expert story editor with a keen eye for detail. Analyze the provided story content to identify any plot holes, inconsistencies, or logical gaps in the narrative. Provide a detailed report in markdown format.',
+      });
+    }
+
+    prompts.push({
+      role: 'user',
+      content: `Analyze the following story content and identify any plot holes, inconsistencies, or logical gaps. Explain each identified issue and suggest potential resolutions.\n\nStory Content:\n${storyContent}`,
+    });
+
+    return prompts;
   }
 }
 
 // Singleton instance
 let aiServiceInstance: AIService | null = null;
 
-export function getAIService(errorHandler?: (error: Error | string, options?: any) => string): AIService {
+export function getAIService(
+  errorHandler?: (error: Error | string, options?: any) => string
+): AIService {
   if (!aiServiceInstance) {
     if (!errorHandler) {
       throw new Error('AIService requires an error handler for first initialization');

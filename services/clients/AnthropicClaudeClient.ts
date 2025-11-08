@@ -20,7 +20,7 @@ export class AnthropicClaudeClient {
     try {
       const testClient = new Anthropic({
         apiKey: apiKey,
-        dangerouslyAllowBrowser: true
+        dangerouslyAllowBrowser: true,
       });
 
       const response = await testClient.messages.create({
@@ -36,10 +36,7 @@ export class AnthropicClaudeClient {
     }
   }
 
-  async generateText(
-    prompts: AIPrompt[],
-    options: AIRequestOptions = {}
-  ): Promise<AIResponse> {
+  async generateText(prompts: AIPrompt[], options: AIRequestOptions = {}): Promise<AIResponse> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       throw new AIError(
@@ -54,7 +51,7 @@ export class AnthropicClaudeClient {
     if (!this.client) {
       this.client = new Anthropic({
         apiKey: apiKey,
-        dangerouslyAllowBrowser: true
+        dangerouslyAllowBrowser: true,
       });
     }
 

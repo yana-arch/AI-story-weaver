@@ -1,8 +1,4 @@
-import type {
-  ImportedChapter,
-  AIProcessingOptions,
-  ContentFilter,
-} from '../types/chapter';
+import type { ImportedChapter, AIProcessingOptions, ContentFilter } from '../types/chapter';
 
 export class ContentProcessorService {
   private static instance: ContentProcessorService;
@@ -22,7 +18,10 @@ export class ContentProcessorService {
 
     // Apply content moderation
     if (options.enableContentModeration) {
-      processedChapters = await this.applyContentModeration(processedChapters, options.contentFilters);
+      processedChapters = await this.applyContentModeration(
+        processedChapters,
+        options.contentFilters
+      );
     }
 
     // Apply content enhancement
@@ -104,12 +103,12 @@ export class ContentProcessorService {
 
     switch (filter.action) {
       case 'remove':
-        violencePatterns.forEach(pattern => {
+        violencePatterns.forEach((pattern) => {
           processedContent = processedContent.replace(pattern, '[Nội dung đã được loại bỏ]');
         });
         break;
       case 'replace':
-        violencePatterns.forEach(pattern => {
+        violencePatterns.forEach((pattern) => {
           processedContent = processedContent.replace(pattern, '[Nội dung được chỉnh sửa]');
         });
         break;
@@ -152,12 +151,12 @@ export class ContentProcessorService {
 
     switch (filter.action) {
       case 'remove':
-        explicitPatterns.forEach(pattern => {
+        explicitPatterns.forEach((pattern) => {
           processedContent = processedContent.replace(pattern, '[Nội dung 18+ đã được loại bỏ]');
         });
         break;
       case 'replace':
-        explicitPatterns.forEach(pattern => {
+        explicitPatterns.forEach((pattern) => {
           processedContent = processedContent.replace(pattern, '[Nội dung người lớn]');
         });
         break;
@@ -193,12 +192,12 @@ export class ContentProcessorService {
 
     switch (filter.action) {
       case 'remove':
-        profanityPatterns.forEach(pattern => {
+        profanityPatterns.forEach((pattern) => {
           processedContent = processedContent.replace(pattern, '[***]');
         });
         break;
       case 'replace':
-        profanityPatterns.forEach(pattern => {
+        profanityPatterns.forEach((pattern) => {
           processedContent = processedContent.replace(pattern, '[Từ thô tục]');
         });
         break;
@@ -230,12 +229,15 @@ export class ContentProcessorService {
 
     switch (filter.action) {
       case 'remove':
-        sensitivePatterns.forEach(pattern => {
-          processedContent = processedContent.replace(pattern, '[Nội dung nhạy cảm đã được loại bỏ]');
+        sensitivePatterns.forEach((pattern) => {
+          processedContent = processedContent.replace(
+            pattern,
+            '[Nội dung nhạy cảm đã được loại bỏ]'
+          );
         });
         break;
       case 'replace':
-        sensitivePatterns.forEach(pattern => {
+        sensitivePatterns.forEach((pattern) => {
           processedContent = processedContent.replace(pattern, '[Nội dung nhạy cảm]');
         });
         break;
@@ -259,7 +261,10 @@ export class ContentProcessorService {
 
       switch (filter.action) {
         case 'remove':
-          processedContent = processedContent.replace(pattern, '[Nội dung tùy chỉnh đã được loại bỏ]');
+          processedContent = processedContent.replace(
+            pattern,
+            '[Nội dung tùy chỉnh đã được loại bỏ]'
+          );
           break;
         case 'replace':
           processedContent = processedContent.replace(pattern, '[Nội dung tùy chỉnh]');
@@ -329,10 +334,17 @@ export class ContentProcessorService {
     const characterCount = content.length;
 
     return {
-      hasViolence: /giết|đâm|bắn|đánh\s+chết|hành\s+hạ|tra\s+tấn|暗杀|杀戮|暴力|死亡|流血/.test(content),
-      hasExplicitContent: /làm\s+chuyện\s+ấy|quan\s+hệ|yêu\s+đương|thân\s+mật|chăn\s+gối|性爱|亲密|身体|亲吻/.test(content),
+      hasViolence: /giết|đâm|bắn|đánh\s+chết|hành\s+hạ|tra\s+tấn|暗杀|杀戮|暴力|死亡|流血/.test(
+        content
+      ),
+      hasExplicitContent:
+        /làm\s+chuyện\s+ấy|quan\s+hệ|yêu\s+đương|thân\s+mật|chăn\s+gối|性爱|亲密|身体|亲吻/.test(
+          content
+        ),
       hasProfanity: /địt|đụ|chết|khốn|đồ|con\s+đĩ|操|他妈的|贱人|混蛋/.test(content),
-      hasSensitiveContent: /chính\s+trị|tôn\s+giáo|dân\s+tộc|phân\s+biệt|政治|宗教|民族|歧视/.test(content),
+      hasSensitiveContent: /chính\s+trị|tôn\s+giáo|dân\s+tộc|phân\s+biệt|政治|宗教|民族|歧视/.test(
+        content
+      ),
       wordCount,
       characterCount,
     };
@@ -352,7 +364,7 @@ export class ContentProcessorService {
       results.push(...processedBatch);
 
       // Small delay to prevent overwhelming the AI service
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     return results;

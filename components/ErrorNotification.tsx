@@ -71,23 +71,17 @@ const ErrorNotification: React.FC<ErrorNotificationProps> = ({
               <p className="text-sm font-medium text-destructive">
                 {errorType === 'network' && !isOnline ? 'Mất kết nối mạng' : 'Lỗi'}
               </p>
-              <p className="text-xs text-muted-foreground">
-                {formatTimestamp(error.timestamp)}
-              </p>
+              <p className="text-xs text-muted-foreground">{formatTimestamp(error.timestamp)}</p>
             </div>
 
-            <p className="text-sm text-foreground mb-3">
-              {error.message}
-            </p>
+            <p className="text-sm text-foreground mb-3">{error.message}</p>
 
             {error.details && (
               <details className="mb-3">
                 <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
                   Chi tiết
                 </summary>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {error.details}
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">{error.details}</p>
               </details>
             )}
 
@@ -148,7 +142,7 @@ interface ErrorNotificationContainerProps {
 }
 
 export const ErrorNotificationContainer: React.FC<ErrorNotificationContainerProps> = ({
-  className = ''
+  className = '',
 }) => {
   const { errors, removeError, retryError } = useErrorHandler();
 

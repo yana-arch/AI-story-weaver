@@ -1,0 +1,143 @@
+import React, { useState } from 'react';
+import { getAIService } from '../services/aiService';
+import { AIModelCapability, AIProvider } from '../types/ai-models';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { WandIcon, XIcon } from './icons';
+
+interface ImageGeneratorProps {
+  onClose: () => void;
+}
+
+export const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onClose }) => {
+  const [prompt, setPrompt] = useState('');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { addError } = useErrorHandler();
+
+  const handleGenerateImage = async () => {
+    if (!prompt.trim()) {
+      addError('Please enter a prompt for image generation.', { recoverable: false });
+      return;
+    }
+
+    setIsLoading(true);
+    setImageUrl(null);
+
+    try {
+      const aiService = getAIService((error, options) => {
+        addError(error, options);
+        return typeof error === 'string' ? error : error.message;
+      });
+
+      // Find an image generation model (DALL-E 3 is configured under OpenAI)
+      const imageModels = aiService.getModelsByCapability(AIModelCapability.IMAGE_GENERATION);
+      const dallE3Model = imageModels.find(model => model.modelId === 'dall-e-3');
+
+      if (!dallE3Model) {
+        addError('DALL-E 3 model not found or not configured.', { recoverable: false });
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await aiService.generateImage(prompt, dallE3Model.modelId);
+
+      if (response.imageUrls && response.imageUrls.length > 0) {
+        setImageUrl(response.imageUrls[0]);
+      } else {
+        addError('No image URL received from AI service.', { recoverable: false });
+      }
+    } catch (error) {
+      console.error('Error generating image:', error);
+      addError('Failed to generate image. Please check your API key and try again.', { recoverable: true });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-background/80 flex justify-center items-center z-50 p-4">
+      <div className="bg-card rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex justify-between items-center p-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">AI Image Generator</h2>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-muted rounded transition-colors"
+            title="Close"
+          >
+            <XIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 flex-grow overflow-y-auto space-y-4">
+          <div>
+            <label htmlFor="image-prompt" className="block text-sm font-medium text-muted-foreground mb-1">
+              Image Prompt
+            </label>
+            <textarea
+              id="image-prompt"
+              className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+              rows={3}
+              placeholder="Describe the image you want to generate... (e.g., A futuristic city at sunset, digital art)"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+            />
+          </div>
+
+          <button
+            onClick={handleGenerateImage}
+            disabled={isLoading || !prompt.trim()}
+            className="w-full flex justify-center items-center px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary-foreground"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Generating...
+              </>
+            ) : (
+              <>
+                <WandIcon className="w-5 h-5 mr-2" />
+                Generate Image
+              </>
+            )}
+          </button>
+
+          {imageUrl && (
+            <div className="mt-4 text-center">
+              <h3 className="text-md font-semibold mb-2">Generated Image:</h3>
+              <img src={imageUrl} alt="Generated by AI" className="max-w-full h-auto rounded-lg shadow-md mx-auto" />
+              <a
+                href={imageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block text-primary hover:underline"
+              >
+                Open Image in New Tab
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

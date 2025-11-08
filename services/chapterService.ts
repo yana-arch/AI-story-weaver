@@ -38,7 +38,8 @@ class ChapterService {
       {
         id: 'fantasy_opening',
         name: 'Fantasy Opening Chapter',
-        description: 'Perfect for beginning fantasy stories with world-building and character introduction',
+        description:
+          'Perfect for beginning fantasy stories with world-building and character introduction',
         genre: ['fantasy', 'epic fantasy'],
         structure: {
           sections: [
@@ -48,7 +49,12 @@ class ChapterService {
             'Initial conflict or mystery',
           ],
           suggestedWordCount: 2500,
-          keyElements: ['Magic system introduction', 'World lore', 'Character background', 'Foreshadowing'],
+          keyElements: [
+            'Magic system introduction',
+            'World lore',
+            'Character background',
+            'Foreshadowing',
+          ],
         },
         defaultContent: `# Chapter 1: The Awakening
 
@@ -75,7 +81,8 @@ Little did she know that this was only the beginning of her journey, where desti
       {
         id: 'romance_meet_cute',
         name: 'Romance Meet-Cute',
-        description: 'Classic romantic comedy opening with an unexpected meeting that sparks chemistry',
+        description:
+          'Classic romantic comedy opening with an unexpected meeting that sparks chemistry',
         genre: ['romance', 'romantic comedy', 'contemporary'],
         structure: {
           sections: [
@@ -85,7 +92,12 @@ Little did she know that this was only the beginning of her journey, where desti
             'Internal monologue and chemistry recognition',
           ],
           suggestedWordCount: 2200,
-          keyElements: ['Humorous situation', 'Character personality sparks', 'Physical attraction', 'Foreshadowing conflict'],
+          keyElements: [
+            'Humorous situation',
+            'Character personality sparks',
+            'Physical attraction',
+            'Foreshadowing conflict',
+          ],
         },
         defaultContent: `# Chapter 1: Coffee Catastrophe
 
@@ -128,7 +140,8 @@ Little did they know, this coffee-soaked collision was about to change everythin
       {
         id: 'mystery_opening',
         name: 'Mystery Opening Chapter',
-        description: 'Create suspense with an unsolved puzzle that draws readers into the investigation',
+        description:
+          'Create suspense with an unsolved puzzle that draws readers into the investigation',
         genre: ['mystery', 'thriller', 'detective'],
         structure: {
           sections: [
@@ -138,7 +151,12 @@ Little did they know, this coffee-soaked collision was about to change everythin
             'Clues and questions established',
           ],
           suggestedWordCount: 2800,
-          keyElements: ['Unanswered questions', 'Suspenseful atmosphere', 'Conflict motivation', 'Initial suspects/clues'],
+          keyElements: [
+            'Unanswered questions',
+            'Suspenseful atmosphere',
+            'Conflict motivation',
+            'Initial suspects/clues',
+          ],
         },
         defaultContent: `# Chapter 1: The Locked Room
 
@@ -187,7 +205,8 @@ But she had no choice. For Harrington. For the truth. For herself.`,
       {
         id: 'sci_fi_first_contact',
         name: 'Sci-Fi First Contact',
-        description: 'Opening chapter for science fiction stories involving alien contact or discovery',
+        description:
+          'Opening chapter for science fiction stories involving alien contact or discovery',
         genre: ['science fiction', 'space opera', 'hard sci-fi'],
         structure: {
           sections: [
@@ -197,7 +216,12 @@ But she had no choice. For Harrington. For the truth. For herself.`,
             'Personal and societal implications',
           ],
           suggestedWordCount: 3000,
-          keyElements: ['Scientific accuracy', 'Wonder and awe', 'World-changing implications', 'Character expertise'],
+          keyElements: [
+            'Scientific accuracy',
+            'Wonder and awe',
+            'World-changing implications',
+            'Character expertise',
+          ],
         },
         defaultContent: `# Chapter 1: Signal from the Void
 
@@ -268,7 +292,7 @@ The real question was: what would humanity do when faced with a mirror showing h
   }
 
   getTemplateById(id: string): ChapterTemplate | undefined {
-    return this.templates.find(t => t.id === id);
+    return this.templates.find((t) => t.id === id);
   }
 
   createTemplate(template: Omit<ChapterTemplate, 'id'>): ChapterTemplate {
@@ -281,7 +305,7 @@ The real question was: what would humanity do when faced with a mirror showing h
   }
 
   updateTemplate(id: string, updates: Partial<ChapterTemplate>): ChapterTemplate | null {
-    const index = this.templates.findIndex(t => t.id === id);
+    const index = this.templates.findIndex((t) => t.id === id);
     if (index === -1) return null;
 
     this.templates[index] = { ...this.templates[index], ...updates };
@@ -289,7 +313,7 @@ The real question was: what would humanity do when faced with a mirror showing h
   }
 
   deleteTemplate(id: string): boolean {
-    const index = this.templates.findIndex(t => t.id === id);
+    const index = this.templates.findIndex((t) => t.id === id);
     if (index === -1) return false;
 
     this.templates.splice(index, 1);
@@ -298,8 +322,8 @@ The real question was: what would humanity do when faced with a mirror showing h
 
   // Template suggestions based on genre and current story
   suggestTemplates(storyGenre: string, currentChapters: number): ChapterTemplate[] {
-    let relevantTemplates = this.templates.filter(t =>
-      t.genre.some(g => g.toLowerCase().includes(storyGenre.toLowerCase()))
+    let relevantTemplates = this.templates.filter((t) =>
+      t.genre.some((g) => g.toLowerCase().includes(storyGenre.toLowerCase()))
     );
 
     // If no genre match, return popular templates
@@ -330,17 +354,25 @@ The real question was: what would humanity do when faced with a mirror showing h
     revisionsCount: number
   ): ChapterAnalytics {
     // Simple heuristics for engagement metrics
-    const readerEngagement = Math.min(100, Math.max(0,
-      (wordCount / 2500) * 50 + // Optimal chapter length bonus
-      (writingTime / 1000 / 60 / 30) * 30 + // Multiple revision sessions bonus
-      Math.min(20, revisionsCount * 5) // Revision bonus, capped
-    ));
+    const readerEngagement = Math.min(
+      100,
+      Math.max(
+        0,
+        (wordCount / 2500) * 50 + // Optimal chapter length bonus
+          (writingTime / 1000 / 60 / 30) * 30 + // Multiple revision sessions bonus
+          Math.min(20, revisionsCount * 5) // Revision bonus, capped
+      )
+    );
 
-    const popularityScore = Math.min(100, Math.max(0,
-      readerEngagement * 0.6 +
-      (wordCount > 2000 && wordCount < 4000 ? 20 : 0) +
-      (writingTime > 3600000 ? 20 : writingTime > 1800000 ? 10 : 0) // Length of writing sessions
-    ));
+    const popularityScore = Math.min(
+      100,
+      Math.max(
+        0,
+        readerEngagement * 0.6 +
+          (wordCount > 2000 && wordCount < 4000 ? 20 : 0) +
+          (writingTime > 3600000 ? 20 : writingTime > 1800000 ? 10 : 0) // Length of writing sessions
+      )
+    );
 
     return {
       wordsAdded: wordCount,

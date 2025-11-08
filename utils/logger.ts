@@ -197,15 +197,26 @@ class Logger {
     });
   }
 
-  async apiCall(provider: string, model: string, duration: number, success: boolean, data?: any): Promise<void> {
+  async apiCall(
+    provider: string,
+    model: string,
+    duration: number,
+    success: boolean,
+    data?: any
+  ): Promise<void> {
     const level = success ? LogLevel.INFO : LogLevel.ERROR;
-    await this.log(level, 'API', `${provider}/${model} ${success ? 'succeeded' : 'failed'} in ${duration}ms`, {
-      provider,
-      model,
-      duration,
-      success,
-      ...data,
-    });
+    await this.log(
+      level,
+      'API',
+      `${provider}/${model} ${success ? 'succeeded' : 'failed'} in ${duration}ms`,
+      {
+        provider,
+        model,
+        duration,
+        success,
+        ...data,
+      }
+    );
   }
 
   async userAction(action: string, data?: any): Promise<void> {
@@ -312,11 +323,9 @@ export const logger = {
   apiCall: (provider: string, model: string, duration: number, success: boolean, data?: any) =>
     getLogger().apiCall(provider, model, duration, success, data),
 
-  userAction: (action: string, data?: any) =>
-    getLogger().userAction(action, data),
+  userAction: (action: string, data?: any) => getLogger().userAction(action, data),
 
-  errorBoundary: (error: Error, errorInfo: any) =>
-    getLogger().errorBoundary(error, errorInfo),
+  errorBoundary: (error: Error, errorInfo: any) => getLogger().errorBoundary(error, errorInfo),
 
   time: (label: string) => getLogger().startTimer(label),
 
@@ -327,14 +336,11 @@ export const logger = {
 // React hook for using logger in components
 export function useLogger() {
   return {
-    debug: (category: string, message: string, data?: any) =>
-      logger.debug(category, message, data),
+    debug: (category: string, message: string, data?: any) => logger.debug(category, message, data),
 
-    info: (category: string, message: string, data?: any) =>
-      logger.info(category, message, data),
+    info: (category: string, message: string, data?: any) => logger.info(category, message, data),
 
-    warn: (category: string, message: string, data?: any) =>
-      logger.warn(category, message, data),
+    warn: (category: string, message: string, data?: any) => logger.warn(category, message, data),
 
     error: (category: string, message: string, error?: Error, data?: any) =>
       logger.error(category, message, error, data),
@@ -342,8 +348,7 @@ export function useLogger() {
     performance: (operation: string, duration: number, data?: any) =>
       logger.performance(operation, duration, data),
 
-    userAction: (action: string, data?: any) =>
-      logger.userAction(action, data),
+    userAction: (action: string, data?: any) => logger.userAction(action, data),
 
     time: (label: string) => logger.time(label),
   };

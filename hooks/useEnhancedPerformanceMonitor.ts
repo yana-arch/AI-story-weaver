@@ -98,9 +98,12 @@ export const useEnhancedPerformanceMonitor = (componentName: string) => {
     };
   });
 
-  const logCustomMetric = useCallback((name: string, value: number, data?: any) => {
-    logger.performance(name, value, { component: componentName, ...data });
-  }, [componentName, logger]);
+  const logCustomMetric = useCallback(
+    (name: string, value: number, data?: any) => {
+      logger.performance(name, value, { component: componentName, ...data });
+    },
+    [componentName, logger]
+  );
 
   return {
     metrics,
@@ -125,45 +128,48 @@ export const useEnhancedApiPerformanceMonitor = (apiName: string) => {
     return { startTime, endpoint };
   }, []);
 
-  const endApiCall = useCallback((callData: { startTime: number; endpoint?: string }, success: boolean = true) => {
-    const { startTime, endpoint } = callData;
-    const endTime = performance.now();
-    const callTime = endTime - startTime;
+  const endApiCall = useCallback(
+    (callData: { startTime: number; endpoint?: string }, success: boolean = true) => {
+      const { startTime, endpoint } = callData;
+      const endTime = performance.now();
+      const callTime = endTime - startTime;
 
-    setApiMetrics(prev => {
-      const newCallCount = prev.callCount + 1;
-      const newTotalTime = prev.totalTime + callTime;
+      setApiMetrics((prev) => {
+        const newCallCount = prev.callCount + 1;
+        const newTotalTime = prev.totalTime + callTime;
 
-      return {
-        callCount: newCallCount,
-        totalTime: newTotalTime,
-        averageTime: newTotalTime / newCallCount,
-        lastCallAt: Date.now(),
-        successCount: success ? prev.successCount + 1 : prev.successCount,
-        errorCount: success ? prev.errorCount : prev.errorCount + 1,
-      };
-    });
-
-    // Log API call performance
-    logger.performance('APICall', callTime, {
-      apiName,
-      success,
-      endpoint,
-      callCount: apiMetrics.callCount + 1,
-    });
-
-    // Warn for slow API calls
-    if (callTime > 2000) {
-      logger.warn('Performance', `Slow API call detected: ${apiName}`, {
-        callTime,
-        threshold: 2000,
-        apiName,
-        endpoint,
+        return {
+          callCount: newCallCount,
+          totalTime: newTotalTime,
+          averageTime: newTotalTime / newCallCount,
+          lastCallAt: Date.now(),
+          successCount: success ? prev.successCount + 1 : prev.successCount,
+          errorCount: success ? prev.errorCount : prev.errorCount + 1,
+        };
       });
-    }
 
-    return callTime;
-  }, [apiName, apiMetrics.callCount, logger]);
+      // Log API call performance
+      logger.performance('APICall', callTime, {
+        apiName,
+        success,
+        endpoint,
+        callCount: apiMetrics.callCount + 1,
+      });
+
+      // Warn for slow API calls
+      if (callTime > 2000) {
+        logger.warn('Performance', `Slow API call detected: ${apiName}`, {
+          callTime,
+          threshold: 2000,
+          apiName,
+          endpoint,
+        });
+      }
+
+      return callTime;
+    },
+    [apiName, apiMetrics.callCount, logger]
+  );
 
   return {
     apiMetrics,
@@ -184,7 +190,7 @@ export const useWebVitals = () => {
       const fcp = entries[0];
       if (fcp) {
         const fcpValue = fcp.startTime;
-        setWebVitals(prev => ({ ...prev, fcp: fcpValue }));
+        setWebVitals((prev) => ({ ...prev, fcp: fcpValue }));
         logger.performance('WebVitals', fcpValue, { metric: 'FCP' });
       }
     });
@@ -195,7 +201,7 @@ export const useWebVitals = () => {
       const lcp = entries[entries.length - 1];
       if (lcp) {
         const lcpValue = lcp.startTime;
-        setWebVitals(prev => ({ ...prev, lcp: lcpValue }));
+        setWebVitals((prev) => ({ ...prev, lcp: lcpValue }));
         logger.performance('WebVitals', lcpValue, { metric: 'LCP' });
       }
     });
@@ -204,21 +210,21 @@ export const useWebVitals = () => {
     const observerCLS = new PerformanceObserver((list) => {
       let clsValue = 0;
       const entries = list.getEntries();
-      entries.forEach(entry => {
+      entries.forEach((entry) => {
         if (!(entry as any).hadRecentInput) {
           clsValue += (entry as any).value;
         }
       });
-      setWebVitals(prev => ({ ...prev, cls: clsValue }));
+      setWebVitals((prev) => ({ ...prev, cls: clsValue }));
       logger.performance('WebVitals', clsValue, { metric: 'CLS' });
     });
 
     // First Input Delay
     const observerFID = new PerformanceObserver((list) => {
       const entries = list.getEntries();
-      entries.forEach(entry => {
+      entries.forEach((entry) => {
         const fidValue = (entry as any).processingStart - entry.startTime;
-        setWebVitals(prev => ({ ...prev, fid: fidValue }));
+        setWebVitals((prev) => ({ ...prev, fid: fidValue }));
         logger.performance('WebVitals', fidValue, { metric: 'FID' });
       });
     });
@@ -250,8 +256,12 @@ export const useBundleAnalyzer = () => {
   useEffect(() => {
     // Monitor bundle loading performance
     if (performance.getEntriesByType) {
-      const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-      const resourceEntries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+      const navigationEntries = performance.getEntriesByType(
+        'navigation'
+      ) as PerformanceNavigationTiming[];
+      const resourceEntries = performance.getEntriesByType(
+        'resource'
+      ) as PerformanceResourceTiming[];
 
       if (navigationEntries.length > 0) {
         const nav = navigationEntries[0];
@@ -264,11 +274,11 @@ export const useBundleAnalyzer = () => {
       }
 
       // Analyze resource loading
-      const jsFiles = resourceEntries.filter(resource =>
-        resource.name.includes('.js') && !resource.name.includes('node_modules')
+      const jsFiles = resourceEntries.filter(
+        (resource) => resource.name.includes('.js') && !resource.name.includes('node_modules')
       );
 
-      jsFiles.forEach(jsFile => {
+      jsFiles.forEach((jsFile) => {
         logger.performance('ResourceLoading', jsFile.duration, {
           resource: jsFile.name,
           size: jsFile.transferSize,
@@ -312,28 +322,31 @@ export const useMemoryLeakDetector = (componentName: string, threshold: number =
 export const useInteractionPerformanceMonitor = () => {
   const logger = useLogger();
 
-  const trackInteraction = useCallback((interactionType: string, handler: () => void | Promise<void>) => {
-    return async () => {
-      const endTimer = logger.time(`Interaction:${interactionType}`);
+  const trackInteraction = useCallback(
+    (interactionType: string, handler: () => void | Promise<void>) => {
+      return async () => {
+        const endTimer = logger.time(`Interaction:${interactionType}`);
 
-      try {
-        await handler();
-        const duration = endTimer();
+        try {
+          await handler();
+          const duration = endTimer();
 
-        logger.userAction(`Interaction:${interactionType}`, {
-          duration,
-          success: true,
-        });
-      } catch (error) {
-        const duration = endTimer();
+          logger.userAction(`Interaction:${interactionType}`, {
+            duration,
+            success: true,
+          });
+        } catch (error) {
+          const duration = endTimer();
 
-        logger.error('UserInteraction', `Interaction ${interactionType} failed`, error as Error, {
-          interactionType,
-          duration,
-        });
-      }
-    };
-  }, [logger]);
+          logger.error('UserInteraction', `Interaction ${interactionType} failed`, error as Error, {
+            interactionType,
+            duration,
+          });
+        }
+      };
+    },
+    [logger]
+  );
 
   return { trackInteraction };
 };

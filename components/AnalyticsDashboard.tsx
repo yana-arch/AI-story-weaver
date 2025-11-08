@@ -22,7 +22,7 @@ interface TabConfig {
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   story,
-  className = ''
+  className = '',
 }) => {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('writing');
 
@@ -32,25 +32,26 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       title: 'Viết truyện',
       icon: <span className="text-xs">📊</span>,
       description: 'Theo dõi tiến độ và hiệu suất viết',
-      component: WritingStatsDashboard
+      component: WritingStatsDashboard,
     },
     {
       id: 'characters',
       title: 'Nhân vật',
       icon: <span className="text-xs">👥</span>,
       description: 'Mạng lưới và mối quan hệ nhân vật',
-      component: CharacterNetworkDashboard
+      component: CharacterNetworkDashboard,
     },
     {
       id: 'structure',
       title: 'Cấu trúc',
       icon: <BookOpenIcon className="w-4 h-4" />,
       description: 'Phân tích cấu trúc và nhịp độ truyện',
-      component: StoryStructureDashboard
-    }
+      component: StoryStructureDashboard,
+    },
   ];
 
-  const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || WritingStatsDashboard;
+  const ActiveComponent =
+    tabs.find((tab) => tab.id === activeTab)?.component || WritingStatsDashboard;
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -61,8 +62,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
         </div>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Phân tích chi tiết hành trình viết của bạn. Theo dõi tiến độ, phân tích nhân vật,
-          và hiểu sâu hơn về cấu trúc câu chuyện.
+          Phân tích chi tiết hành trình viết của bạn. Theo dõi tiến độ, phân tích nhân vật, và hiểu
+          sâu hơn về cấu trúc câu chuyện.
         </p>
       </div>
 
@@ -91,7 +92,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       {/* Active Tab Description */}
       <div className="text-center py-2 border-b">
         <p className="text-sm text-muted-foreground">
-          {tabs.find(tab => tab.id === activeTab)?.description}
+          {tabs.find((tab) => tab.id === activeTab)?.description}
         </p>
       </div>
 
@@ -106,14 +107,14 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           <h3 className="font-semibold text-foreground mb-4 text-center">Tóm tắt nhanh</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-primary">
-                {story.storySegments.length}
-              </div>
+              <div className="text-2xl font-bold text-primary">{story.storySegments.length}</div>
               <div className="text-xs text-muted-foreground">Đoạn truyện</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-blue-600">
-                {story.storySegments.reduce((acc, seg) => acc + seg.content.split(/\s+/).length, 0).toLocaleString()}
+                {story.storySegments
+                  .reduce((acc, seg) => acc + seg.content.split(/\s+/).length, 0)
+                  .toLocaleString()}
               </div>
               <div className="text-xs text-muted-foreground">Tổng từ</div>
             </div>

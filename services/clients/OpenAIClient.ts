@@ -9,7 +9,7 @@ export class OpenAIClient {
   }
 
   getSupportedModels(): string[] {
-    return ['gpt-4', 'gpt-3.5-turbo'];
+    return ['gpt-4', 'gpt-3.5-turbo', 'dall-e-3'];
   }
 
   async testConnection(apiKey?: string): Promise<boolean> {
@@ -20,7 +20,7 @@ export class OpenAIClient {
     try {
       const testClient = new OpenAI({
         apiKey: apiKey,
-        dangerouslyAllowBrowser: true
+        dangerouslyAllowBrowser: true,
       });
 
       const response = await testClient.chat.completions.create({
@@ -36,10 +36,7 @@ export class OpenAIClient {
     }
   }
 
-  async generateText(
-    prompts: AIPrompt[],
-    options: AIRequestOptions = {}
-  ): Promise<AIResponse> {
+  async generateText(prompts: AIPrompt[], options: AIRequestOptions = {}): Promise<AIResponse> {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       throw new AIError(
@@ -54,14 +51,14 @@ export class OpenAIClient {
     if (!this.client) {
       this.client = new OpenAI({
         apiKey: apiKey,
-        dangerouslyAllowBrowser: true
+        dangerouslyAllowBrowser: true,
       });
     }
 
     try {
-      const messages = prompts.map(prompt => ({
+      const messages = prompts.map((prompt) => ({
         role: prompt.role as 'system' | 'user' | 'assistant',
-        content: prompt.content
+        content: prompt.content,
       }));
 
       // Note: Streaming not implemented yet, will always use non-streaming
@@ -119,13 +116,7 @@ export class OpenAIClient {
       const errorMessage = error?.error?.message || error?.message || 'Unknown OpenAI API error';
 
       if (errorCode === 'invalid_api_key') {
-        throw new AIError(
-          AIProvider.OPENAI,
-          errorCode,
-          'Invalid OpenAI API key',
-          'auth',
-          false
-        );
+        throw new AIError(AIProvider.OPENAI, errorCode, 'Invalid OpenAI API key', 'auth', false);
       }
 
       if (errorCode === 'insufficient_quota') {
@@ -139,8 +130,9 @@ export class OpenAIClient {
       }
 
       if (errorCode === 'rate_limit_exceeded') {
-        const retryAfter = error?.error?.headers?.['retry-after'] ?
-          parseInt(error.error.headers['retry-after']) : undefined;
+        const retryAfter = error?.error?.headers?.['retry-after']
+          ? parseInt(error.error.headers['retry-after'])
+          : undefined;
 
         throw new AIError(
           AIProvider.OPENAI,
@@ -152,13 +144,174 @@ export class OpenAIClient {
         );
       }
 
-      throw new AIError(
-        AIProvider.OPENAI,
-        errorCode,
-        `OpenAI API error: ${errorMessage}`,
-        'server',
-        true
-      );
-    }
-  }
-}
+                  throw new AIError(
+
+                    AIProvider.OPENAI,
+
+                    errorCode,
+
+                    `OpenAI API error: ${errorMessage}`,
+
+                    'server',
+
+                    true
+
+                  );
+
+                }
+
+              }
+
+            
+
+              async generateImage(prompt: string, modelId: string = 'dall-e-3'): Promise<AIResponse> {
+
+                const apiKey = process.env.OPENAI_API_KEY;
+
+                if (!apiKey) {
+
+                  throw new AIError(
+
+                    AIProvider.OPENAI,
+
+                    'NO_API_KEY',
+
+                    'OpenAI API key is not configured',
+
+                    'auth',
+
+                    false
+
+                  );
+
+                }
+
+            
+
+                if (!this.client) {
+
+                  this.client = new OpenAI({
+
+                    apiKey: apiKey,
+
+                    dangerouslyAllowBrowser: true,
+
+                  });
+
+                }
+
+            
+
+                try {
+
+                  const response = await this.client.images.generate({
+
+                    model: modelId,
+
+                    prompt: prompt,
+
+                    n: 1, // Number of images to generate
+
+                    size: '1024x1024', // Image size
+
+                    response_format: 'url', // or 'b64_json'
+
+                  });
+
+            
+
+                  const imageUrls = response.data.map(item => item.url).filter(Boolean) as string[];
+
+            
+
+                  if (!imageUrls || imageUrls.length === 0) {
+
+                    throw new AIError(
+
+                      AIProvider.OPENAI,
+
+                      'NO_IMAGE_URL',
+
+                      'No image URL returned from DALL-E API',
+
+                      'server',
+
+                      true
+
+                    );
+
+                  }
+
+            
+
+                  return {
+
+                    provider: AIProvider.OPENAI,
+
+                    model: modelId,
+
+                    content: 'Image generated successfully', // Placeholder content
+
+                    usage: {
+
+                      promptTokens: 0, // DALL-E doesn't provide token usage in this way
+
+                      completionTokens: 0,
+
+                      totalTokens: 0,
+
+                    },
+
+                    finishReason: 'success',
+
+                    imageUrls: imageUrls,
+
+                  };
+
+                } catch (error: any) {
+
+                  if (error instanceof AIError) {
+
+                    throw error;
+
+                  }
+
+            
+
+                  const errorCode = error?.error?.code || error?.code || 'UNKNOWN_ERROR';
+
+                  const errorMessage = error?.error?.message || error?.message || 'Unknown DALL-E API error';
+
+            
+
+                  if (errorCode === 'invalid_api_key') {
+
+                    throw new AIError(AIProvider.OPENAI, errorCode, 'Invalid OpenAI API key', 'auth', false);
+
+                  }
+
+            
+
+                  throw new AIError(
+
+                    AIProvider.OPENAI,
+
+                    errorCode,
+
+                    `DALL-E API error: ${errorMessage}`,
+
+                    'server',
+
+                    true
+
+                  );
+
+                }
+
+              }
+
+            }
+
+            
+
+      

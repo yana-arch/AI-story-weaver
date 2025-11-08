@@ -87,7 +87,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [theme, setTheme] = useLocalStorage<string>('theme', 'zinc');
 
   // TTS
-  const [ttsSettings, setTtsSettings] = useLocalStorage<TTSOptions>('ttsSettings', { rate: 1, pitch: 1 });
+  const [ttsSettings, setTtsSettings] = useLocalStorage<TTSOptions>('ttsSettings', {
+    rate: 1,
+    pitch: 1,
+  });
 
   // Global Custom Prompts
   const [globalPrompts, setGlobalPrompts] = useLocalStorage<CustomPrompt[]>('globalPrompts', []);
@@ -108,11 +111,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           });
 
           // Deduplicate based on content
-          const existingIds = new Set(globalPrompts.map(p => p.id));
-          const newPrompts = allStoryPrompts.filter(p => !existingIds.has(p.id) && p.content && p.title);
+          const existingIds = new Set(globalPrompts.map((p) => p.id));
+          const newPrompts = allStoryPrompts.filter(
+            (p) => !existingIds.has(p.id) && p.content && p.title
+          );
 
           if (newPrompts.length > 0) {
-            setGlobalPrompts(prev => [...prev, ...newPrompts]);
+            setGlobalPrompts((prev) => [...prev, ...newPrompts]);
           }
         }
       } catch (error) {
@@ -167,7 +172,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
   const [isChapterListOpen, setIsChapterListOpen] = useState(false);
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
-  const [activeSettingsTab, setActiveSettingsTab] = useState<'api-keys' | 'theme' | 'tts' | 'display'>('api-keys');
+  const [activeSettingsTab, setActiveSettingsTab] = useState<
+    'api-keys' | 'theme' | 'tts' | 'display'
+  >('api-keys');
 
   // Modal states for settings tabs
   const [isApiKeysModalOpen, setIsApiKeysModalOpen] = useState(false);
@@ -197,7 +204,20 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Apply theme to document body
   useEffect(() => {
-    document.body.classList.remove('theme-zinc', 'theme-slate', 'theme-stone', 'theme-gray', 'theme-neutral', 'theme-red', 'theme-rose', 'theme-orange', 'theme-green', 'theme-blue', 'theme-yellow', 'theme-violet');
+    document.body.classList.remove(
+      'theme-zinc',
+      'theme-slate',
+      'theme-stone',
+      'theme-gray',
+      'theme-neutral',
+      'theme-red',
+      'theme-rose',
+      'theme-orange',
+      'theme-green',
+      'theme-blue',
+      'theme-yellow',
+      'theme-violet'
+    );
     document.body.classList.add(`theme-${theme}`);
   }, [theme]);
 
@@ -273,11 +293,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setGlobalPrompts,
   };
 
-  return (
-    <SettingsContext.Provider value={contextValue}>
-      {children}
-    </SettingsContext.Provider>
-  );
+  return <SettingsContext.Provider value={contextValue}>{children}</SettingsContext.Provider>;
 };
 
 export const useSettings = () => {

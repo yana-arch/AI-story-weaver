@@ -75,7 +75,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
 
   private handleRetry = () => {
     if (this.state.retryCount < this.maxRetries) {
-      this.setState(prevState => ({
+      this.setState((prevState) => ({
         hasError: false,
         error: null,
         errorInfo: null,
@@ -172,7 +172,8 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
             {retryCount >= this.maxRetries && (
               <div className="mt-4 p-3 bg-muted rounded-md">
                 <p className="text-sm text-muted-foreground">
-                  Maximum retry attempts reached. Please refresh the page or contact support if the problem persists.
+                  Maximum retry attempts reached. Please refresh the page or contact support if the
+                  problem persists.
                 </p>
                 <button
                   onClick={() => window.location.reload()}

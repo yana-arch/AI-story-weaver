@@ -15,7 +15,9 @@ const typesPath = path.join(__dirname, 'types', 'ai-models.ts');
 const typesContent = fs.readFileSync(typesPath, 'utf8');
 
 console.log('\n=== Model Configurations ===');
-const configMatches = typesContent.match(/AI_MODEL_CONFIGS: Record<AIProvider, AIModelConfig\[\]>/g);
+const configMatches = typesContent.match(
+  /AI_MODEL_CONFIGS: Record<AIProvider, AIModelConfig\[\]>/g
+);
 if (configMatches) {
   console.log('✓ AI_MODEL_CONFIGS defined');
 } else {
@@ -53,7 +55,7 @@ if (anthropicModels) {
 console.log('\n=== Client Implementation Status ===');
 
 const clients = ['OpenAIClient.ts', 'AnthropicClaudeClient.ts', 'GoogleGeminiClient.ts'];
-clients.forEach(client => {
+clients.forEach((client) => {
   const clientPath = path.join(__dirname, 'services', 'clients', client);
   if (fs.existsSync(clientPath)) {
     const content = fs.readFileSync(clientPath, 'utf8');

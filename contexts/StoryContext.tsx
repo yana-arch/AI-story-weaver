@@ -44,7 +44,8 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   React.useEffect(() => {
     const migratedStoryId = storyManager.migrateToMultiStory();
     const allStories = storyManager.getStories();
-    let activeId = migratedStoryId || storyManager.getActiveStoryId() || Object.keys(allStories)[0] || null;
+    let activeId =
+      migratedStoryId || storyManager.getActiveStoryId() || Object.keys(allStories)[0] || null;
 
     if (!activeId && Object.keys(allStories).length === 0) {
       // No stories exist, create a default one
@@ -77,7 +78,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [stories, activeStoryId]);
 
   const setActiveStory = useCallback((story: Story) => {
-    setStories(prev => ({ ...prev, [story.id]: story }));
+    setStories((prev) => ({ ...prev, [story.id]: story }));
   }, []);
 
   const createStory = useCallback(() => {
@@ -104,136 +105,156 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setActiveStoryId(id);
   }, []);
 
-  const deleteStory = useCallback((id: string) => {
-    const newStories = { ...stories };
-    delete newStories[id];
-    setStories(newStories);
-    if (activeStoryId === id) {
-      setActiveStoryId(Object.keys(newStories)[0] || null);
-    }
-  }, [stories, activeStoryId]);
+  const deleteStory = useCallback(
+    (id: string) => {
+      const newStories = { ...stories };
+      delete newStories[id];
+      setStories(newStories);
+      if (activeStoryId === id) {
+        setActiveStoryId(Object.keys(newStories)[0] || null);
+      }
+    },
+    [stories, activeStoryId]
+  );
 
   const renameStory = useCallback((id: string, newName: string) => {
-    setStories(prev => ({
+    setStories((prev) => ({
       ...prev,
       [id]: {
         ...prev[id],
         name: newName,
         updatedAt: Date.now(),
-      }
+      },
     }));
   }, []);
 
-  const addUserSegment = useCallback((content: string) => {
-    if (!content.trim() || !activeStory) return;
-    const newSegment: StorySegment = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: content.trim(),
-    };
-    setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newSegment] });
-  }, [activeStory]);
+  const addUserSegment = useCallback(
+    (content: string) => {
+      if (!content.trim() || !activeStory) return;
+      const newSegment: StorySegment = {
+        id: Date.now().toString(),
+        type: 'user',
+        content: content.trim(),
+      };
+      setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newSegment] });
+    },
+    [activeStory]
+  );
 
   const addChapter = useCallback(() => {
     if (!activeStory) return;
-    const title = window.prompt("Enter the title for the new chapter:");
+    const title = window.prompt('Enter the title for the new chapter:');
     if (title && title.trim()) {
       const newChapter: StorySegment = {
         id: Date.now().toString(),
         type: 'chapter',
-        content: title.trim()
+        content: title.trim(),
       };
       setActiveStory({ ...activeStory, storySegments: [...activeStory.storySegments, newChapter] });
     }
   }, [activeStory]);
 
-  const updateSegment = useCallback((segmentId: string, content: string) => {
-    if (!activeStory) return;
-    setActiveStory({
-      ...activeStory,
-      storySegments: activeStory.storySegments.map(s =>
-        s.id === segmentId ? { ...s, content } : s
-      )
-    });
-  }, [activeStory]);
-
-  const deleteSegment = useCallback((segmentId: string) => {
-    if (!activeStory) return;
-    setActiveStory({
-      ...activeStory,
-      storySegments: activeStory.storySegments.filter(s => s.id !== segmentId)
-    });
-  }, [activeStory]);
-
-  const reorderSegments = useCallback((sourceId: string, targetId: string) => {
-    if (!activeStory) return;
-
-    const sourceIndex = activeStory.storySegments.findIndex(s => s.id === sourceId);
-    const targetIndex = activeStory.storySegments.findIndex(s => s.id === targetId);
-
-    if (sourceIndex === -1 || targetIndex === -1) return;
-
-    const newSegments = [...activeStory.storySegments];
-    const [draggedItem] = newSegments.splice(sourceIndex, 1);
-    newSegments.splice(targetIndex, 0, draggedItem);
-
-    setActiveStory({ ...activeStory, storySegments: newSegments });
-  }, [activeStory]);
-
-  const updateCharacterProfiles = useCallback((profiles: CharacterProfile[]) => {
-    if (!activeStory) return;
-    setActiveStory({ ...activeStory, characterProfiles: profiles });
-  }, [activeStory]);
-
-  const updateGenerationConfig = useCallback((config: Partial<GenerationConfig>) => {
-    if (!activeStory) return;
-    setActiveStory({
-      ...activeStory,
-      generationConfig: { ...activeStory.generationConfig, ...config }
-    });
-  }, [activeStory]);
-
-  const contextValue = useMemo(() => ({
-    stories,
-    activeStoryId,
-    activeStory,
-    setActiveStory,
-    setActiveStoryId,
-    createStory,
-    loadStory,
-    deleteStory,
-    renameStory,
-    addUserSegment,
-    addChapter,
-    updateSegment,
-    deleteSegment,
-    reorderSegments,
-    updateCharacterProfiles,
-    updateGenerationConfig,
-  }), [
-    stories,
-    activeStoryId,
-    activeStory,
-    setActiveStory,
-    setActiveStoryId,
-    createStory,
-    loadStory,
-    deleteStory,
-    renameStory,
-    addUserSegment,
-    addChapter,
-    updateSegment,
-    deleteSegment,
-    reorderSegments,
-    updateCharacterProfiles,
-    updateGenerationConfig,
-  ]);
-
-  return (
-    <StoryContext.Provider value={contextValue}>
-      {children}
-    </StoryContext.Provider>
+  const updateSegment = useCallback(
+    (segmentId: string, content: string) => {
+      if (!activeStory) return;
+      setActiveStory({
+        ...activeStory,
+        storySegments: activeStory.storySegments.map((s) =>
+          s.id === segmentId ? { ...s, content } : s
+        ),
+      });
+    },
+    [activeStory]
   );
+
+  const deleteSegment = useCallback(
+    (segmentId: string) => {
+      if (!activeStory) return;
+      setActiveStory({
+        ...activeStory,
+        storySegments: activeStory.storySegments.filter((s) => s.id !== segmentId),
+      });
+    },
+    [activeStory]
+  );
+
+  const reorderSegments = useCallback(
+    (sourceId: string, targetId: string) => {
+      if (!activeStory) return;
+
+      const sourceIndex = activeStory.storySegments.findIndex((s) => s.id === sourceId);
+      const targetIndex = activeStory.storySegments.findIndex((s) => s.id === targetId);
+
+      if (sourceIndex === -1 || targetIndex === -1) return;
+
+      const newSegments = [...activeStory.storySegments];
+      const [draggedItem] = newSegments.splice(sourceIndex, 1);
+      newSegments.splice(targetIndex, 0, draggedItem);
+
+      setActiveStory({ ...activeStory, storySegments: newSegments });
+    },
+    [activeStory]
+  );
+
+  const updateCharacterProfiles = useCallback(
+    (profiles: CharacterProfile[]) => {
+      if (!activeStory) return;
+      setActiveStory({ ...activeStory, characterProfiles: profiles });
+    },
+    [activeStory]
+  );
+
+  const updateGenerationConfig = useCallback(
+    (config: Partial<GenerationConfig>) => {
+      if (!activeStory) return;
+      setActiveStory({
+        ...activeStory,
+        generationConfig: { ...activeStory.generationConfig, ...config },
+      });
+    },
+    [activeStory]
+  );
+
+  const contextValue = useMemo(
+    () => ({
+      stories,
+      activeStoryId,
+      activeStory,
+      setActiveStory,
+      setActiveStoryId,
+      createStory,
+      loadStory,
+      deleteStory,
+      renameStory,
+      addUserSegment,
+      addChapter,
+      updateSegment,
+      deleteSegment,
+      reorderSegments,
+      updateCharacterProfiles,
+      updateGenerationConfig,
+    }),
+    [
+      stories,
+      activeStoryId,
+      activeStory,
+      setActiveStory,
+      setActiveStoryId,
+      createStory,
+      loadStory,
+      deleteStory,
+      renameStory,
+      addUserSegment,
+      addChapter,
+      updateSegment,
+      deleteSegment,
+      reorderSegments,
+      updateCharacterProfiles,
+      updateGenerationConfig,
+    ]
+  );
+
+  return <StoryContext.Provider value={contextValue}>{children}</StoryContext.Provider>;
 };
 
 export const useStory = () => {

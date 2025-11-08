@@ -1,46 +1,46 @@
 export enum Scenario {
-  FIRST_TIME = "Lần đầu",
-  ENEMIES_TO_LOVERS = "Từ ghét thành yêu",
-  FRIENDS_TO_LOVERS = "Bạn bè thân thiết",
-  RECONCILIATION = "Gương vỡ lại lành",
-  BOLD_EXPLORATORY = "Bạo dạn & Khám phá",
+  FIRST_TIME = 'Lần đầu',
+  ENEMIES_TO_LOVERS = 'Từ ghét thành yêu',
+  FRIENDS_TO_LOVERS = 'Bạn bè thân thiết',
+  RECONCILIATION = 'Gương vỡ lại lành',
+  BOLD_EXPLORATORY = 'Bạo dạn & Khám phá',
 }
 
 export enum CharacterDynamics {
-  A_LEADS = "Nhân vật A chủ động, B bị động/ngượng ngùng",
-  BOTH_LEAD = "Cả hai cùng chủ động và mãnh liệt",
-  FOCUS_ON_A = "Tập trung vào nội tâm và cảm xúc của nhân vật A",
-  FOCUS_ON_B = "Tập trung vào nội tâm và cảm xúc của nhân vật B",
+  A_LEADS = 'Nhân vật A chủ động, B bị động/ngượng ngùng',
+  BOTH_LEAD = 'Cả hai cùng chủ động và mãnh liệt',
+  FOCUS_ON_A = 'Tập trung vào nội tâm và cảm xúc của nhân vật A',
+  FOCUS_ON_B = 'Tập trung vào nội tâm và cảm xúc của nhân vật B',
 }
 
 export enum Pacing {
-  SLOW = "Chậm: Tập trung xây dựng không khí, miêu tả chi tiết.",
-  MEDIUM = "Trung bình: Cân bằng giữa hành động và cảm xúc.",
-  FAST = "Nhanh: Đi thẳng vào hành động chính, tạo cảm giác dồn dập.",
+  SLOW = 'Chậm: Tập trung xây dựng không khí, miêu tả chi tiết.',
+  MEDIUM = 'Trung bình: Cân bằng giữa hành động và cảm xúc.',
+  FAST = 'Nhanh: Đi thẳng vào hành động chính, tạo cảm giác dồn dập.',
 }
 
 export enum NarrativeStructure {
-    FREEFORM = "Tự do (Không có cấu trúc)",
-    THREE_ACT = "Cấu trúc 3 hồi",
-    HEROS_JOURNEY = "Hành trình của người hùng",
+  FREEFORM = 'Tự do (Không có cấu trúc)',
+  THREE_ACT = 'Cấu trúc 3 hồi',
+  HEROS_JOURNEY = 'Hành trình của người hùng',
 }
 
 export enum AdultContentOptions {
-    ROMANTIC_BUILDUP = "Xây dựng lãng mạn & Cảm xúc",
-    SENSUAL_DETAIL = "Miêu tả Gợi cảm & Tinh tế",
-    EXPLICIT_ACTION = "Hành động Tường tận & Trực tiếp",
-    DIALOGUE = "Đối thoại Táo bạo & Thân mật",
-    DOMINANCE_SUBMISSION = "Yếu tố Thống trị & Phục tùng",
+  ROMANTIC_BUILDUP = 'Xây dựng lãng mạn & Cảm xúc',
+  SENSUAL_DETAIL = 'Miêu tả Gợi cảm & Tinh tế',
+  EXPLICIT_ACTION = 'Hành động Tường tận & Trực tiếp',
+  DIALOGUE = 'Đối thoại Táo bạo & Thân mật',
+  DOMINANCE_SUBMISSION = 'Yếu tố Thống trị & Phục tùng',
 }
 
 export enum GenerationMode {
-    CONTINUE = "Viết tiếp câu chuyện",
-    REWRITE = "Viết lại và chèn vào",
+  CONTINUE = 'Viết tiếp câu chuyện',
+  REWRITE = 'Viết lại và chèn vào',
 }
 
 export enum RewriteTarget {
-    ENTIRE_STORY = "Toàn bộ câu chuyện",
-    SELECTED_CHAPTER = "Chương được chọn",
+  ENTIRE_STORY = 'Toàn bộ câu chuyện',
+  SELECTED_CHAPTER = 'Chương được chọn',
 }
 
 export interface GenerationConfig {
@@ -140,6 +140,11 @@ export interface CharacterProfile {
   flaws: string;
 }
 
+export interface Collaborator {
+  id: string;
+  name: string;
+}
+
 export interface Story {
   id: string;
   name: string;
@@ -153,4 +158,5 @@ export interface Story {
   characterProfiles: CharacterProfile[];
   lastReadSegmentId: string | null;
   displaySettings?: StoryDisplaySettings;
+  collaborators?: Collaborator[]; // New field for collaboration
 }

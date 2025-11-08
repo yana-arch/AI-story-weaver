@@ -96,7 +96,7 @@ export const useApiPerformanceMonitor = (apiName: string) => {
     const endTime = performance.now();
     const callTime = endTime - startTime;
 
-    setApiMetrics(prev => {
+    setApiMetrics((prev) => {
       const newCallCount = prev.callCount + 1;
       const newTotalTime = prev.totalTime + callTime;
 

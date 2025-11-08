@@ -14,19 +14,18 @@ export const useImportManager = () => {
   }, []);
 
   const handleImportComplete = useCallback(
-    (onImportSuccess: (stories: ImportedStory[]) => void) =>
-      async (stories: ImportedStory[]) => {
-        try {
-          // Call the success callback with the imported stories
-          onImportSuccess(stories);
+    (onImportSuccess: (stories: ImportedStory[]) => void) => async (stories: ImportedStory[]) => {
+      try {
+        // Call the success callback with the imported stories
+        onImportSuccess(stories);
 
-          // Close import dialog
-          closeImportDialog();
-        } catch (error) {
-          console.error('Failed to process imported stories:', error);
-          // Handle error (show notification, etc.)
-        }
-      },
+        // Close import dialog
+        closeImportDialog();
+      } catch (error) {
+        console.error('Failed to process imported stories:', error);
+        // Handle error (show notification, etc.)
+      }
+    },
     [closeImportDialog]
   );
 

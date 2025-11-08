@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { AIModelConfig, AIProvider, getAvailableModelsByCapability, AIModelCapability } from '../types/ai-models';
+import {
+  AIModelConfig,
+  AIProvider,
+  getAvailableModelsByCapability,
+  AIModelCapability,
+} from '../types/ai-models';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { CheckCircleIcon, ExclamationCircleIcon } from './icons';
 
@@ -36,10 +41,10 @@ export const AIModelSelector: React.FC<AIModelSelectorProps> = ({
     try {
       // TODO: Implement actual connection testing through AIService
       // For now, just simulate a test
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const success = Math.random() > 0.3; // 70% success rate for demo
-      setTestResults(prev => ({ ...prev, [model.modelId]: success }));
+      setTestResults((prev) => ({ ...prev, [model.modelId]: success }));
 
       if (!success) {
         addError(`Không thể kết nối đến ${model.name}`, {
@@ -48,7 +53,7 @@ export const AIModelSelector: React.FC<AIModelSelectorProps> = ({
         });
       }
     } catch (error) {
-      setTestResults(prev => ({ ...prev, [model.modelId]: false }));
+      setTestResults((prev) => ({ ...prev, [model.modelId]: false }));
       addError(`Lỗi khi test kết nối ${model.name}`, {
         context: 'Model Testing',
         recoverable: true,
@@ -145,9 +150,7 @@ export const AIModelSelector: React.FC<AIModelSelectorProps> = ({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-medium text-foreground">
-                      {model.name}
-                    </h3>
+                    <h3 className="font-medium text-foreground">{model.name}</h3>
 
                     <div className="flex items-center gap-2 text-xs">
                       <span className="px-2 py-0.5 bg-muted rounded text-muted-foreground">
@@ -155,11 +158,13 @@ export const AIModelSelector: React.FC<AIModelSelectorProps> = ({
                       </span>
 
                       {testConnection && testResult !== undefined && (
-                        <span className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${
-                          testResult
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                            : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                        }`}>
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${
+                            testResult
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                          }`}
+                        >
                           {testResult ? (
                             <>
                               <CheckCircleIcon className="w-3 h-3" />
@@ -183,7 +188,8 @@ export const AIModelSelector: React.FC<AIModelSelectorProps> = ({
                   </div>
 
                   <p className="text-sm text-muted-foreground mb-3">
-                    {model.capabilities.join(', ')} • Context: {model.contextWindow.toLocaleString()} tokens
+                    {model.capabilities.join(', ')} • Context:{' '}
+                    {model.contextWindow.toLocaleString()} tokens
                   </p>
 
                   <div className="flex items-center justify-between">

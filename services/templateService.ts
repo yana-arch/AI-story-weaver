@@ -113,16 +113,66 @@ Tập trung vào:
 - Không khí lãng lãng, hồi hộp
 - Viết bằng tiếng Việt tự nhiên, hiện đại`,
       variables: [
-        { name: 'character1_name', displayName: 'Tên nhân vật chính', description: 'Tên của nhân vật nữ/male lead đầu tiên', required: true, type: 'text' },
-        { name: 'character1_age', displayName: 'Tuổi nhân vật 1', description: 'Tuổi của nhân vật chính', required: true, type: 'number' },
-        { name: 'character1_job', displayName: 'Nghề nghiệp NV1', description: 'Công việc của nhân vật chính', required: true, type: 'text' },
-        { name: 'character2_name', displayName: 'Tên nhân vật thứ hai', description: 'Tên của nhân vật love interest', required: true, type: 'text' },
-        { name: 'character2_age', displayName: 'Tuổi nhân vật 2', description: 'Tuổi của nhân vật thứ hai', required: true, type: 'number' },
-        { name: 'character2_job', displayName: 'Nghề nghiệp NV2', description: 'Công việc của nhân vật thứ hai', required: true, type: 'text' },
-        { name: 'meeting_place', displayName: 'Nơi gặp gỡ', description: 'Bối cảnh nơi hai nhân vật gặp nhau', required: true, type: 'text', placeholder: 'cà phê, công viên, văn phòng...' },
-        { name: 'meeting_special', displayName: 'Điều đặc biệt', description: 'Điều gì tạo nên sự đặc biệt trong cuộc gặp', required: false, type: 'textarea' },
+        {
+          name: 'character1_name',
+          displayName: 'Tên nhân vật chính',
+          description: 'Tên của nhân vật nữ/male lead đầu tiên',
+          required: true,
+          type: 'text',
+        },
+        {
+          name: 'character1_age',
+          displayName: 'Tuổi nhân vật 1',
+          description: 'Tuổi của nhân vật chính',
+          required: true,
+          type: 'number',
+        },
+        {
+          name: 'character1_job',
+          displayName: 'Nghề nghiệp NV1',
+          description: 'Công việc của nhân vật chính',
+          required: true,
+          type: 'text',
+        },
+        {
+          name: 'character2_name',
+          displayName: 'Tên nhân vật thứ hai',
+          description: 'Tên của nhân vật love interest',
+          required: true,
+          type: 'text',
+        },
+        {
+          name: 'character2_age',
+          displayName: 'Tuổi nhân vật 2',
+          description: 'Tuổi của nhân vật thứ hai',
+          required: true,
+          type: 'number',
+        },
+        {
+          name: 'character2_job',
+          displayName: 'Nghề nghiệp NV2',
+          description: 'Công việc của nhân vật thứ hai',
+          required: true,
+          type: 'text',
+        },
+        {
+          name: 'meeting_place',
+          displayName: 'Nơi gặp gỡ',
+          description: 'Bối cảnh nơi hai nhân vật gặp nhau',
+          required: true,
+          type: 'text',
+          placeholder: 'cà phê, công viên, văn phòng...',
+        },
+        {
+          name: 'meeting_special',
+          displayName: 'Điều đặc biệt',
+          description: 'Điều gì tạo nên sự đặc biệt trong cuộc gặp',
+          required: false,
+          type: 'textarea',
+        },
       ],
-      systemPrompt: 'Bạn là một nhà văn Việt Nam chuyên viết tiểu thuyết lãng mạn. Hãy tạo ra một câu chuyện thu hút, tập trung vào cảm xúc và sự phát triển mối quan hệ.',
+      systemPrompt:
+        'Bạn là một nhà văn Việt Nam chuyên viết tiểu thuyết lãng mạn. Hãy tạo ra một câu chuyện thu hút, tập trung vào cảm xúc và sự phát triển mối quan hệ.',
       model: 'gemini-pro',
       temperature: 0.8,
       maxTokens: 1000,
@@ -159,15 +209,51 @@ Kích thước văn bản: {{narrative_length}}
 
 Viết bằng tiếng Việt, tạo sự hấp dẫn ngay từ đầu.`,
       variables: [
-        { name: 'world_name', displayName: 'Tên thế giới', required: true, type: 'text', placeholder: 'Eldoria, Trung Địa...' },
-        { name: 'world_type', displayName: 'Loại thế giới', required: true, type: 'select', options: ['Thần tiên', 'Không gian', 'Trung cổ kỳ ảo', 'Hiện đại với phép thuật', 'Đa vũ trụ'] },
+        {
+          name: 'world_name',
+          displayName: 'Tên thế giới',
+          required: true,
+          type: 'text',
+          placeholder: 'Eldoria, Trung Địa...',
+        },
+        {
+          name: 'world_type',
+          displayName: 'Loại thế giới',
+          required: true,
+          type: 'select',
+          options: [
+            'Thần tiên',
+            'Không gian',
+            'Trung cổ kỳ ảo',
+            'Hiện đại với phép thuật',
+            'Đa vũ trụ',
+          ],
+        },
         { name: 'hero_name', displayName: 'Tên nhân vật chính', required: true, type: 'text' },
-        { name: 'hero_power', displayName: 'Năng lực đặc biệt', required: true, type: 'text', placeholder: 'phép thuật, sức mạnh, trí tuệ...' },
+        {
+          name: 'hero_power',
+          displayName: 'Năng lực đặc biệt',
+          required: true,
+          type: 'text',
+          placeholder: 'phép thuật, sức mạnh, trí tuệ...',
+        },
         { name: 'main_threat', displayName: 'Mối đe dọa chính', required: true, type: 'text' },
-        { name: 'starting_location', displayName: 'Địa điểm bắt đầu', required: true, type: 'text' },
-        { name: 'narrative_length', displayName: 'Độ dài', required: true, type: 'select', options: ['Ngắn (200-300 từ)', 'Trung bình (400-600 từ)', 'Dài (700-1000 từ)'] },
+        {
+          name: 'starting_location',
+          displayName: 'Địa điểm bắt đầu',
+          required: true,
+          type: 'text',
+        },
+        {
+          name: 'narrative_length',
+          displayName: 'Độ dài',
+          required: true,
+          type: 'select',
+          options: ['Ngắn (200-300 từ)', 'Trung bình (400-600 từ)', 'Dài (700-1000 từ)'],
+        },
       ],
-      systemPrompt: 'Bạn là một tác giả kỳ ảo Việt Nam, viết bằng tiếng Việt tự nhiên, thu hút người đọc ngay từ dòng đầu tiên.',
+      systemPrompt:
+        'Bạn là một tác giả kỳ ảo Việt Nam, viết bằng tiếng Việt tự nhiên, thu hút người đọc ngay từ dòng đầu tiên.',
       temperature: 0.9,
       maxTokens: 800,
       expectedOutput: 'story_continuation',
@@ -206,17 +292,30 @@ Niềm tin hoặc giá trị sống: {{values}}
 Viết một đoạn mô tả sinh động bằng tiếng Việt.`,
       variables: [
         { name: 'character_name', displayName: 'Tên nhân vật', required: true, type: 'text' },
-        { name: 'gender', displayName: 'Giới tính', required: true, type: 'select', options: ['Nam', 'Nữ', 'Khác'] },
+        {
+          name: 'gender',
+          displayName: 'Giới tính',
+          required: true,
+          type: 'select',
+          options: ['Nam', 'Nữ', 'Khác'],
+        },
         { name: 'age', displayName: 'Tuổi', required: true, type: 'number' },
         { name: 'occupation', displayName: 'Nghề nghiệp', required: true, type: 'text' },
         { name: 'appearance', displayName: 'Ngoại hình nổi bật', required: true, type: 'textarea' },
-        { name: 'personality', displayName: 'Tính cách chính', required: true, type: 'select', options: ['Năng động', 'Nhút nhát', 'Tự tin', 'Nhạy cảm', 'Hài hước', 'Nghiêm túc'] },
+        {
+          name: 'personality',
+          displayName: 'Tính cách chính',
+          required: true,
+          type: 'select',
+          options: ['Năng động', 'Nhút nhát', 'Tự tin', 'Nhạy cảm', 'Hài hước', 'Nghiêm túc'],
+        },
         { name: 'strengths', displayName: 'Điểm mạnh', required: false, type: 'textarea' },
         { name: 'weaknesses', displayName: 'Điểm yếu', required: false, type: 'textarea' },
         { name: 'goals', displayName: 'Mục tiêu', required: false, type: 'textarea' },
         { name: 'values', displayName: 'Giá trị sống', required: false, type: 'textarea' },
       ],
-      systemPrompt: 'Bạn là chuyên gia tạo nhân vật cho tiểu thuyết lãng mạn. Tạo ra nhân vật đa chiều, có chiều sâu và khả năng phát triển.',
+      systemPrompt:
+        'Bạn là chuyên gia tạo nhân vật cho tiểu thuyết lãng mạn. Tạo ra nhân vật đa chiều, có chiều sâu và khả năng phát triển.',
       temperature: 0.7,
       expectedOutput: 'character_description',
     };
@@ -250,15 +349,43 @@ Hậu quả nếu thất bại: {{consequences}}
 
 Tạo sự căng thẳng ngày càng tăng, kết thúc bằng cliffhanger nhẹ.`,
       variables: [
-        { name: 'location', displayName: 'Địa điểm', required: true, type: 'text', placeholder: 'nhà hàng, công viên, văn phòng...' },
-        { name: 'time_of_day', displayName: 'Thời gian', required: true, type: 'select', options: ['Buổi sáng', 'Trưa', 'Chiều', 'Tối', 'Đêm khuya'] },
+        {
+          name: 'location',
+          displayName: 'Địa điểm',
+          required: true,
+          type: 'text',
+          placeholder: 'nhà hàng, công viên, văn phòng...',
+        },
+        {
+          name: 'time_of_day',
+          displayName: 'Thời gian',
+          required: true,
+          type: 'select',
+          options: ['Buổi sáng', 'Trưa', 'Chiều', 'Tối', 'Đêm khuya'],
+        },
         { name: 'main_character', displayName: 'Nhân vật chính', required: true, type: 'text' },
         { name: 'antagonist', displayName: 'Đối thủ', required: true, type: 'text' },
-        { name: 'character_goal', displayName: 'Mục tiêu của NV chính', required: true, type: 'textarea' },
-        { name: 'antagonist_secret', displayName: 'Bí mật của đối thủ', required: false, type: 'textarea' },
-        { name: 'consequences', displayName: 'Hậu quả nếu thất bại', required: false, type: 'textarea' },
+        {
+          name: 'character_goal',
+          displayName: 'Mục tiêu của NV chính',
+          required: true,
+          type: 'textarea',
+        },
+        {
+          name: 'antagonist_secret',
+          displayName: 'Bí mật của đối thủ',
+          required: false,
+          type: 'textarea',
+        },
+        {
+          name: 'consequences',
+          displayName: 'Hậu quả nếu thất bại',
+          required: false,
+          type: 'textarea',
+        },
       ],
-      systemPrompt: 'Bạn là nhà văn chuyên tạo nhịp độ trong câu chuyện. Xây dựng căng thẳng dần dần, làm người đọc hồi hộp.',
+      systemPrompt:
+        'Bạn là nhà văn chuyên tạo nhịp độ trong câu chuyện. Xây dựng căng thẳng dần dần, làm người đọc hồi hộp.',
       temperature: 0.8,
       maxTokens: 600,
       expectedOutput: 'scene_description',
@@ -306,22 +433,61 @@ Hồi 3 - Giải quyết (25% câu chuyện):
 
 Chi tiết hóa dàn ý này bằng tiếng Việt.`,
       variables: [
-        { name: 'genre', displayName: 'Thể loại', required: true, type: 'select', options: ['Lãng mạn', 'Phiêu lưu', 'Tâm lý', 'Kinh dị', 'Khoa học viễn tưởng', 'Hài hước'] },
+        {
+          name: 'genre',
+          displayName: 'Thể loại',
+          required: true,
+          type: 'select',
+          options: [
+            'Lãng mạn',
+            'Phiêu lưu',
+            'Tâm lý',
+            'Kinh dị',
+            'Khoa học viễn tưởng',
+            'Hài hước',
+          ],
+        },
         { name: 'title', displayName: 'Tựa đề', required: true, type: 'text' },
         { name: 'protagonist', displayName: 'Nhân vật chính', required: true, type: 'text' },
-        { name: 'protagonist_goal', displayName: 'Mục tiêu chính', required: true, type: 'textarea' },
+        {
+          name: 'protagonist_goal',
+          displayName: 'Mục tiêu chính',
+          required: true,
+          type: 'textarea',
+        },
         { name: 'main_conflict', displayName: 'Xung đột chính', required: true, type: 'textarea' },
         { name: 'setting', displayName: 'Bối cảnh', required: true, type: 'text' },
         { name: 'setup_intro', displayName: 'Giới thiệu hồi 1', required: false, type: 'textarea' },
-        { name: 'inciting_incident', displayName: 'Sự kiện kích hoạt', required: false, type: 'textarea' },
-        { name: 'rising_action', displayName: 'Thử thách hồi 2', required: false, type: 'textarea' },
+        {
+          name: 'inciting_incident',
+          displayName: 'Sự kiện kích hoạt',
+          required: false,
+          type: 'textarea',
+        },
+        {
+          name: 'rising_action',
+          displayName: 'Thử thách hồi 2',
+          required: false,
+          type: 'textarea',
+        },
         { name: 'act2_climax', displayName: 'Đỉnh điểm hồi 2', required: false, type: 'textarea' },
-        { name: 'character_development', displayName: 'Phát triển NV', required: false, type: 'textarea' },
-        { name: 'final_confrontation', displayName: 'Đối đầu cuối', required: false, type: 'textarea' },
+        {
+          name: 'character_development',
+          displayName: 'Phát triển NV',
+          required: false,
+          type: 'textarea',
+        },
+        {
+          name: 'final_confrontation',
+          displayName: 'Đối đầu cuối',
+          required: false,
+          type: 'textarea',
+        },
         { name: 'resolution', displayName: 'Giải quyết', required: false, type: 'textarea' },
         { name: 'ending', displayName: 'Kết thúc', required: false, type: 'textarea' },
       ],
-      systemPrompt: 'Bạn là biên kịch chuyên nghiệp. Tạo ra cấu trúc cốt truyện chặt chẽ, logic và hấp dẫn.',
+      systemPrompt:
+        'Bạn là biên kịch chuyên nghiệp. Tạo ra cấu trúc cốt truyện chặt chẽ, logic và hấp dẫn.',
       temperature: 0.6,
       maxTokens: 1200,
       expectedOutput: 'plot_outline',
@@ -340,11 +506,11 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
   }
 
   getTemplatesByCategory(category: TemplateCategory): Template[] {
-    return this.getAllTemplates().filter(template => template.category === category);
+    return this.getAllTemplates().filter((template) => template.category === category);
   }
 
   getTemplatesByType(type: TemplateType): Template[] {
-    return this.getAllTemplates().filter(template => template.type === type);
+    return this.getAllTemplates().filter((template) => template.type === type);
   }
 
   searchTemplates(options: TemplateSearchOptions): Template[] {
@@ -352,29 +518,30 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
 
     if (options.query) {
       const query = options.query.toLowerCase();
-      results = results.filter(template =>
-        template.name.toLowerCase().includes(query) ||
-        template.description.toLowerCase().includes(query) ||
-        template.tags.some(tag => tag.toLowerCase().includes(query))
+      results = results.filter(
+        (template) =>
+          template.name.toLowerCase().includes(query) ||
+          template.description.toLowerCase().includes(query) ||
+          template.tags.some((tag) => tag.toLowerCase().includes(query))
       );
     }
 
     if (options.category) {
-      results = results.filter(template => template.category === options.category);
+      results = results.filter((template) => template.category === options.category);
     }
 
     if (options.type) {
-      results = results.filter(template => template.type === options.type);
+      results = results.filter((template) => template.type === options.type);
     }
 
     if (options.tags && options.tags.length > 0) {
-      results = results.filter(template =>
-        options.tags!.some(tag => template.tags.includes(tag))
+      results = results.filter((template) =>
+        options.tags!.some((tag) => template.tags.includes(tag))
       );
     }
 
     if (options.author) {
-      results = results.filter(template => template.author === options.author);
+      results = results.filter((template) => template.author === options.author);
     }
 
     // Sort results
@@ -409,10 +576,12 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
   }
 
   getTemplateById(id: string): Template | null {
-    return this.getAllTemplates().find(template => template.id === id) || null;
+    return this.getAllTemplates().find((template) => template.id === id) || null;
   }
 
-  addCustomTemplate(template: Omit<Template, 'id' | 'createdAt' | 'updatedAt' | 'usageCount' | 'rating'>): Template {
+  addCustomTemplate(
+    template: Omit<Template, 'id' | 'createdAt' | 'updatedAt' | 'usageCount' | 'rating'>
+  ): Template {
     const newTemplate = {
       ...template,
       id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -430,7 +599,7 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
   }
 
   updateTemplate(id: string, updates: Partial<Template>): boolean {
-    const templateIndex = this.userTemplateData.customTemplates.findIndex(t => t.id === id);
+    const templateIndex = this.userTemplateData.customTemplates.findIndex((t) => t.id === id);
 
     if (templateIndex === -1) return false;
 
@@ -445,7 +614,7 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
   }
 
   deleteTemplate(id: string): boolean {
-    const templateIndex = this.userTemplateData.customTemplates.findIndex(t => t.id === id);
+    const templateIndex = this.userTemplateData.customTemplates.findIndex((t) => t.id === id);
 
     if (templateIndex === -1) return false;
 
@@ -453,8 +622,12 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
     this.saveUserData();
 
     // Remove from favorites and recent if exists
-    this.userTemplateData.favoriteTemplates = this.userTemplateData.favoriteTemplates.filter(tid => tid !== id);
-    this.userTemplateData.recentUsed = this.userTemplateData.recentUsed.filter(item => item.templateId !== id);
+    this.userTemplateData.favoriteTemplates = this.userTemplateData.favoriteTemplates.filter(
+      (tid) => tid !== id
+    );
+    this.userTemplateData.recentUsed = this.userTemplateData.recentUsed.filter(
+      (item) => item.templateId !== id
+    );
 
     return true;
   }
@@ -477,7 +650,7 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
 
   getFavoriteTemplates(): Template[] {
     return this.userTemplateData.favoriteTemplates
-      .map(id => this.getTemplateById(id))
+      .map((id) => this.getTemplateById(id))
       .filter(Boolean) as Template[];
   }
 
@@ -502,30 +675,34 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
   getTemplateStats(): TemplateStats {
     const allTemplates = this.getAllTemplates();
 
-    const templatesByCategory = allTemplates.reduce((acc, template) => {
-      acc[template.category] = (acc[template.category] || 0) + 1;
-      return acc;
-    }, {} as Record<TemplateCategory, number>);
+    const templatesByCategory = allTemplates.reduce(
+      (acc, template) => {
+        acc[template.category] = (acc[template.category] || 0) + 1;
+        return acc;
+      },
+      {} as Record<TemplateCategory, number>
+    );
 
-    const templatesByType = allTemplates.reduce((acc, template) => {
-      acc[template.type] = (acc[template.type] || 0) + 1;
-      return acc;
-    }, {} as Record<TemplateType, number>);
+    const templatesByType = allTemplates.reduce(
+      (acc, template) => {
+        acc[template.type] = (acc[template.type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<TemplateType, number>
+    );
 
     const topRatedTemplates = allTemplates
-      .filter(t => t.rating > 0)
+      .filter((t) => t.rating > 0)
       .sort((a, b) => b.rating - a.rating)
       .slice(0, 10)
-      .map(t => ({ id: t.id, name: t.name, rating: t.rating }));
+      .map((t) => ({ id: t.id, name: t.name, rating: t.rating }));
 
     const mostUsedTemplates = allTemplates
       .sort((a, b) => b.usageCount - a.usageCount)
       .slice(0, 10)
-      .map(t => ({ id: t.id, name: t.name, usageCount: t.usageCount }));
+      .map((t) => ({ id: t.id, name: t.name, usageCount: t.usageCount }));
 
-    const recentTemplates = allTemplates
-      .sort((a, b) => b.updatedAt - a.updatedAt)
-      .slice(0, 5);
+    const recentTemplates = allTemplates.sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5);
 
     return {
       totalTemplates: allTemplates.length,
@@ -542,7 +719,7 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
       id: `collection_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name,
       description,
-      templates: templateIds.map(id => this.getTemplateById(id)).filter(Boolean) as Template[],
+      templates: templateIds.map((id) => this.getTemplateById(id)).filter(Boolean) as Template[],
       author: 'User',
       isPublic: false,
       tags: [],
@@ -572,10 +749,13 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
     return result;
   }
 
-  validateTemplateVariables(template: PromptTemplate, variables: Record<string, string>): { valid: boolean; errors: string[] } {
+  validateTemplateVariables(
+    template: PromptTemplate,
+    variables: Record<string, string>
+  ): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
-    template.variables.forEach(variable => {
+    template.variables.forEach((variable) => {
       const value = variables[variable.name];
 
       if (variable.required && (!value || value.trim() === '')) {
@@ -592,7 +772,9 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
           try {
             const validator = new Function('value', variable.validation.customValidator);
             if (!validator(value)) {
-              errors.push(variable.validation.customValidator + ' failed for ' + variable.displayName);
+              errors.push(
+                variable.validation.customValidator + ' failed for ' + variable.displayName
+              );
             }
           } catch (e) {
             errors.push(`Lỗi validation cho "${variable.displayName}"`);
@@ -608,18 +790,26 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
   }
 
   // Advanced template features
-  applyTemplateWithComposition(templateId: string, userVariables: Record<string, string>, context: {
-    storySegments?: Array<{ type: string; content: string }>;
-    characterProfiles?: Array<{ name: string; personality?: string; background?: string }>;
-    generationConfig?: any;
-  } = {}): { content: string; variables: Record<string, string>; metadata: any } {
+  applyTemplateWithComposition(
+    templateId: string,
+    userVariables: Record<string, string>,
+    context: {
+      storySegments?: Array<{ type: string; content: string }>;
+      characterProfiles?: Array<{ name: string; personality?: string; background?: string }>;
+      generationConfig?: any;
+    } = {}
+  ): { content: string; variables: Record<string, string>; metadata: any } {
     const template = this.getTemplateById(templateId);
     if (!template || template.type !== TemplateType.PROMPT_TEMPLATE) {
       throw new Error('Template not found or not supported');
     }
 
     const promptTemplate = template as PromptTemplate;
-    const resolvedVariables = this.resolveVariables(promptTemplate.variables, userVariables, context);
+    const resolvedVariables = this.resolveVariables(
+      promptTemplate.variables,
+      userVariables,
+      context
+    );
 
     // Apply parent template inheritance
     let finalContent = promptTemplate.content;
@@ -635,12 +825,21 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
     if (promptTemplate.subTemplates) {
       for (const composition of promptTemplate.subTemplates) {
         if (this.evaluateCompositionCondition(composition, resolvedVariables, context)) {
-          const subTemplate = promptTemplate.subTemplates.find(st => st.templateId === composition.templateId);
+          const subTemplate = promptTemplate.subTemplates.find(
+            (st) => st.templateId === composition.templateId
+          );
           if (subTemplate) {
             const subTemplateData = this.getTemplateById(subTemplate.templateId);
             if (subTemplateData && subTemplateData.type === TemplateType.PROMPT_TEMPLATE) {
-              const subContent = this.applyTemplate(subTemplateData as PromptTemplate, subTemplate.variables || {});
-              finalContent = this.insertSubTemplateContent(finalContent, subContent, subTemplate.insertionPoint);
+              const subContent = this.applyTemplate(
+                subTemplateData as PromptTemplate,
+                subTemplate.variables || {}
+              );
+              finalContent = this.insertSubTemplateContent(
+                finalContent,
+                subContent,
+                subTemplate.insertionPoint
+              );
             }
           }
         }
@@ -648,7 +847,10 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
     }
 
     // Apply variable substitution
-    const content = this.applyTemplateComposed({ ...promptTemplate, content: finalContent }, resolvedVariables);
+    const content = this.applyTemplateComposed(
+      { ...promptTemplate, content: finalContent },
+      resolvedVariables
+    );
 
     return {
       content,
@@ -657,15 +859,19 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
         templateId,
         composition: promptTemplate.subTemplates,
         inheritance: promptTemplate.parentTemplateId,
-        resolvedVariables: Object.keys(resolvedVariables)
-      }
+        resolvedVariables: Object.keys(resolvedVariables),
+      },
     };
   }
 
-  private resolveVariables(variables: TemplateVariable[], userVariables: Record<string, string>, context: any): Record<string, string> {
+  private resolveVariables(
+    variables: TemplateVariable[],
+    userVariables: Record<string, string>,
+    context: any
+  ): Record<string, string> {
     const resolved: Record<string, string> = { ...userVariables };
 
-    variables.forEach(variable => {
+    variables.forEach((variable) => {
       const userValue = userVariables[variable.name];
 
       if (userValue) {
@@ -685,7 +891,7 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
 
     // Handle dependent variables (run multiple times to resolve dependencies)
     for (let i = 0; i < 3; i++) {
-      variables.forEach(variable => {
+      variables.forEach((variable) => {
         if (variable.type === 'computed' && variable.fallbackExpression) {
           resolved[variable.name] = this.computeFallback(variable.fallbackExpression, resolved);
         }
@@ -703,19 +909,26 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
         if (context.characterProfiles && variable.name.includes('character')) {
           // Extract character name from variable name
           const charName = variable.name.replace(/character[0-9]*_/, '').replace(/_.*$/, '');
-          const charProfile = context.characterProfiles.find((c: any) => c.name.toLowerCase().includes(charName));
+          const charProfile = context.characterProfiles.find((c: any) =>
+            c.name.toLowerCase().includes(charName)
+          );
           if (charProfile) {
-            return variable.name.includes('age') ? charProfile.age :
-                   variable.name.includes('job') || variable.name.includes('occupation') ? charProfile.occupation :
-                   variable.name.includes('appearance') ? charProfile.appearance :
-                   charProfile.name;
+            return variable.name.includes('age')
+              ? charProfile.age
+              : variable.name.includes('job') || variable.name.includes('occupation')
+                ? charProfile.occupation
+                : variable.name.includes('appearance')
+                  ? charProfile.appearance
+                  : charProfile.name;
           }
         }
         break;
 
       case 'story_context':
         if (variable.name.includes('scene') && context.storySegments) {
-          const lastScene = context.storySegments.findLast((s: any) => s.type === 'ai' || s.type === 'user');
+          const lastScene = context.storySegments.findLast(
+            (s: any) => s.type === 'ai' || s.type === 'user'
+          );
           if (lastScene) return lastScene.content.substring(0, 100) + '...';
         }
         break;
@@ -734,15 +947,17 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
     try {
       // Simple expression evaluator - expand as needed
       if (expression === 'join_spaces') {
-        return Object.values(resolvedVariables).filter(v => v).join(' ');
+        return Object.values(resolvedVariables)
+          .filter((v) => v)
+          .join(' ');
       }
       if (expression === 'random_choice') {
-        const values = Object.values(resolvedVariables).filter(v => v);
+        const values = Object.values(resolvedVariables).filter((v) => v);
         return values[Math.floor(Math.random() * values.length)];
       }
       if (expression.startsWith('concat:')) {
         const parts = expression.replace('concat:', '').split(',');
-        return parts.map(part => resolvedVariables[part.trim()] || part.trim()).join('');
+        return parts.map((part) => resolvedVariables[part.trim()] || part.trim()).join('');
       }
       return '';
     } catch (e) {
@@ -751,7 +966,11 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
     }
   }
 
-  private evaluateCompositionCondition(composition: any, variables: Record<string, string>, context: any): boolean {
+  private evaluateCompositionCondition(
+    composition: any,
+    variables: Record<string, string>,
+    context: any
+  ): boolean {
     if (!composition.condition) return true;
 
     try {
@@ -773,7 +992,11 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
     }
   }
 
-  private insertSubTemplateContent(parentContent: string, subContent: string, insertionPoint: string): string {
+  private insertSubTemplateContent(
+    parentContent: string,
+    subContent: string,
+    insertionPoint: string
+  ): string {
     if (insertionPoint === 'before') {
       return subContent + '\n\n' + parentContent;
     }
@@ -788,7 +1011,10 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
     return parentContent;
   }
 
-  private applyTemplateComposed(template: PromptTemplate, variables: Record<string, string>): string {
+  private applyTemplateComposed(
+    template: PromptTemplate,
+    variables: Record<string, string>
+  ): string {
     let result = template.content;
 
     // Apply pre-processing
@@ -825,14 +1051,17 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
   }
 
   // Analytics and intelligence
-  recordTemplatePerformance(templateId: string, metrics: {
-    generationTime: number;
-    tokenCount: number;
-    success: boolean;
-    qualityRating: number;
-    userFeedback?: string;
-    contextFeatures: string[];
-  }): void {
+  recordTemplatePerformance(
+    templateId: string,
+    metrics: {
+      generationTime: number;
+      tokenCount: number;
+      success: boolean;
+      qualityRating: number;
+      userFeedback?: string;
+      contextFeatures: string[];
+    }
+  ): void {
     let analytics = this.userTemplateData.usageAnalytics[templateId];
     if (!analytics) {
       analytics = {
@@ -843,16 +1072,16 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
           averageGenerationTime: 0,
           averageTokenCount: 0,
           popularVariables: {},
-          commonContexts: []
+          commonContexts: [],
         },
         qualityMetrics: {
           averageRating: 0,
           userFeedback: [],
           coherence: 0,
           creativity: 0,
-          consistency: 0
+          consistency: 0,
         },
-        performanceHistory: []
+        performanceHistory: [],
       };
       this.userTemplateData.usageAnalytics[templateId] = analytics;
     }
@@ -860,16 +1089,25 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
     // Update usage stats
     analytics.usageStats.totalUsage++;
     if (metrics.success) analytics.usageStats.successfulGenerations++;
-    analytics.usageStats.averageGenerationTime = (analytics.usageStats.averageGenerationTime * (analytics.usageStats.totalUsage - 1) + metrics.generationTime) / analytics.usageStats.totalUsage;
-    analytics.usageStats.averageTokenCount = (analytics.usageStats.averageTokenCount * (analytics.usageStats.totalUsage - 1) + metrics.tokenCount) / analytics.usageStats.totalUsage;
+    analytics.usageStats.averageGenerationTime =
+      (analytics.usageStats.averageGenerationTime * (analytics.usageStats.totalUsage - 1) +
+        metrics.generationTime) /
+      analytics.usageStats.totalUsage;
+    analytics.usageStats.averageTokenCount =
+      (analytics.usageStats.averageTokenCount * (analytics.usageStats.totalUsage - 1) +
+        metrics.tokenCount) /
+      analytics.usageStats.totalUsage;
 
     // Update quality metrics
-    analytics.qualityMetrics.averageRating = (analytics.qualityMetrics.averageRating * (analytics.qualityMetrics.userFeedback.length) + metrics.qualityRating) / (analytics.qualityMetrics.userFeedback.length + 1);
+    analytics.qualityMetrics.averageRating =
+      (analytics.qualityMetrics.averageRating * analytics.qualityMetrics.userFeedback.length +
+        metrics.qualityRating) /
+      (analytics.qualityMetrics.userFeedback.length + 1);
     analytics.qualityMetrics.userFeedback.push({
       rating: metrics.qualityRating,
       comment: metrics.userFeedback,
       date: Date.now(),
-      context: 'technical'
+      context: 'technical',
     });
 
     // Add performance point
@@ -878,7 +1116,7 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
       usageCount: analytics.usageStats.totalUsage,
       successRate: analytics.usageStats.successfulGenerations / analytics.usageStats.totalUsage,
       averageRating: analytics.qualityMetrics.averageRating,
-      contextFeatures: metrics.contextFeatures
+      contextFeatures: metrics.contextFeatures,
     });
 
     // Keep last 100 history points
@@ -894,11 +1132,12 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
     storyLength?: number;
   }): Promise<TemplateRecommendation[]> {
     return new Promise((resolve) => {
-      setTimeout(() => { // Simulate async processing
+      setTimeout(() => {
+        // Simulate async processing
         const recommendations: TemplateRecommendation[] = [];
         const allTemplates = this.getAllTemplates();
 
-        allTemplates.forEach(template => {
+        allTemplates.forEach((template) => {
           if (template.type !== TemplateType.PROMPT_TEMPLATE) return;
 
           const promptTemplate = template as PromptTemplate;
@@ -907,11 +1146,17 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
 
           // Match compatibility
           if (promptTemplate.compatibility && context) {
-            if (context.storyType && promptTemplate.compatibility.storyTypes.includes(context.storyType)) {
+            if (
+              context.storyType &&
+              promptTemplate.compatibility.storyTypes.includes(context.storyType)
+            ) {
               confidence += 0.4;
               reasons.push('Phù hợp với thể loại truyện');
             }
-            if (context.generationMode && promptTemplate.compatibility.generationModes.includes(context.generationMode)) {
+            if (
+              context.generationMode &&
+              promptTemplate.compatibility.generationModes.includes(context.generationMode)
+            ) {
               confidence += 0.3;
               reasons.push('Phù hợp với chế độ tạo');
             }
@@ -938,8 +1183,8 @@ Chi tiết hóa dàn ý này bằng tiếng Việt.`,
               contextMatch: {
                 category: template.category.includes(context?.storyType || '') ? 1 : 0,
                 compatibility: confidence > 0.3 ? 1 : 0,
-                popularity: template.usageCount > 5 ? 1 : 0
-              }
+                popularity: template.usageCount > 5 ? 1 : 0,
+              },
             });
           }
         });

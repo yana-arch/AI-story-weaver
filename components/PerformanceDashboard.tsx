@@ -38,14 +38,17 @@ export const PerformanceDashboard: React.FC = () => {
       // Count DOM nodes
       const domNodes = document.getElementsByTagName('*').length;
 
-      setMetrics(prev => {
-        const newMetrics = [...prev, {
-          fps: avgFps,
-          memoryUsage,
-          renderTime: performance.now(),
-          domNodes,
-          timestamp: Date.now(),
-        }].slice(-50); // Keep last 50 measurements
+      setMetrics((prev) => {
+        const newMetrics = [
+          ...prev,
+          {
+            fps: avgFps,
+            memoryUsage,
+            renderTime: performance.now(),
+            domNodes,
+            timestamp: Date.now(),
+          },
+        ].slice(-50); // Keep last 50 measurements
 
         return newMetrics;
       });
@@ -62,7 +65,7 @@ export const PerformanceDashboard: React.FC = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.altKey && event.key === 'F' && process.env.NODE_ENV === 'development') {
         event.preventDefault();
-        setIsVisible(prev => !prev);
+        setIsVisible((prev) => !prev);
       }
     };
 
@@ -75,7 +78,7 @@ export const PerformanceDashboard: React.FC = () => {
     memoryUsage: 0,
     renderTime: 0,
     domNodes: 0,
-    timestamp: 0
+    timestamp: 0,
   };
 
   const getFpsColor = (fps: number) => {
@@ -117,9 +120,7 @@ export const PerformanceDashboard: React.FC = () => {
       <div className="space-y-2">
         <div className="flex justify-between">
           <span>FPS:</span>
-          <span className={getFpsColor(latestMetrics.fps)}>
-            {latestMetrics.fps}
-          </span>
+          <span className={getFpsColor(latestMetrics.fps)}>{latestMetrics.fps}</span>
         </div>
 
         <div className="flex justify-between">
@@ -131,22 +132,16 @@ export const PerformanceDashboard: React.FC = () => {
 
         <div className="flex justify-between">
           <span>DOM Nodes:</span>
-          <span className="text-blue-400">
-            {latestMetrics.domNodes.toLocaleString()}
-          </span>
+          <span className="text-blue-400">{latestMetrics.domNodes.toLocaleString()}</span>
         </div>
 
         <div className="flex justify-between">
           <span>Measurements:</span>
-          <span className="text-purple-400">
-            {metrics.length}
-          </span>
+          <span className="text-purple-400">{metrics.length}</span>
         </div>
 
         <div className="mt-3 pt-2 border-t border-gray-600">
-          <p className="text-xs text-gray-400 text-center">
-            Alt+F to toggle (development only)
-          </p>
+          <p className="text-xs text-gray-400 text-center">Alt+F to toggle (development only)</p>
         </div>
       </div>
 

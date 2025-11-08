@@ -10,7 +10,7 @@ interface WritingStatsDashboardProps {
 
 export const WritingStatsDashboard: React.FC<WritingStatsDashboardProps> = ({
   story,
-  className = ''
+  className = '',
 }) => {
   const analyticsService = getAnalyticsService();
 
@@ -56,8 +56,11 @@ export const WritingStatsDashboard: React.FC<WritingStatsDashboardProps> = ({
     return `${hour - 12} giờ tối`;
   };
 
-  const getProductivityLevel = (wordsPerHour: number): { level: string; color: string; icon: string } => {
-    if (wordsPerHour >= 1000) return { level: 'Siêu năng suất', color: 'text-purple-600', icon: '🚀' };
+  const getProductivityLevel = (
+    wordsPerHour: number
+  ): { level: string; color: string; icon: string } => {
+    if (wordsPerHour >= 1000)
+      return { level: 'Siêu năng suất', color: 'text-purple-600', icon: '🚀' };
     if (wordsPerHour >= 500) return { level: 'Năng suất cao', color: 'text-blue-600', icon: '💙' };
     if (wordsPerHour >= 200) return { level: 'Năng suất中等', color: 'text-green-600', icon: '✅' };
     if (wordsPerHour >= 50) return { level: 'Bắt đầu tốt', color: 'text-yellow-600', icon: '🌱' };
@@ -105,9 +108,7 @@ export const WritingStatsDashboard: React.FC<WritingStatsDashboardProps> = ({
     <div className={`space-y-6 ${className}`}>
       <div className="text-center">
         <h2 className="text-2xl font-bold text-foreground mb-2">Thống kê viết truyện</h2>
-        <p className="text-muted-foreground">
-          Theo dõi tiến độ và hiệu suất viết của bạn
-        </p>
+        <p className="text-muted-foreground">Theo dõi tiến độ và hiệu suất viết của bạn</p>
       </div>
 
       {/* Main Stats Grid */}
@@ -167,7 +168,9 @@ export const WritingStatsDashboard: React.FC<WritingStatsDashboardProps> = ({
                 <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full bg-blue-500 rounded-full"
-                    style={{ width: `${Math.min((stats.totalWords / stats.streakDays) / 500 * 100, 100)}%` }}
+                    style={{
+                      width: `${Math.min((stats.totalWords / stats.streakDays / 500) * 100, 100)}%`,
+                    }}
                   />
                 </div>
                 <span className="text-xs font-medium">
@@ -182,7 +185,7 @@ export const WritingStatsDashboard: React.FC<WritingStatsDashboardProps> = ({
                 <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full bg-green-500 rounded-full"
-                    style={{ width: `${Math.min(stats.sessionsCount / 12 * 100, 100)}%` }}
+                    style={{ width: `${Math.min((stats.sessionsCount / 12) * 100, 100)}%` }}
                   />
                 </div>
                 <span className="text-xs font-medium">{stats.sessionsCount}</span>
@@ -195,7 +198,7 @@ export const WritingStatsDashboard: React.FC<WritingStatsDashboardProps> = ({
                 <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full bg-purple-500 rounded-full"
-                    style={{ width: `${Math.min(stats.totalWritingTime / 60 / 20 * 100, 100)}%` }}
+                    style={{ width: `${Math.min((stats.totalWritingTime / 60 / 20) * 100, 100)}%` }}
                   />
                 </div>
                 <span className="text-xs font-medium">
@@ -215,11 +218,11 @@ export const WritingStatsDashboard: React.FC<WritingStatsDashboardProps> = ({
 
       {stats.totalWords === 0 && (
         <div className="text-center py-8 text-muted-foreground">
-          <span className="text-4xl mx-auto mb-3 opacity-50" role="img" aria-label="sách">📖</span>
+          <span className="text-4xl mx-auto mb-3 opacity-50" role="img" aria-label="sách">
+            📖
+          </span>
           <h3 className="font-medium mb-2">Bắt đầu hành trình viết của bạn</h3>
-          <p className="text-sm">
-            Thống kê của bạn sẽ xuất hiện ở đây sau những dòng đầu tiên
-          </p>
+          <p className="text-sm">Thống kê của bạn sẽ xuất hiện ở đây sau những dòng đầu tiên</p>
         </div>
       )}
     </div>
