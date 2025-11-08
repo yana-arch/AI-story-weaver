@@ -145,11 +145,14 @@ const initialConfig: GenerationConfig = {
   pacing: Pacing.MEDIUM,
   narrativeStructure: NarrativeStructure.FREEFORM,
   adultContentOptions: [],
+  customAdultContentOptions: [],
   avoidKeywords: '',
   focusKeywords: '',
   generationMode: GenerationMode.CONTINUE,
   rewriteTarget: RewriteTarget.ENTIRE_STORY,
   selectedChapterId: '',
+  referenceContent: '',
+  useReferenceContent: false,
 };
 
 const App: React.FC = () => {

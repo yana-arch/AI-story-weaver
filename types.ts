@@ -49,6 +49,7 @@ export interface GenerationConfig {
   pacing: string;
   narrativeStructure: NarrativeStructure;
   adultContentOptions: AdultContentOptions[];
+  customAdultContentOptions?: string[];
   avoidKeywords: string;
   focusKeywords: string;
   generationMode: GenerationMode;
@@ -56,6 +57,8 @@ export interface GenerationConfig {
   selectedChapterId?: string;
   additionalInstructions?: string;
   autoGeneratePrompts?: boolean;
+  referenceContent?: string;
+  useReferenceContent?: boolean;
 }
 
 export interface ApiKey {

@@ -333,6 +333,73 @@ IMPORTANT: Return ONLY the JSON object. No markdown, no explanations, no additio
     return prompts;
   }
 
+  buildPromptsForAutoFillSettingsFromReference(
+    referenceContent: string,
+    userInstructions?: string,
+    systemPrompt?: string
+  ): AIPrompt[] {
+    const prompts: AIPrompt[] = [];
+
+    if (systemPrompt) {
+      prompts.push({
+        role: 'system',
+        content: systemPrompt,
+      });
+    } else {
+      prompts.push({
+        role: 'system',
+        content:
+          'You are an expert literary analyst and creative writing assistant. Analyze the provided reference story content to understand the writing style, tone, content preferences, and narrative techniques. Then suggest optimal AI generation settings that would produce similar content.',
+      });
+    }
+
+    let userContent = `Please analyze this REFERENCE STORY CONTENT (for inspiration only) and create prompts that capture the writing style and preferences to help generate original story content. DO NOT mention or reference any specific characters, names, or plot elements from the reference content.
+
+--- REFERENCE CONTENT (FOR INSPIRATION ONLY) ---
+${referenceContent}
+
+--- ANALYSIS TASK ---
+Based on the reference content above, identify:
+1. Language of the reference content (e.g., Vietnamese, English, Chinese, etc.)
+2. Writing style (formal/casual, descriptive/narrative, poetic/prosaic)
+3. Tone and atmosphere (romantic, sensual, dramatic, etc.)
+4. Content preferences (NSFW elements, character dynamics, pacing)
+5. Narrative techniques used
+
+IMPORTANT: All generated settings, keywords, and prompts must be in the SAME LANGUAGE as the reference content. For example, if the reference is in Vietnamese, all scenario descriptions, dynamics, keywords, and custom options should be in Vietnamese.
+
+Create prompts that will help AI generate original content with similar style and preferences. The prompts should be generic and not reference any specific characters or plot elements from the reference content.`;
+
+    if (userInstructions) {
+      userContent += `\n\n--- ADDITIONAL USER INSTRUCTIONS ---
+${userInstructions}`;
+    }
+
+    userContent += `
+
+You must return ONLY a valid JSON object with exactly these fields:
+
+{
+  "scenario": "Suggest a scenario based on the reference content",
+  "dynamics": "Suggest character dynamics that match the reference",
+  "pacing": "Suggest pacing that matches the reference style",
+  "narrativeStructure": "Suggest narrative structure used in reference",
+  "focusKeywords": "Comma-separated keywords that capture the essence of the reference",
+  "avoidKeywords": "Keywords to avoid (opposite of reference style), or empty string",
+  "adultContentOptions": ["Array of adult content options that match the reference style"],
+  "customAdultContentOptions": ["Array of custom adult content suggestions based on reference"]
+}
+
+IMPORTANT: Return ONLY the JSON object. No markdown, no explanations, no additional text. Start with { and end with }.`;
+
+    prompts.push({
+      role: 'user',
+      content: userContent,
+    });
+
+    return prompts;
+  }
+
   async generateAutoFillSettings(
     userInstructions: string,
     modelId: string,
@@ -412,12 +479,117 @@ IMPORTANT: Return ONLY the JSON object. No markdown, no explanations, no additio
         );
       }
 
+      if (Array.isArray(parsedSettings.customAdultContentOptions)) {
+        validatedSettings.customAdultContentOptions = parsedSettings.customAdultContentOptions.filter(
+          (option: any) => typeof option === 'string' && option.trim().length > 0
+        );
+      }
+
       return validatedSettings;
     } catch (error) {
       console.error('Failed to generate auto-fill settings:', error);
       console.error('Raw AI response:', response?.content);
       throw new Error(
         'Unable to generate settings from instructions. Please try again or fill them manually.'
+      );
+    }
+  }
+
+  async generateAutoFillSettingsFromReference(
+    referenceContent: string,
+    userInstructions?: string,
+    modelId?: string,
+    fallbackModels?: string[]
+  ): Promise<Partial<GenerationConfig>> {
+    if (!referenceContent.trim()) {
+      throw new Error('Reference content is required for auto-fill settings from reference');
+    }
+
+    const prompts = this.buildPromptsForAutoFillSettingsFromReference(
+      referenceContent,
+      userInstructions
+    );
+    let response: AIResponse | undefined;
+
+    try {
+      response = await this.generateText(modelId || 'gemini-2.5-flash', prompts, {}, fallbackModels);
+
+      // Clean and parse the JSON response
+      let content = response.content.trim();
+
+      // Remove any markdown formatting
+      if (content.startsWith('```json')) {
+        content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (content.startsWith('```')) {
+        content = content.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+
+      // Try to find JSON in the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        content = jsonMatch[0];
+      }
+
+      console.log('AI Reference Analysis Response content:', content); // Debug log
+
+      const parsedSettings = JSON.parse(content);
+
+      // Validate and clean the response
+      const validatedSettings: Partial<GenerationConfig> = {};
+
+      if (parsedSettings.scenario && typeof parsedSettings.scenario === 'string') {
+        validatedSettings.scenario = parsedSettings.scenario;
+      }
+
+      if (parsedSettings.dynamics && typeof parsedSettings.dynamics === 'string') {
+        validatedSettings.dynamics = parsedSettings.dynamics;
+      }
+
+      if (parsedSettings.pacing && typeof parsedSettings.pacing === 'string') {
+        validatedSettings.pacing = parsedSettings.pacing;
+      }
+
+      if (
+        parsedSettings.narrativeStructure &&
+        typeof parsedSettings.narrativeStructure === 'string'
+      ) {
+        validatedSettings.narrativeStructure = parsedSettings.narrativeStructure;
+      }
+
+      if (parsedSettings.focusKeywords) {
+        if (Array.isArray(parsedSettings.focusKeywords)) {
+          validatedSettings.focusKeywords = parsedSettings.focusKeywords.join(', ');
+        } else if (typeof parsedSettings.focusKeywords === 'string') {
+          validatedSettings.focusKeywords = parsedSettings.focusKeywords;
+        }
+      }
+
+      if (parsedSettings.avoidKeywords) {
+        if (Array.isArray(parsedSettings.avoidKeywords)) {
+          validatedSettings.avoidKeywords = parsedSettings.avoidKeywords.join(', ');
+        } else if (typeof parsedSettings.avoidKeywords === 'string') {
+          validatedSettings.avoidKeywords = parsedSettings.avoidKeywords;
+        }
+      }
+
+      if (Array.isArray(parsedSettings.adultContentOptions)) {
+        validatedSettings.adultContentOptions = parsedSettings.adultContentOptions.filter(
+          (option: any) => typeof option === 'string' && option.trim().length > 0
+        );
+      }
+
+      if (Array.isArray(parsedSettings.customAdultContentOptions)) {
+        validatedSettings.customAdultContentOptions = parsedSettings.customAdultContentOptions.filter(
+          (option: any) => typeof option === 'string' && option.trim().length > 0
+        );
+      }
+
+      return validatedSettings;
+    } catch (error) {
+      console.error('Failed to generate auto-fill settings from reference:', error);
+      console.error('Raw AI response:', response?.content);
+      throw new Error(
+        'Unable to analyze reference content. Please try again or fill settings manually.'
       );
     }
   }

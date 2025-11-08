@@ -133,6 +133,7 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({
 }) => {
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [isGeneratingPrompts, setIsGeneratingPrompts] = useState(false);
+  const [autoFillMode, setAutoFillMode] = useState<'instructions' | 'reference'>('instructions');
   const { addError } = useErrorHandler();
 
   const handleChange = <K extends keyof GenerationConfig>(field: K, value: GenerationConfig[K]) => {
@@ -193,6 +194,53 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({
       console.error('Auto-fill failed:', error);
       addError('Không thể tự động điền cài đặt. Vui lòng thử lại hoặc điền thủ công.', {
         context: 'Auto-fill Settings',
+        recoverable: true,
+      });
+    } finally {
+      setIsAutoFilling(false);
+    }
+  };
+
+  const handleAutoFillFromReference = async () => {
+    if (!config.referenceContent?.trim()) {
+      addError('Vui lòng nhập nội dung tham khảo để phân tích', {
+        context: 'Auto-fill from Reference',
+        recoverable: true,
+      });
+      return;
+    }
+
+    setIsAutoFilling(true);
+    try {
+      const aiService = getAIService((error, options) => {
+        addError(error, options);
+        return typeof error === 'string' ? error : error.message;
+      });
+
+      // Run settings auto-fill from reference content
+      const autoFilledSettings = await aiService.generateAutoFillSettingsFromReference(
+        config.referenceContent,
+        config.additionalInstructions || undefined,
+        'gemini-flash' // Default model, could be made configurable
+      );
+
+      // Apply the auto-filled settings
+      console.log('Auto-filled settings from reference:', autoFilledSettings);
+      setConfig((prev) => {
+        const newConfig = {
+          ...prev,
+          ...autoFilledSettings,
+        };
+        console.log('New config after auto-fill from reference:', newConfig);
+        return newConfig;
+      });
+
+      // Show success message
+      console.log('Auto-fill from reference completed successfully');
+    } catch (error) {
+      console.error('Auto-fill from reference failed:', error);
+      addError('Không thể phân tích nội dung tham khảo. Vui lòng thử lại hoặc điền thủ công.', {
+        context: 'Auto-fill from Reference',
         recoverable: true,
       });
     } finally {
@@ -331,75 +379,161 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({
           )}
         </Section>
         <Section title="Hướng dẫn bổ sung cho AI" initialOpen={true}>
-          <div className="space-y-2">
-            <TextArea
-              label="Hướng dẫn tùy chỉnh (tùy chọn)"
-              placeholder={`Ví dụ:
+          <div className="space-y-3">
+            {/* Auto-fill mode selector */}
+            <div className="flex bg-muted rounded-lg p-1">
+              <button
+                onClick={() => setAutoFillMode('instructions')}
+                className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${autoFillMode === 'instructions' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted-foreground/20'}`}
+              >
+                Dựa trên hướng dẫn
+              </button>
+              <button
+                onClick={() => setAutoFillMode('reference')}
+                className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${autoFillMode === 'reference' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted-foreground/20'}`}
+              >
+                Dựa trên mẫu truyện
+              </button>
+            </div>
+
+            {autoFillMode === 'instructions' ? (
+              <>
+                <TextArea
+                  label="Hướng dẫn tùy chỉnh (tùy chọn)"
+                  placeholder={`Ví dụ:
 • Tập trung vào cảm xúc nội tâm của nhân vật chính
 • Sử dụng ngôn ngữ thơ mộng, lãng mạn hơn
 • Thêm yếu tố bất ngờ và twist plot
 • Viết theo phong cách văn học Việt Nam hiện đại
 • Tăng cường tương tác giữa các nhân vật`}
-              value={config.additionalInstructions || ''}
-              onChange={(e) => handleChange('additionalInstructions', e.target.value)}
-            />
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="auto-generate-prompts"
-                checked={config.autoGeneratePrompts || false}
-                onChange={(e) => handleChange('autoGeneratePrompts', e.target.checked)}
-                className="h-4 w-4 rounded bg-background border-border text-primary focus:ring-ring"
-              />
-              <label
-                htmlFor="auto-generate-prompts"
-                className="text-sm text-muted-foreground select-none"
-              >
-                Tự động tạo yêu cầu tùy chỉnh
-              </label>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleAutoFillSettings}
-                disabled={isAutoFilling || !config.additionalInstructions?.trim()}
-                className="flex-1 flex justify-center items-center px-3 py-2 text-sm bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
-              >
-                {isAutoFilling ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
+                  value={config.additionalInstructions || ''}
+                  onChange={(e) => handleChange('additionalInstructions', e.target.value)}
+                />
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="auto-generate-prompts"
+                    checked={config.autoGeneratePrompts || false}
+                    onChange={(e) => handleChange('autoGeneratePrompts', e.target.checked)}
+                    className="h-4 w-4 rounded bg-background border-border text-primary focus:ring-ring"
+                  />
+                  <label
+                    htmlFor="auto-generate-prompts"
+                    className="text-sm text-muted-foreground select-none"
+                  >
+                    Tự động tạo yêu cầu tùy chỉnh
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAutoFillSettings}
+                    disabled={isAutoFilling || !config.additionalInstructions?.trim()}
+                    className="flex-1 flex justify-center items-center px-3 py-2 text-sm bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
+                  >
+                    {isAutoFilling ? (
+                      <>
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      <>
+                        <WandIcon className="w-4 h-4 mr-2" />
+                        Tự động điền cài đặt
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Nhập hướng dẫn và nhấn "Tự động điền cài đặt" để AI phân tích và điền các trường phù
+                  hợp. Nếu tích "Tự động tạo yêu cầu", AI cũng sẽ tạo các prompts tùy chỉnh.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
+                      Nội dung tham khảo (chapter/mẩu truyện NSFW bạn yêu thích)
+                    </label>
+                    <textarea
+                      rows={6}
+                      placeholder={`Dán nội dung chapter hoặc mẩu truyện NSFW bạn yêu thích vào đây. AI sẽ phân tích style viết, tone, và preferences để tạo cài đặt phù hợp.
+
+Ví dụ: Một chapter truyện với ngôn ngữ thơ mộng, tập trung vào cảm xúc lãng mạn và các cảnh gợi cảm tinh tế...`}
+                      value={config.referenceContent || ''}
+                      onChange={(e) => handleChange('referenceContent', e.target.value)}
+                      className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                    />
+                  </div>
+                  <TextArea
+                    label="Hướng dẫn bổ sung (tùy chọn)"
+                    placeholder="Thêm hướng dẫn cụ thể nếu cần (ví dụ: 'Làm cho nội dung gợi cảm hơn' hoặc 'Tập trung vào cảm xúc')"
+                    value={config.additionalInstructions || ''}
+                    onChange={(e) => handleChange('additionalInstructions', e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleAutoFillFromReference}
+                      disabled={isAutoFilling || !config.referenceContent?.trim()}
+                      className="flex-1 flex justify-center items-center px-3 py-2 text-sm bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Đang xử lý...
-                  </>
-                ) : (
-                  <>
-                    <WandIcon className="w-4 h-4 mr-2" />
-                    Tự động điền cài đặt
-                  </>
-                )}
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Nhập hướng dẫn và nhấn "Tự động điền cài đặt" để AI phân tích và điền các trường phù
-              hợp. Nếu tích "Tự động tạo yêu cầu", AI cũng sẽ tạo các prompts tùy chỉnh.
-            </p>
+                      {isAutoFilling ? (
+                        <>
+                          <svg
+                            className="animate-spin -ml-1 mr-2 h-4 w-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Đang phân tích...
+                        </>
+                      ) : (
+                        <>
+                          <WandIcon className="w-4 h-4 mr-2" />
+                          Phân tích và điền cài đặt
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    AI sẽ phân tích nội dung tham khảo để hiểu style viết, tone, và preferences, sau đó đề xuất cài đặt phù hợp. Có thể kết hợp với hướng dẫn bổ sung.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </Section>
         <Section title="Kịch bản / Bối cảnh" initialOpen={true}>
@@ -544,6 +678,36 @@ export const ContentNavigator: React.FC<ContentNavigatorProps> = ({
                 <span className="ml-3 text-sm text-muted-foreground select-none">{option}</span>
               </label>
             ))}
+          </div>
+
+          {/* Custom Adult Content Options */}
+          <div className="mt-4 pt-3 border-t border-border">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              Tùy chọn tùy chỉnh (mỗi dòng một option)
+            </label>
+            <textarea
+              rows={3}
+              placeholder={`Ví dụ:
+Mô tả chi tiết về cảm xúc
+Tương tác thân mật giữa các nhân vật
+Không gian riêng tư và lãng mạn
+Sự phát triển mối quan hệ chậm rãi`}
+              value={(config.customAdultContentOptions || []).join('\n')}
+              onChange={(e) => {
+                const customOptions = e.target.value
+                  .split('\n')
+                  .map(line => line.trim())
+                  .filter(line => line.length > 0);
+                setConfig((prev) => ({
+                  ...prev,
+                  customAdultContentOptions: customOptions.length > 0 ? customOptions : undefined,
+                }));
+              }}
+              className="w-full bg-input border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Nhập các tùy chọn nội dung 18+ tùy chỉnh. Mỗi dòng là một option riêng biệt.
+            </p>
           </div>
         </Section>
       </div>
