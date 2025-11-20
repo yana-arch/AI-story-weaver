@@ -21,7 +21,7 @@ export class GoogleGeminiClient {
     try {
       const testClient = new GoogleGenAI({ apiKey: effectiveApiKey });
       const response = await testClient.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
         contents: 'Say "OK"',
       });
       const text = response.text;
@@ -62,7 +62,7 @@ export class GoogleGeminiClient {
       }
 
       const fullPrompt = contents.join('\n\n');
-      const effectiveModel = options.model || 'gemini-2.0-flash-exp';
+      const effectiveModel = options.model || 'gemini-2.5-flash';
 
       let config: any = {
         temperature: options.temperature ?? 0.7,
